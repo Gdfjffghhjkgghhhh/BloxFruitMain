@@ -2023,28 +2023,27 @@ Q:OnChanged(function(Value)
 end)
 local TweenService = game:GetService("TweenService")
 
--- ➜ Fix hàm tìm quái theo tên (tìm bằng string.find)
-local function GetConnectionEnemies(list)
-    for _, mob in pairs(workspace.Enemies:GetChildren()) do
-        if mob:FindFirstChild("Humanoid") 
-        and mob:FindFirstChild("HumanoidRootPart") 
-        and mob.Humanoid.Health > 0 then
-            
-            for _, name in ipairs(list) do
-                if string.find(mob.Name, name) then
-                    return mob
-                end
+-- Hàm tìm quái theo THỨ TỰ ƯU TIÊN
+local function GetEnemyByPriority(priorityList)
+    for _, mobName in ipairs(priorityList) do
+        for _, mob in pairs(workspace.Enemies:GetChildren()) do
+            if mob:FindFirstChild("Humanoid")
+            and mob:FindFirstChild("HumanoidRootPart")
+            and mob.Humanoid.Health > 0
+            and string.find(mob.Name, mobName) then
+                return mob
             end
         end
     end
+    return nil
 end
 
--- Tên quái chuẩn (không sai chính tả)
-local BonesTable = {
+-- Thứ tự bạn yêu cầu
+local BonesPriority = {
     "Reborn Skeleton",
-    "Living Zombie",
     "Demonic Soul",
-    "Possessed Mummy" -- sửa lại ss
+    "Living Zombie",
+    "Posessed Mummy"
 }
 
 spawn(function()
@@ -2057,8 +2056,8 @@ spawn(function()
         local questUI = player.PlayerGui.Main:FindFirstChild("Quest")
         if not root or not questUI then continue end
 
-        -- Lọc quái
-        local bone = GetConnectionEnemies(BonesTable)
+        -- Lấy quái theo thứ tự ưu tiên
+        local bone = GetEnemyByPriority(BonesPriority)
         
         if bone then
             
@@ -2066,7 +2065,7 @@ spawn(function()
             if _G.AcceptQuestC and not questUI.Visible then
                 local questPos = CFrame.new(-9516.99, 172.01, 6078.46)
 
-                -- Tween tới NPC Quest
+                -- Tween đến NPC Quest
                 if (root.Position - questPos.Position).Magnitude > 50 then
                     local tween = TweenService:Create(
                         root,
@@ -2089,7 +2088,7 @@ spawn(function()
                 end)
             end
 
-            -- === TWEEN ĐẾN QUÁI (Tween Block) ===
+            -- === TWEEN ĐẾN QUÁI ===
             if (root.Position - bone.HumanoidRootPart.Position).Magnitude > 20 then
                 local targetPos = bone.HumanoidRootPart.CFrame * CFrame.new(0, 5, 4)
 
@@ -2111,7 +2110,7 @@ spawn(function()
             until not _G.AutoFarm_Bone or not bone.Parent or bone.Humanoid.Health <= 0 or (_G.AcceptQuestC and not questUI.Visible)
 
         else
-            -- Không có quái → Tween về Spawn
+            -- === Không có quái → Tween về Spawn ===
             local spawnPos = CFrame.new(-9495.68, 453.58, 5977.34)
             if (root.Position - spawnPos.Position).Magnitude > 20 then
                 local tween = TweenService:Create(
@@ -2124,7 +2123,6 @@ spawn(function()
         end
     end
 end)
-
 
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
