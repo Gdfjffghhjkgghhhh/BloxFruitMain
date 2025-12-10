@@ -2023,22 +2023,21 @@ Q:OnChanged(function(Value)
 end)
 local TweenService = game:GetService("TweenService")
 
--- Hàm tìm quái theo THỨ TỰ ƯU TIÊN
-local function GetEnemyByPriority(priorityList)
-    for _, mobName in ipairs(priorityList) do
+-- Hàm tìm quái theo thứ tự ưu tiên
+local function GetEnemyByPriority(list)
+    for _, name in ipairs(list) do
         for _, mob in pairs(workspace.Enemies:GetChildren()) do
             if mob:FindFirstChild("Humanoid")
             and mob:FindFirstChild("HumanoidRootPart")
             and mob.Humanoid.Health > 0
-            and string.find(mob.Name, mobName) then
+            and string.find(mob.Name, name) then
                 return mob
             end
         end
     end
-    return nil
 end
 
--- Thứ tự ưu tiên
+-- Thứ tự quái
 local BonesPriority = {
     "Reborn Skeleton",
     "Demonic Soul",
@@ -2050,65 +2049,65 @@ spawn(function()
     while task.wait(0.1) do
         if not _G.AutoFarm_Bone then continue end
 
-        local player = game.Players.LocalPlayer
-        local char = player.Character
+        local p = game.Players.LocalPlayer
+        local char = p.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
-        local questUI = player.PlayerGui.Main:FindFirstChild("Quest")
+        local questUI = p.PlayerGui.Main:FindFirstChild("Quest")
+
         if not root or not questUI then continue end
 
         local bone = GetEnemyByPriority(BonesPriority)
-        
+
         if bone then
             
             -- === AUTO QUEST ===
             if _G.AcceptQuestC and not questUI.Visible then
                 local questPos = Vector3.new(-9516.99, 172.01, 6078.46)
+                local distQ = (root.Position - questPos).Magnitude
 
-                local distQuest = (root.Position - questPos).Magnitude
-                if distQuest > 50 then
-                    -- Bay tới NPC (CFrame), KHÔNG Tween
-                    root.CFrame = CFrame.new(root.Position, questPos)
-                    root.CFrame = root.CFrame + (questPos - root.Position).Unit * 5
-                else
-                    -- Gần rồi → Tween nhẹ
+                -- BAY (CFrame) đến NPC, KHÔNG Tween
+                root.CFrame = CFrame.new(
+                    root.Position:Lerp(questPos + Vector3.new(0, 10, 0), 0.15)
+                )
+
+                -- Gần rồi mới Tween nhẹ
+                if distQ < 20 then
                     local tween = TweenService:Create(
                         root,
-                        TweenInfo.new(0.35, Enum.EasingStyle.Linear),
+                        TweenInfo.new(0.25, Enum.EasingStyle.Linear),
                         {CFrame = CFrame.new(questPos)}
                     )
                     tween:Play()
                     tween.Completed:Wait()
                 end
 
-                local questData = {
+                -- Nhận quest
+                local list = {
                     {"StartQuest","HauntedQuest2",2},
                     {"StartQuest","HauntedQuest2",1},
                     {"StartQuest","HauntedQuest1",1},
                     {"StartQuest","HauntedQuest1",2},
                 }
-
                 pcall(function()
-                    local randomQuest = questData[math.random(1,#questData)]
-                    game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
+                    game.ReplicatedStorage.Remotes.CommF_:InvokeServer(
+                        unpack(list[math.random(1,#list)])
+                    )
                 end)
             end
 
             -- === TỚI QUÁI ===
-            local distMob = (root.Position - bone.HumanoidRootPart.Position).Magnitude
+            local dist = (root.Position - bone.HumanoidRootPart.Position).Magnitude
 
-            if distMob > 200 then
-                -- Xa quái → bay nhanh (không tween)
-                root.CFrame = root.CFrame:Lerp(
-                    CFrame.new(bone.HumanoidRootPart.Position + Vector3.new(0,10,0)),
-                    0.25
-                )
-            elseif distMob > 15 then
-                -- Gần quái → Tween Block
+            if dist > 20 then
+                -- BAY (CFrame) như script gốc
+                local target = bone.HumanoidRootPart.Position + Vector3.new(0, 10, 0)
+                root.CFrame = CFrame.new(root.Position:Lerp(target, 0.25))
+            else
+                -- GẦN QUÁI → Tween Block
                 local targetPos = bone.HumanoidRootPart.CFrame * CFrame.new(0, 5, 4)
-
                 local tween = TweenService:Create(
                     root,
-                    TweenInfo.new(0.25, Enum.EasingStyle.Linear),
+                    TweenInfo.new(0.2, Enum.EasingStyle.Linear),
                     {CFrame = targetPos}
                 )
                 tween:Play()
@@ -2119,29 +2118,20 @@ spawn(function()
             repeat
                 task.wait(0.05)
                 if bone.Parent then
-                    Attack.Kill(bone, _G.AutoFarm_Bone)
+                    Attack.Kill(bone, true)
                 end
-            until not _G.AutoFarm_Bone or not bone.Parent or bone.Humanoid.Health <= 0 or (_G.AcceptQuestC and not questUI.Visible)
+            until not _G.AutoFarm_Bone 
+                or not bone.Parent 
+                or bone.Humanoid.Health <= 0 
+                or (_G.AcceptQuestC and not questUI.Visible)
 
         else
             -- === KHÔNG CÓ QUÁI → bay về spawn ===
             local spawnPos = Vector3.new(-9495.68, 453.58, 5977.34)
 
-            if (root.Position - spawnPos).Magnitude > 50 then
-                -- Bay (không Tween)
-                root.CFrame = root.CFrame:Lerp(
-                    CFrame.new(spawnPos + Vector3.new(0,10,0)),
-                    0.25
-                )
-            else
-                -- Gần spawn → Tween nhẹ
-                local tween = TweenService:Create(
-                    root,
-                    TweenInfo.new(0.3, Enum.EasingStyle.Linear),
-                    {CFrame = CFrame.new(spawnPos)}
-                )
-                tween:Play()
-            end
+            root.CFrame = CFrame.new(
+                root.Position:Lerp(spawnPos + Vector3.new(0, 10, 0), 0.25)
+            )
         end
     end
 end)
