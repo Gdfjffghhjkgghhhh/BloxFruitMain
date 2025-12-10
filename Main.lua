@@ -2023,6 +2023,27 @@ Q:OnChanged(function(Value)
 end)
 local TweenService = game:GetService("TweenService")
 
+-- Tọa độ đảo Bones
+local IslandPos = Vector3.new(-9500, 300, 6000)  -- Tự chỉnh nếu cần
+local StartTweenDistance = 250 -- Xa hơn 250 thì bay; gần hơn thì tween
+
+-- Hàm bay thẳng không dùng Tween
+local function FlyTo(root, target)
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e7,1e7,1e7)
+    bv.Velocity = (target - root.Position).Unit * 140
+    bv.Parent = root
+
+    -- Tự hủy khi đến gần
+    task.spawn(function()
+        repeat 
+            task.wait()
+            bv.Velocity = (target - root.Position).Unit * 140
+        until (root.Position - target).Magnitude <= StartTweenDistance
+        bv:Destroy()
+    end)
+end
+
 -- Hàm tìm quái theo THỨ TỰ ƯU TIÊN
 local function GetEnemyByPriority(priorityList)
     for _, mobName in ipairs(priorityList) do
@@ -2038,7 +2059,6 @@ local function GetEnemyByPriority(priorityList)
     return nil
 end
 
--- Thứ tự bạn yêu cầu
 local BonesPriority = {
     "Reborn Skeleton",
     "Demonic Soul",
@@ -2056,16 +2076,21 @@ spawn(function()
         local questUI = player.PlayerGui.Main:FindFirstChild("Quest")
         if not root or not questUI then continue end
 
-        -- Lấy quái theo thứ tự ưu tiên
+        -- Kiểm tra nếu người chơi đang còn ở rất xa đảo → bay trước
+        if (root.Position - IslandPos).Magnitude > 800 then
+            FlyTo(root, IslandPos)
+            repeat task.wait() until (root.Position - IslandPos).Magnitude <= StartTweenDistance
+        end
+
+        -- Sau khi vào gần đảo → bắt đầu farm bình thường
         local bone = GetEnemyByPriority(BonesPriority)
-        
+
         if bone then
             
             -- === AUTO QUEST ===
             if _G.AcceptQuestC and not questUI.Visible then
                 local questPos = CFrame.new(-9516.99, 172.01, 6078.46)
 
-                -- Tween đến NPC Quest
                 if (root.Position - questPos.Position).Magnitude > 50 then
                     local tween = TweenService:Create(
                         root,
@@ -2110,7 +2135,7 @@ spawn(function()
             until not _G.AutoFarm_Bone or not bone.Parent or bone.Humanoid.Health <= 0 or (_G.AcceptQuestC and not questUI.Visible)
 
         else
-            -- === Không có quái → Tween về Spawn ===
+            -- === KHÔNG CÓ QUÁI → TWEEN VỀ SPAWN ===
             local spawnPos = CFrame.new(-9495.68, 453.58, 5977.34)
             if (root.Position - spawnPos.Position).Magnitude > 20 then
                 local tween = TweenService:Create(
