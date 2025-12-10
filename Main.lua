@@ -2021,6 +2021,8 @@ local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "",
 Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
+local TweenService = game:GetService("TweenService")
+
 spawn(function()
     while task.wait(0.1) do
         if not _G.AutoFarm_Bone then continue end
@@ -2032,7 +2034,7 @@ spawn(function()
         if not root or not questUI then continue end
 
         -- Lọc quái
-        local BonesTable = {"Reborn Skeleton","Living Zombie","Demonic Soul","Posessed Mummy"}
+        local BonesTable = {"Reborn Skeleton","Demonic Soul","Living Zombie","Posessed Mummy"}
         local bone = GetConnectionEnemies(BonesTable)
         
         if bone and bone.Parent and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
@@ -2040,9 +2042,16 @@ spawn(function()
             -- === AUTO QUEST ===
             if _G.AcceptQuestC and not questUI.Visible then
                 local questPos = CFrame.new(-9516.99, 172.01, 6078.46)
+
+                -- Tween tới NPC Quest
                 if (root.Position - questPos.Position).Magnitude > 50 then
-                    _tp(questPos)
-                    repeat task.wait(0.2) until (root.Position - questPos.Position).Magnitude <= 50
+                    local tween = TweenService:Create(
+                        root,
+                        TweenInfo.new(0.4, Enum.EasingStyle.Linear),
+                        {CFrame = questPos}
+                    )
+                    tween:Play()
+                    tween.Completed:Wait()
                 end
 
                 local questData = {
@@ -2057,9 +2066,17 @@ spawn(function()
                 end)
             end
 
-            -- === TP LẠI SÁT QUÁI (CFrame set) ===
+            -- === TWEEN ĐẾN QUÁI (Tween Block) ===
             if (root.Position - bone.HumanoidRootPart.Position).Magnitude > 20 then
-                _tp(bone.HumanoidRootPart.CFrame * CFrame.new(0, 5, 4))
+                local targetPos = bone.HumanoidRootPart.CFrame * CFrame.new(0, 5, 4)
+
+                local tween = TweenService:Create(
+                    root,
+                    TweenInfo.new(0.25, Enum.EasingStyle.Linear),
+                    {CFrame = targetPos}
+                )
+                tween:Play()
+                tween.Completed:Wait()
             end
 
             -- === FARM ===
@@ -2071,10 +2088,15 @@ spawn(function()
             until not _G.AutoFarm_Bone or not bone.Parent or bone.Humanoid.Health <= 0 or (_G.AcceptQuestC and not questUI.Visible)
 
         else
-            -- Không có quái → TP về chỗ Spawn
+            -- Không có quái → Tween về Spawn
             local spawnPos = CFrame.new(-9495.68, 453.58, 5977.34)
             if (root.Position - spawnPos.Position).Magnitude > 20 then
-                _tp(spawnPos)
+                local tween = TweenService:Create(
+                    root,
+                    TweenInfo.new(0.3, Enum.EasingStyle.Linear),
+                    {CFrame = spawnPos}
+                )
+                tween:Play()
             end
         end
     end
