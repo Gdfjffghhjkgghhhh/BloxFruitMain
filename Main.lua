@@ -2023,6 +2023,30 @@ Q:OnChanged(function(Value)
 end)
 local TweenService = game:GetService("TweenService")
 
+-- ➜ Fix hàm tìm quái theo tên (tìm bằng string.find)
+local function GetConnectionEnemies(list)
+    for _, mob in pairs(workspace.Enemies:GetChildren()) do
+        if mob:FindFirstChild("Humanoid") 
+        and mob:FindFirstChild("HumanoidRootPart") 
+        and mob.Humanoid.Health > 0 then
+            
+            for _, name in ipairs(list) do
+                if string.find(mob.Name, name) then
+                    return mob
+                end
+            end
+        end
+    end
+end
+
+-- Tên quái chuẩn (không sai chính tả)
+local BonesTable = {
+    "Reborn Skeleton",
+    "Living Zombie",
+    "Demonic Soul",
+    "Possessed Mummy" -- sửa lại ss
+}
+
 spawn(function()
     while task.wait(0.1) do
         if not _G.AutoFarm_Bone then continue end
@@ -2034,10 +2058,9 @@ spawn(function()
         if not root or not questUI then continue end
 
         -- Lọc quái
-        local BonesTable = {"Reborn Skeleton","Demonic Soul","Living Zombie","Posessed Mummy"}
         local bone = GetConnectionEnemies(BonesTable)
         
-        if bone and bone.Parent and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
+        if bone then
             
             -- === AUTO QUEST ===
             if _G.AcceptQuestC and not questUI.Visible then
