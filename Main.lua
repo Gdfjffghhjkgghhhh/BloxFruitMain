@@ -2022,33 +2022,32 @@ Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
 local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
-local player = Players.LocalPlayer
+-- Hàm Tween an toàn (không bay lên trời)
+local function SafeTweenTo(root, targetCF)
+    if not root or not targetCF then return end
 
--- ⚡ Hàm tween an toàn (không bay lên trời)
-local function SafeTweenTo(root, targetCFrame)
-    if not root or not root.Parent then return end
-
-    local distance = (root.Position - targetCFrame.Position).Magnitude
-    local time = distance / 350  -- tốc độ 350
+    local distance = (root.Position - targetCF.Position).Magnitude
+    local duration = math.clamp(distance / 350, 0.15, 1.2)
 
     local tween = TweenService:Create(
         root,
-        TweenInfo.new(time, Enum.EasingStyle.Linear),
-        { CFrame = targetCFrame }
+        TweenInfo.new(duration, Enum.EasingStyle.Linear),
+        {CFrame = targetCF}
     )
-
+    
     tween:Play()
     tween.Completed:Wait()
 end
 
--- ⚡ Hàm tìm mob theo thứ tự ưu tiên
-local function GetEnemyByPriority(list)
-    for _, name in ipairs(list) do
+-- Hàm tìm quái theo thứ tự ưu tiên
+local function GetEnemyByPriority(priorityList)
+    for _, mobName in ipairs(priorityList) do
         for _, mob in pairs(workspace.Enemies:GetChildren()) do
-            if mob.Name == name and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
+            if mob:FindFirstChild("Humanoid")
+            and mob:FindFirstChild("HumanoidRootPart")
+            and mob.Humanoid.Health > 0
+            and string.find(mob.Name, mobName) then
                 return mob
             end
         end
@@ -2056,40 +2055,71 @@ local function GetEnemyByPriority(list)
     return nil
 end
 
--- Danh sách quái ví dụ
-local PriorityList = {
+-- Danh sách quái ưu tiên
+local BonesPriority = {
     "Reborn Skeleton",
+    "Demonic Soul",
     "Living Zombie",
-    "Demonic Soul"
+    "Posessed Mummy"
 }
 
-_G.AutoFarm = true
+spawn(function()
+    while task.wait(0.1) do
+        if not _G.AutoFarm_Bone then continue end
 
-task.spawn(function()
-    while task.wait() do
-        if not _G.AutoFarm then continue end
-
+        local player = game.Players.LocalPlayer
         local char = player.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then continue end
+        local questUI = player.PlayerGui.Main:FindFirstChild("Quest")
+        if not root or not questUI then continue end
 
-        local mob = GetEnemyByPriority(PriorityList)
-        if not mob then continue end
+        -- Lấy quái theo thứ tự ưu tiên
+        local bone = GetEnemyByPriority(BonesPriority)
+        
+        if bone then
+            
+            -- === AUTO QUEST ===
+            if _G.AcceptQuestC and not questUI.Visible then
+                local questPos = CFrame.new(-9516.99, 172.01, 6078.46)
 
-        local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-        if not mobRoot then continue end
+                -- Tween đến NPC Quest (FIX)
+                if (root.Position - questPos.Position).Magnitude > 50 then
+                    SafeTweenTo(root, questPos)
+                end
 
-        -- ⚡ Vị trí farm: đứng ngay sau lưng quái
-        local farmPos = mobRoot.CFrame * CFrame.new(0, 0, 3)
+                local questData = {
+                    {"StartQuest","HauntedQuest2",2},
+                    {"StartQuest","HauntedQuest2",1},
+                    {"StartQuest","HauntedQuest1",1},
+                    {"StartQuest","HauntedQuest1",2},
+                }
+                pcall(function()
+                    local randomQuest = questData[math.random(1,#questData)]
+                    game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
+                end)
+            end
 
-        -- ⚡ Tween nhanh tới quái (không teleport thẳng để tránh anti)
-        SafeTweenTo(root, farmPos)
+            -- === TWEEN TỚI QUÁI — ĐÃ FIX (không bay lên trời) ===
+            if (root.Position - bone.HumanoidRootPart.Position).Magnitude > 20 then
+                local targetPos = bone.HumanoidRootPart.CFrame * CFrame.new(0, 5, 4)
+                SafeTweenTo(root, targetPos)
+            end
 
-        -- ⚔️ Tự đánh
-        pcall(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton1(Vector2.new())
-        end)
+            -- === FARM ===
+            repeat
+                task.wait(0.05)
+                if bone.Parent then
+                    Attack.Kill(bone, _G.AutoFarm_Bone)
+                end
+            until not _G.AutoFarm_Bone or not bone.Parent or bone.Humanoid.Health <= 0 or (_G.AcceptQuestC and not questUI.Visible)
+
+        else
+            -- === KHÔNG QUÁI → TWEEN VỀ TRÊN ĐẢO (SAFE) ===
+            local spawnPos = CFrame.new(-9495.68, 453.58, 5977.34)
+            if (root.Position - spawnPos.Position).Magnitude > 20 then
+                SafeTweenTo(root, spawnPos)
+            end
+        end
     end
 end)
 
@@ -7636,5 +7666,3 @@ task.spawn(function()
   end)
 end)
 Window:SelectTab(1)
-
-
