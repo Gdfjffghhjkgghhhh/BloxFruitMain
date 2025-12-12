@@ -92,7 +92,7 @@ task.spawn(function()
     end)
 
     -- 4. Tự xóa sau 5 giây
-    task.wait(5)
+    task.wait(10)
     -- Trượt ra ngoài
     TweenService:Create(Frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(1, 20, 0.85, 0)}):Play()
     task.wait(0.5)
