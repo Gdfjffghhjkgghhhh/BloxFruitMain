@@ -1755,7 +1755,8 @@ spawn(function()
         end
     end
 end)
-Fishing = Tabs.Quests:AddToggle("Fishing", {Title = "Auto Fishing", Default = _G.AutoFishing})
+
+Tabs.Quests:AddToggle("Fishing", {Title = "Auto Fishing", Default = _G.AutoFishing})
 Fishing:OnChanged(function(Value)
     _G.AutoFishing = Value
 end)
