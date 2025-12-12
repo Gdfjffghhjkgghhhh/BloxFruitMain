@@ -1756,51 +1756,6 @@ spawn(function()
     end
 end)
 
-Tabs.Quests:AddToggle("Fishing", {Title = "Auto Fishing", Default = _G.AutoFishing})
-Fishing:OnChanged(function(Value)
-    _G.AutoFishing = Value
-end)
-
-local Players2 = game:GetService("Players")
-local LocalPlayer2 = Players2.LocalPlayer
-local Workspace2 = game:GetService("Workspace")
-local FishReplicated2 = game:GetService("ReplicatedStorage"):WaitForChild("FishReplicated")
-local FishingRequest2 = FishReplicated2:WaitForChild("FishingRequest")
-local Config2 = require(FishReplicated2.FishingClient.Config)
-local GetWaterHeight2 = require(game:GetService("ReplicatedStorage").Util.GetWaterHeightAtLocation)
-local maxdistance2 = Config2.Rod.MaxLaunchDistance
-
-task.spawn(function()
-    while task.wait(0.5) do
-        if _G.AutoFishing then
-            pcall(function()
-                local Char = LocalPlayer2.Character or LocalPlayer2.CharacterAdded:Wait()
-                local hrm = Char:FindFirstChild("HumanoidRootPart")
-                local Tool = Char:FindFirstChildOfClass("Tool")
-                if not (hrm and Tool) then return end
-
-                local waterHeight = GetWaterHeight2(hrm.Position)
-                local _, hitPos = Workspace2:FindPartOnRayWithIgnoreList(
-                    Ray.new(Char.Head.Position, hrm.CFrame.LookVector * maxdistance2),
-                    {Char, Workspace2.Characters, Workspace2.Enemies}
-                )
-                local pos = Vector3.new(hitPos.X, math.max(hitPos.Y, waterHeight), hitPos.Z)
-                local State = Tool:GetAttribute("State")
-                local ServerState = Tool:GetAttribute("ServerState")
-
-                if State == "ReeledIn" or ServerState == "ReeledIn" then
-                    FishingRequest2:InvokeServer("StartCasting")
-                    task.wait()
-                    FishingRequest2:InvokeServer("CastLineAtLocation", pos, 100, true)
-                elseif ServerState == "Biting" then
-                    FishingRequest2:InvokeServer("Catching", true)
-                    task.wait(0.1)
-                    FishingRequest2:InvokeServer("Catch", 1)
-                end
-            end)
-        end
-    end
-end)
 local TravelDress = Tabs.Quests:AddToggle("TravelDress", {Title = "Auto Travel Dressrosa", Description = "", Default = false})
 TravelDress:OnChanged(function(Value)
   _G.TravelDres = Value
