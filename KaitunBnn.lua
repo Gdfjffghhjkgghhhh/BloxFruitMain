@@ -2,7 +2,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
 
 local Player = Players.LocalPlayer
@@ -12,10 +11,10 @@ Player.CharacterAdded:Connect(function(newChar)
     Character = newChar
 end)
 
---// CẤU HÌNH CỰC ĐẠI (EXTREME CONFIG)
+--// CẤU HÌNH TỐI ƯU (OPTIMIZED CONFIG)
 local Config = {
-    HitsPerFrame = 15,    -- Số lần đánh trong 1 khung hình (15 x 60 FPS ≈ 900 hits/s)
-    Range = 60,           -- Phạm vi
+    HitsPerFrame = 2,    -- GIẢM XUỐNG: 2-3 hit/frame là đủ nhanh (quá cao server sẽ chặn)
+    Range = 50,          -- Phạm vi an toàn
     AutoClick = true,
 }
 
@@ -29,8 +28,7 @@ function FastAttack:GetTarget()
     local Nearest = nil
     local MinDist = Config.Range
 
-    -- Quét thư mục Enemies (Nhanh nhất)
-    local Enemies = Workspace:FindFirstChild("Enemies")
+    local Enemies = Workspace:FindFirstChild("Enemies") or Workspace:FindFirstChild("Mobs")
     if Enemies then
         for _, v in pairs(Enemies:GetChildren()) do
             if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
@@ -45,69 +43,92 @@ function FastAttack:GetTarget()
     return Nearest
 end
 
--- Hàm đánh không delay
+-- Hàm đánh gây damage thực
 function FastAttack:Attack(Target)
     if not Target then return end
     
-    -- 1. Xóa Animation ngay lập tức (Freeze Animation)
+    local Tool = Character:FindFirstChildOfClass("Tool")
+    if not Tool then return end
+
+    -- 1. Xóa Animation (Client side visual)
     local Hum = Character:FindFirstChild("Humanoid")
     if Hum then
         local Tracks = Hum:GetPlayingAnimationTracks()
         for _, t in pairs(Tracks) do
-            t:Stop() -- Dừng ngay lập tức
+            t:Stop()
         end
     end
 
-    -- 2. Spam Click (Packet Spam)
-    -- Gửi tín hiệu click chuột giả lập (Bypass client cooldown)
+    -- 2. Spam Click (Kích hoạt tool)
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
     
-    -- 3. Trigger Tool Remote (Nếu có)
-    local Tool = Character:FindFirstChildOfClass("Tool")
-    if Tool and Tool:FindFirstChild("RemoteEvent") then
-        task.spawn(function() -- Chạy luồng riêng để không chờ
-            pcall(function() Tool.RemoteEvent:FireServer() end)
+    -- 3. QUAN TRỌNG: Giả lập kiếm chạm vào quái (Fake Handle Touch)
+    -- Đây là phần quan trọng nhất để gây damage cho các tool thường
+    local Handle = Tool:FindFirstChild("Handle")
+    local TargetRoot = Target:FindFirstChild("HumanoidRootPart") or Target:FindFirstChild("Torso")
+    
+    if Handle and TargetRoot then
+        -- firetouchinterest là hàm của Executor, giả lập việc va chạm vật lý
+        pcall(function()
+            firetouchinterest(Handle, TargetRoot, 0) -- Bắt đầu chạm
+            firetouchinterest(Handle, TargetRoot, 1) -- Kết thúc chạm
+        end)
+    end
+
+    -- 4. Kích hoạt Remote (Nếu game dùng Remote thay vì Touch)
+    -- Thử gửi Humanoid của quái vào Remote (Fix lỗi thiếu Argument)
+    if Tool:FindFirstChild("RemoteEvent") then
+        task.spawn(function()
+            pcall(function() 
+                -- Gửi kèm Target Humanoid (cách hoạt động phổ biến)
+                Tool.RemoteEvent:FireServer(Target.Humanoid) 
+            end)
+        end)
+    end
+    
+    -- Blox Fruits specific (Nếu là Blox Fruits thì dùng module này)
+    if game:GetService("ReplicatedStorage"):FindFirstChild("RigControllerEvent") then
+         task.spawn(function()
+            pcall(function()
+                game:GetService("ReplicatedStorage").RigControllerEvent:FireServer("weaponChange", tostring(Tool.Name))
+                game:GetService("ReplicatedStorage").RigControllerEvent:FireServer("hit", {
+                    [1] = Target.HumanoidRootPart,
+                    [2] = {
+                        ["p"] = Target.HumanoidRootPart.Position,
+                        ["pid"] = 1
+                    },
+                    [3] = 0.1 -- Hit time
+                })
+            end)
         end)
     end
 end
 
---// LOGIC BỎ QUA THỜI GIAN CHỜ (NO COOLDOWN LOOP)
--- Sử dụng Heartbeat (ưu tiên vật lý) để spam ổn định hơn RenderStepped khi lag
+--// LOGIC LOOP
 RunService.Heartbeat:Connect(function()
     if not Config.AutoClick then return end
     
     local Tool = Character:FindFirstChildOfClass("Tool")
-    if not Tool then return end -- Phải cầm tool
+    if not Tool then return end 
 
     local Target = FastAttack:GetTarget()
     if Target then
-        -- VÒNG LẶP "HỦY DIỆT" (Brute Force Loop)
-        -- Chạy HitsPerFrame lần MỖI FRAME
+        -- Teleport Hitbox (CFrame để dính vào quái giúp server nhận hit dễ hơn)
+        if Character:FindFirstChild("HumanoidRootPart") and Target:FindFirstChild("HumanoidRootPart") then
+            -- Giữ khoảng cách 3-5 stud để tránh bị kick do noclip
+            Character.HumanoidRootPart.CFrame = CFrame.new(Target.HumanoidRootPart.Position + Target.HumanoidRootPart.CFrame.LookVector * 2, Target.HumanoidRootPart.Position)
+        end
+
         for i = 1, Config.HitsPerFrame do
             FastAttack:Attack(Target)
-        end
-        
-        -- Teleport nhẹ để hitbox dính chặt vào quái (Giúp server nhận hit tốt hơn)
-        if Character:FindFirstChild("HumanoidRootPart") and Target:FindFirstChild("HumanoidRootPart") then
-            Character.HumanoidRootPart.CFrame = CFrame.new(Character.HumanoidRootPart.Position, Target.HumanoidRootPart.Position)
-        end
-    end
-end)
-
--- Anti-Stun / Anti-Lag (Dọn dẹp bộ nhớ)
-task.spawn(function()
-    while task.wait(1) do
-        -- Dọn rác bộ nhớ nhẹ
-        for i = 1, 10 do
-            game:GetService("RunService").Stepped:Wait()
         end
     end
 end)
 
 -- Notification
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "🚀 GOD SPEED ENABLED";
-    Text = "~900 Hits/Second | No Cooldown";
+    Title = "✅ FIXED SCRIPT";
+    Text = "Added TouchInterest & Argument logic";
     Duration = 3;
 })
