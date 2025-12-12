@@ -1,4 +1,5 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/WbmxDev/LuauScript/refs/heads/main/fastattack.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/Fastattack.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/noti.lua"))()
 do
   ply = game.Players
   plr = ply.LocalPlayer
@@ -209,7 +210,7 @@ BringEnemy = function()
             
             if hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - PosMon).Magnitude
-                if dist <= 500 and isnetworkowner(hrp) then
+                if dist <= 250 and isnetworkowner(hrp) then
                     
                     -- Apply anti-ghost measures
                     for _, part in ipairs(v:GetDescendants()) do
@@ -1596,8 +1597,8 @@ local Tabs = {
 }
 
 Tabs.Main:AddButton({
-        Title="Thông Báo Update",
-        Description="No Support Krnl",
+        Title="Script Notification",
+        Description="Neon X Hub by mnhatrealz",
         Callback=function()
             setclipboard(tostring("")) 
         end
@@ -1749,6 +1750,51 @@ spawn(function()
                     if spawnMob and spawnMob:FindFirstChild("HumanoidRootPart") then
                         _tp(spawnMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
                     end
+                end
+            end)
+        end
+    end
+end)
+Fishing = Tabs.Quests:AddToggle("Fishing", {Title = "Auto Fishing", Default = _G.AutoFishing})
+Fishing:OnChanged(function(Value)
+    _G.AutoFishing = Value
+end)
+
+local Players2 = game:GetService("Players")
+local LocalPlayer2 = Players2.LocalPlayer
+local Workspace2 = game:GetService("Workspace")
+local FishReplicated2 = game:GetService("ReplicatedStorage"):WaitForChild("FishReplicated")
+local FishingRequest2 = FishReplicated2:WaitForChild("FishingRequest")
+local Config2 = require(FishReplicated2.FishingClient.Config)
+local GetWaterHeight2 = require(game:GetService("ReplicatedStorage").Util.GetWaterHeightAtLocation)
+local maxdistance2 = Config2.Rod.MaxLaunchDistance
+
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.AutoFishing then
+            pcall(function()
+                local Char = LocalPlayer2.Character or LocalPlayer2.CharacterAdded:Wait()
+                local hrm = Char:FindFirstChild("HumanoidRootPart")
+                local Tool = Char:FindFirstChildOfClass("Tool")
+                if not (hrm and Tool) then return end
+
+                local waterHeight = GetWaterHeight2(hrm.Position)
+                local _, hitPos = Workspace2:FindPartOnRayWithIgnoreList(
+                    Ray.new(Char.Head.Position, hrm.CFrame.LookVector * maxdistance2),
+                    {Char, Workspace2.Characters, Workspace2.Enemies}
+                )
+                local pos = Vector3.new(hitPos.X, math.max(hitPos.Y, waterHeight), hitPos.Z)
+                local State = Tool:GetAttribute("State")
+                local ServerState = Tool:GetAttribute("ServerState")
+
+                if State == "ReeledIn" or ServerState == "ReeledIn" then
+                    FishingRequest2:InvokeServer("StartCasting")
+                    task.wait()
+                    FishingRequest2:InvokeServer("CastLineAtLocation", pos, 100, true)
+                elseif ServerState == "Biting" then
+                    FishingRequest2:InvokeServer("Catching", true)
+                    task.wait(0.1)
+                    FishingRequest2:InvokeServer("Catch", 1)
                 end
             end)
         end
@@ -2022,113 +2068,43 @@ Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
 local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-
-local player = Players.LocalPlayer
-
--- Hàm kiểm tra có đang ở đảo Bone không
-local function IsInBoneIsland(position)
-    local boneIslandCenter = Vector3.new(-9500, 172, 6000)
-    return (position - boneIslandCenter).Magnitude < 2000
-end
-
--- Hàm vào đảo Bone an toàn
-local function GoToBoneIsland()
-    local success = pcall(function()
-        game.ReplicatedStorage.Remotes.CommF_:InvokeServer("requestEntrance", 
-            Vector3.new(-9514.78, 171.01, 6081.04))
-    end)
-    if success then
-        task.wait(3) -- Chờ teleport hoàn tất
-        return true
-    end
-    return false
-end
-
--- Hàm Tween chỉ khi đã ở đảo
-local function SafeTweenToIsland(root, targetCF)
+local function TweenToIsland(root, targetCF)
     if not root or not targetCF then return end
     
-    -- Kiểm tra xem có đang ở đảo Bone không
-    if not IsInBoneIsland(root.Position) then
-        print("Chưa ở đảo Bone, đang teleport...")
-        GoToBoneIsland()
-        return
-    end
-    
     local distance = (root.Position - targetCF.Position).Magnitude
-    
-    -- Nếu quá xa, di chuyển từng đoạn nhỏ
-    if distance > 500 then
-        print("Khoảng cách quá xa (" .. math.floor(distance) .. " studs), đang di chuyển từng đoạn...")
-        
-        local direction = (targetCF.Position - root.Position).Unit
-        local stepDistance = 200 -- Mỗi lần di chuyển 200 studs
-        local steps = math.ceil(distance / stepDistance)
-        
-        for i = 1, steps do
-            if not _G.AutoFarm_Bone or not root or not root.Parent then break end
-            
-            local currentPos = root.Position
-            local nextPos = currentPos + (direction * math.min(stepDistance, distance))
-            
-            local tween = TweenService:Create(
-                root,
-                TweenInfo.new(0.8, Enum.EasingStyle.Linear),
-                {CFrame = CFrame.new(nextPos)}
-            )
-            tween:Play()
-            tween.Completed:Wait()
-            
-            distance = (root.Position - targetCF.Position).Magnitude
-            if distance < 50 then break end
-            
-            task.wait(0.1)
-        end
-        return
-    end
-    
-    -- Nếu ở khoảng cách vừa phải, tween bình thường
-    local duration = math.clamp(distance / 250, 0.3, 1.5) -- Giảm tốc độ
+    local duration = math.clamp(distance / 300, 0.2, 2)
+
+    local fixedCF = CFrame.new(targetCF.X, targetCF.Y, targetCF.Z)
 
     local tween = TweenService:Create(
         root,
         TweenInfo.new(duration, Enum.EasingStyle.Linear),
-        {CFrame = targetCF}
+        {CFrame = fixedCF}
     )
     tween:Play()
     tween.Completed:Wait()
 end
 
--- Hàm Tween đến mob (chỉ khi ở gần)
-local function SafeTweenToMob(root, targetCF)
+local function TweenToMob(root, targetCF)
     if not root or not targetCF then return end
     
     local distance = (root.Position - targetCF.Position).Magnitude
-    
-    -- Chỉ tween nếu khoảng cách hợp lý
-    if distance > 300 then
-        print("Khoảng cách đến mob quá xa: " .. math.floor(distance) .. " studs")
-        return
-    end
-    
-    local duration = math.clamp(distance / 350, 0.15, 0.8) -- Tween chậm hơn
+    local duration = math.clamp(distance / 400, 0.12, 1.2)
+
+    local fixedCF = CFrame.new(targetCF.X, targetCF.Y, targetCF.Z)
 
     local tween = TweenService:Create(
         root,
         TweenInfo.new(duration, Enum.EasingStyle.Linear),
-        {CFrame = targetCF}
+        {CFrame = fixedCF}
     )
     tween:Play()
     tween.Completed:Wait()
 end
 
 local function GetEnemyByPriority(priorityList)
-    local enemies = workspace:FindFirstChild("Enemies")
-    if not enemies then return nil end
-    
     for _, mobName in ipairs(priorityList) do
-        for _, mob in pairs(enemies:GetChildren()) do
+        for _, mob in pairs(workspace.Enemies:GetChildren()) do
             if mob:FindFirstChild("Humanoid")
             and mob:FindFirstChild("HumanoidRootPart")
             and mob.Humanoid.Health > 0
@@ -2146,41 +2122,25 @@ local BonesPriority = {
     "Living Zombie",
     "Posessed Mummy"
 }
-
--- Vị trí trong đảo Bone
-local QUEST_POS = CFrame.new(-9516.99, 172.01, 6078.46)
-local SPAWN_POS = CFrame.new(-9495.68, 453.58, 5977.34)
-
 spawn(function()
     while task.wait(0.1) do
         if not _G.AutoFarm_Bone then continue end
 
+        local player = game.Players.LocalPlayer
         local char = player.Character
-        if not char then
-            char = player.CharacterAdded:Wait()
-        end
-        
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then continue end
-        
+        local root = char and char:FindFirstChild("HumanoidRootPart")
         local questUI = player.PlayerGui.Main:FindFirstChild("Quest")
-        if not questUI then continue end
-
-        -- Kiểm tra xem có ở đảo Bone không
-        if not IsInBoneIsland(root.Position) then
-            print("Đang ở ngoài đảo Bone, teleport vào...")
-            GoToBoneIsland()
-            task.wait(2)
-            continue
-        end
+        if not root or not questUI then continue end
 
         local bone = GetEnemyByPriority(BonesPriority)
         
         if bone then
-            -- AUTO QUEST
+            
             if _G.AcceptQuestC and not questUI.Visible then
-                if (root.Position - QUEST_POS.Position).Magnitude > 30 then
-                    SafeTweenToIsland(root, QUEST_POS)
+                local questPos = CFrame.new(-9516.99, 172.01, 6078.46)
+
+                if (root.Position - questPos.Position).Magnitude > 50 then
+                    TweenToIsland(root, questPos)
                 end
 
                 local questData = {
@@ -2194,53 +2154,27 @@ spawn(function()
                     local randomQuest = questData[math.random(1,#questData)]
                     game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
                 end)
-                task.wait(0.5)
             end
 
-            -- Di chuyển đến mob
-            local distanceToMob = (root.Position - bone.HumanoidRootPart.Position).Magnitude
-            if distanceToMob > 15 and distanceToMob < 300 then
-                local targetPos = bone.HumanoidRootPart.CFrame * CFrame.new(0, 2, 4)
-                SafeTweenToMob(root, targetPos)
-            elseif distanceToMob >= 300 then
-                print("Mob quá xa, bỏ qua: " .. math.floor(distanceToMob) .. " studs")
+            if (root.Position - bone.HumanoidRootPart.Position).Magnitude > 20 then
+                local targetPos = bone.HumanoidRootPart.CFrame * CFrame.new(0, 5, 4)
+                TweenToMob(root, targetPos)
             end
 
-            -- Farm mob
-            local startTime = tick()
-            while _G.AutoFarm_Bone 
-                  and bone.Parent 
-                  and bone:FindFirstChild("Humanoid") 
-                  and bone.Humanoid.Health > 0 
-                  and tick() - startTime < 8 do
-                
+            repeat
                 task.wait(0.05)
-                if bone.Parent and bone:FindFirstChild("Humanoid") then
-                    pcall(function()
-                        if Attack and Attack.Kill then
-                            Attack.Kill(bone, _G.AutoFarm_Bone)
-                        else
-                            -- Fallback attack
-                            game.ReplicatedStorage.Remotes.CommF_:InvokeServer("Attack")
-                        end
-                    end)
+                if bone.Parent then
+                    Attack.Kill(bone, _G.AutoFarm_Bone)
                 end
-                
-                -- Cập nhật vị trí nếu mob di chuyển
-                if bone:FindFirstChild("HumanoidRootPart") then
-                    if (root.Position - bone.HumanoidRootPart.Position).Magnitude > 10 then
-                        root.CFrame = CFrame.new(root.Position, bone.HumanoidRootPart.Position)
-                    end
-                end
-            end
+            until not _G.AutoFarm_Bone 
+                or not bone.Parent 
+                or bone.Humanoid.Health <= 0 
+                or (_G.AcceptQuestC and not questUI.Visible)
 
         else
-            -- Không có mob, về spawn point
-            if (root.Position - SPAWN_POS.Position).Magnitude > 50 then
-                SafeTweenToIsland(root, SPAWN_POS)
-            else
-                -- Đứng yên chờ mob respawn
-                task.wait(1)
+            local spawnPos = CFrame.new(-9495.68, 453.58, 5977.34)
+            if (root.Position - spawnPos.Position).Magnitude > 20 then
+                TweenToIsland(root, spawnPos)
             end
         end
     end
