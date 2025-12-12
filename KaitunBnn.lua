@@ -1,62 +1,42 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 
--- Cập nhật Character khi chết
+-- Tự động cập nhật nhân vật khi chết
 Player.CharacterAdded:Connect(function(newChar)
     Character = newChar
 end)
 
---// Config
+--// CẤU HÌNH (CONFIG)
 local Config = {
-    Distance = 55,          -- Khoảng cách đánh
-    ClickSpeed = 0,         -- Tốc độ click (0 = Max)
-    AutoClick = true,       -- Bật/Tắt
-    AttackPlayers = true,   -- Đánh người chơi
-    AttackMobs = true,      -- Đánh quái
-    BypassStun = true,      -- Cố gắng xóa Stun
+    AttackDistance = 60,      -- Phạm vi đánh (Nên để dưới 60 để tránh lỗi)
+    SpeedMultiplier = 5,      -- Số lần click trong 1 khung hình (Càng cao càng nhanh, nhưng dễ lag máy. Tầm 5-10 là ổn)
+    AutoClick = true,         -- Bật/Tắt
+    NoAnimation = true,       -- Xóa animation để đánh nhanh hơn
 }
 
---// Core Fast Attack
+--// Fast Attack Core
 local FastAttack = {}
-FastAttack.__index = FastAttack
 
-function FastAttack.new()
-    local self = setmetatable({}, FastAttack)
-    self.Running = false
-    self.Target = nil
-    return self
-end
-
--- Hàm kiểm tra mục tiêu sống
-function FastAttack:IsAlive(model)
-    if not model then return false end
-    local hum = model:FindFirstChild("Humanoid")
-    local root = model:FindFirstChild("HumanoidRootPart")
-    return hum and root and hum.Health > 0
-end
-
--- Tìm mục tiêu gần nhất
 function FastAttack:GetTarget()
     local MyRoot = Character:FindFirstChild("HumanoidRootPart")
     if not MyRoot then return nil end
-    
-    local Nearest = nil
-    local MinDist = Config.Distance
 
-    local function CheckFolder(Folder)
-        if not Folder then return end
-        for _, v in pairs(Folder:GetChildren()) do
-            if v ~= Character and self:IsAlive(v) then
-                local EnemyRoot = v.HumanoidRootPart
-                local Dist = (EnemyRoot.Position - MyRoot.Position).Magnitude
+    local Nearest = nil
+    local MinDist = Config.AttackDistance
+
+    -- Ưu tiên tìm trong thư mục Enemies trước (nhẹ hơn quét cả workspace)
+    local Enemies = Workspace:FindFirstChild("Enemies")
+    if Enemies then
+        for _, v in pairs(Enemies:GetChildren()) do
+            if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                local Dist = (v.HumanoidRootPart.Position - MyRoot.Position).Magnitude
                 if Dist < MinDist then
                     MinDist = Dist
                     Nearest = v
@@ -64,90 +44,86 @@ function FastAttack:GetTarget()
             end
         end
     end
-
-    if Config.AttackMobs then CheckFolder(Workspace:FindFirstChild("Enemies")) end
-    if Config.AttackPlayers then CheckFolder(Workspace:FindFirstChild("Characters")) end
-    
     return Nearest
 end
 
--- Hàm tấn công chính
-function FastAttack:Attack(Target)
-    if not Target then return end
-    
-    local Root = Target:FindFirstChild("HumanoidRootPart")
-    local MyRoot = Character:FindFirstChild("HumanoidRootPart")
-    
-    if not Root or not MyRoot then return end
-
-    -- 1. Virtual Input (Giả lập click chuột - An toàn nhất)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-
-    -- 2. Xử lý Remote Blox Fruit (Nếu có)
-    -- Tìm tool đang cầm
-    local Tool = Character:FindFirstChildOfClass("Tool")
-    if Tool and Tool:FindFirstChild("RemoteEvent") then
-        -- Thử spam remote đánh thường (thường dùng cho Gun/Melee)
-        pcall(function()
-            Tool.RemoteEvent:FireServer()
-        end)
-    end
-    
-    -- 3. Cố gắng trigger Blade Hit (Dành cho Melee/Sword)
-    -- Đoạn này dùng logic đơn giản để tránh lỗi update
-    local Combat = ReplicatedStorage:FindFirstChild("Modules") 
-        and ReplicatedStorage.Modules:FindFirstChild("Net")
-    
-    if Combat then
-        -- Cố gắng tìm remote RegisterHit một cách an toàn
-        local attemptHit = Combat:FindFirstChild("RE/RegisterHit") or Combat:FindFirstChild("RegisterHit")
-        if attemptHit then
-             pcall(function()
-                attemptHit:FireServer(Root, { {Target, Root} })
-             end)
-        end
-    end
-    
-    -- Hủy hoạt ảnh đánh để spam nhanh hơn
+function FastAttack:StopAnims()
+    if not Config.NoAnimation then return end
     local Hum = Character:FindFirstChild("Humanoid")
-    if Hum then
-        for _, track in pairs(Hum:GetPlayingAnimationTracks()) do
-            -- Chỉ dừng animation hành động
-            if track.Priority == Enum.AnimationPriority.Action then
-                track:Stop()
-            end
+    if not Hum then return end
+    
+    local Tracks = Hum:GetPlayingAnimationTracks()
+    for _, Track in pairs(Tracks) do
+        -- Chỉ xóa animation tấn công (Action) để không bị lỗi di chuyển
+        if Track.Priority == Enum.AnimationPriority.Action or 
+           Track.Priority == Enum.AnimationPriority.Action2 or 
+           Track.Priority == Enum.AnimationPriority.Action3 or
+           string.find(string.lower(Track.Name), "attack") then
+            
+            Track:Stop() 
+            Track:AdjustSpeed(0) -- Đóng băng animation ngay lập tức
         end
     end
 end
 
---// Main Loop
-local AC = FastAttack.new()
+function FastAttack:Attack(Target)
+    if not Target then return end
+    local Root = Target:FindFirstChild("HumanoidRootPart")
+    
+    -- 1. Click Ảo (An toàn nhất)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+    
+    -- 2. Spam Remote (Cố gắng tìm remote nếu có)
+    local Tool = Character:FindFirstChildOfClass("Tool")
+    if Tool then
+        -- Kích hoạt remote đánh thường nếu tool có hỗ trợ
+        if Tool:FindFirstChild("RemoteEvent") then
+            pcall(function() Tool.RemoteEvent:FireServer() end)
+        end
+    end
 
--- Luồng chạy siêu nhanh
+    -- 3. Xóa Animation ngay sau khi ra đòn
+    self:StopAnims()
+end
+
+--// VÒNG LẶP SIÊU TỐC (RenderStepped)
+local RunLogic = RunService.RenderStepped:Connect(function()
+    if not Config.AutoClick then return end
+    
+    -- Kiểm tra tool
+    local Tool = Character:FindFirstChildOfClass("Tool")
+    if not Tool then return end -- Không cầm tool thì không đánh
+
+    local Target = FastAttack:GetTarget()
+    
+    if Target then
+        -- Dịch chuyển nhẹ về phía mục tiêu để hitbox chuẩn hơn (tùy chọn)
+        -- Character.HumanoidRootPart.CFrame = CFrame.lookAt(Character.HumanoidRootPart.Position, Target.HumanoidRootPart.Position)
+
+        -- SPAM LOOP: Chạy nhiều lần trong 1 frame
+        for i = 1, Config.SpeedMultiplier do
+            FastAttack:Attack(Target)
+        end
+    end
+end)
+
+-- Anti-Stun Loop (Chạy song song)
 task.spawn(function()
-    while task.wait(Config.ClickSpeed) do
+    while task.wait(0.1) do
         if Config.AutoClick then
-            local Target = AC:GetTarget()
-            if Target then
-                AC:Attack(Target)
-            end
+            pcall(function()
+                if Character:FindFirstChild("Stun") then Character.Stun.Value = 0 end
+                if Character:FindFirstChild("Busy") then Character.Busy.Value = false end
+            end)
         end
     end
 end)
 
--- Luồng Heartbeat để giữ kết nối ổn định
-RunService.Heartbeat:Connect(function()
-    if Config.AutoClick and Config.BypassStun then
-        -- Xóa stun đơn giản nếu bị dính
-        if Character:FindFirstChild("Stun") then
-            Character.Stun.Value = 0
-        end
-        if Character:FindFirstChild("Busy") then
-            Character.Busy.Value = false
-        end
-    end
-end)
-
-print("Fast Attack Loaded - Universal Mode")
-return AC
+-- Giao diện thông báo nhỏ
+local StarterGui = game:GetService("StarterGui")
+StarterGui:SetCore("SendNotification", {
+    Title = "⚡ SUPER FAST ATTACK ⚡";
+    Text = "Mode: No Animation | Speed: " .. Config.SpeedMultiplier .. "x";
+    Duration = 5;
+})
