@@ -1,70 +1,39 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser") -- Dùng cái này click chuẩn hơn
 local Workspace = game:GetService("Workspace")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 
---// Blox Fruits Specific Modules (Trái tim của Fast Attack)
-local CombatFramework, CameraShaker
-local success, err = pcall(function()
-    local PlayerScripts = Player:WaitForChild("PlayerScripts")
-    CombatFramework = require(PlayerScripts:WaitForChild("CombatFramework"))
-    CameraShaker = require(ReplicatedStorage.Util.CameraShaker)
-end)
-
-if not success then
-    warn("Không tìm thấy Module Blox Fruits, script có thể không hoạt động tối đa: " .. err)
-end
-
 --// Config
 local Config = {
-    Distance = 60,          -- Khoảng cách tối đa để bắt đầu đánh
-    AttackMobs = true,      -- Chỉ tập trung đánh quái
-    AttackPlayers = false,  -- Tắt đánh người để tối ưu cho Farm
+    Distance = 50,          -- Khoảng cách đánh
+    AttackSpeed = 0,        -- 0 là nhanh nhất (tùy máy)
+    BypassStun = true       -- Xóa choáng
 }
 
 --// Variables
-local CurrentTarget = nil
+local Active = true
 
--- Cập nhật Character khi respawn
 Player.CharacterAdded:Connect(function(newChar)
     Character = newChar
 end)
 
---// Core Fast Attack
-local FastAttack = {}
-
-function FastAttack:IsAlive(model)
-    if not model then return false end
-    local hum = model:FindFirstChild("Humanoid")
-    local root = model:FindFirstChild("HumanoidRootPart")
-    return hum and root and hum.Health > 0
-end
-
--- Tối ưu tìm mục tiêu (Dùng caching để đỡ lag)
-function FastAttack:GetTarget()
+--// Fast Attack Logic
+local function GetNearestEnemy()
     local MyRoot = Character:FindFirstChild("HumanoidRootPart")
     if not MyRoot then return nil end
-
-    -- Nếu mục tiêu cũ còn sống và ở gần, giữ nguyên mục tiêu (Đỡ phải tìm lại)
-    if CurrentTarget and self:IsAlive(CurrentTarget) then
-        local Dist = (CurrentTarget.HumanoidRootPart.Position - MyRoot.Position).Magnitude
-        if Dist < Config.Distance then
-            return CurrentTarget
-        end
-    end
 
     local Nearest = nil
     local MinDist = Config.Distance
 
-    -- Chỉ quét thư mục Enemies để tối ưu tốc độ farm
-    local EnemiesFolder = Workspace:FindFirstChild("Enemies")
-    if EnemiesFolder then
-        for _, v in pairs(EnemiesFolder:GetChildren()) do
-            if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+    -- Chỉ tìm trong thư mục Enemies (Quái)
+    local Enemies = Workspace:FindFirstChild("Enemies")
+    if Enemies then
+        for _, v in pairs(Enemies:GetChildren()) do
+            if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
                 local Dist = (v.HumanoidRootPart.Position - MyRoot.Position).Magnitude
                 if Dist < MinDist then
                     MinDist = Dist
@@ -73,84 +42,80 @@ function FastAttack:GetTarget()
             end
         end
     end
-    
-    CurrentTarget = Nearest
     return Nearest
 end
 
---// Logic Tấn Công Siêu Nhanh (CombatFramework Hook)
-function FastAttack:Attack(Target)
-    if not CombatFramework then return end -- Fallback nếu không load được module
+-- Hàm tấn công (Sử dụng VirtualUser + Animation Cancel)
+local function Attack(Target)
+    if not Target then return end
     
-    local Root = Target:FindFirstChild("HumanoidRootPart")
-    if not Root then return end
-
-    -- 1. Hook vào Controller của game để chỉnh Cooldown
-    local activeController = CombatFramework.activeController
-    
-    if activeController and activeController.equipped then
-        -- Ép hồi chiêu về 0
-        activeController.timeToNextAttack = 0
-        activeController.hitboxMagnitude = 60 -- Tăng tầm đánh ảo
-        
-        -- Gọi hàm tấn công của game
-        activeController:attack()
-        
-        -- 2. Tắt rung màn hình để đỡ chóng mặt và tăng FPS
-        if CameraShaker then
-            CameraShaker:Stop()
+    -- 1. Trang bị vũ khí (Melee/Sword)
+    local Tool = Character:FindFirstChildOfClass("Tool")
+    if not Tool then
+        -- Tự tìm tool trong ba lô nếu chưa cầm
+        local BackpackTool = Player.Backpack:FindFirstChildOfClass("Tool")
+        if BackpackTool then
+            Character.Humanoid:EquipTool(BackpackTool)
+            Tool = BackpackTool
         end
     end
 
-    -- 3. Spam Remote BladeHit (Bổ trợ sát thương)
-    -- Logic này gửi tín hiệu trúng đòn trực tiếp tới server
-    local Tool = Character:FindFirstChildOfClass("Tool")
-    if Tool and Tool:FindFirstChild("RemoteEvent") then
-        task.spawn(function()
-            pcall(function()
-                -- Giả lập hit
-                ReplicatedStorage.RigControllerEvent:FireServer("weaponChange", tostring(Tool.Name))
-                ReplicatedStorage.RigControllerEvent:FireServer("hit", {Target.HumanoidRootPart}, {
-                    ["start"] = Character.HumanoidRootPart.Position,
-                    ["t"] = 0.05, -- Thời gian hit cực nhanh
-                    ["p"] = Target.HumanoidRootPart.Position
-                }, Tool.Name)
-            end)
+    if Tool then
+        -- 2. Click chuột ảo (Cách an toàn nhất để server nhận dmg)
+        pcall(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton1(Vector2.new(900, 600)) -- Click vào giữa màn hình
         end)
+        
+        -- 3. Kích hoạt Tool thủ công (Dự phòng)
+        pcall(function()
+            Tool:Activate()
+        end)
+        
+        -- 4. Animation Cancel (Bí thuật đánh nhanh)
+        -- Ngắt hoạt ảnh ngay lập tức để đánh đòn tiếp theo
+        local Hum = Character:FindFirstChild("Humanoid")
+        if Hum then
+            for _, track in pairs(Hum:GetPlayingAnimationTracks()) do
+                -- Chỉ ngắt hoạt ảnh tấn công
+                if track.Priority == Enum.AnimationPriority.Action or track.Name == "Tool" then
+                    track:Stop()
+                end
+            end
+        end
     end
 end
 
---// Main Loops
-local AC = FastAttack
-
--- Loop 1: Tấn công tốc độ cao (Dùng Stepped để đồng bộ Physics)
-RunService.Stepped:Connect(function()
-    local Target = AC:GetTarget()
-    if Target then
-        AC:Attack(Target)
-        
-        -- Tự động quay mặt về phía quái (Giúp skill định hướng trúng)
-        if Character:FindFirstChild("HumanoidRootPart") and Target:FindFirstChild("HumanoidRootPart") then
-            Character.HumanoidRootPart.CFrame = CFrame.new(
-                Character.HumanoidRootPart.Position, 
-                Vector3.new(Target.HumanoidRootPart.Position.X, Character.HumanoidRootPart.Position.Y, Target.HumanoidRootPart.Position.Z)
-            )
+--// Main Loop
+task.spawn(function()
+    while task.wait(Config.AttackSpeed) do -- Loop siêu nhanh
+        if Active then
+            pcall(function()
+                local Target = GetNearestEnemy()
+                if Target then
+                    -- Tự quay mặt vào quái
+                    if Character:FindFirstChild("HumanoidRootPart") then
+                        Character.HumanoidRootPart.CFrame = CFrame.new(
+                            Character.HumanoidRootPart.Position, 
+                            Vector3.new(Target.HumanoidRootPart.Position.X, Character.HumanoidRootPart.Position.Y, Target.HumanoidRootPart.Position.Z)
+                        )
+                    end
+                    
+                    Attack(Target)
+                end
+            end)
         end
     end
 end)
 
--- Loop 2: Xóa hiệu ứng Stun liên tục
+--// Anti Stun Loop (Chống choáng khi quái đánh lại)
 RunService.Heartbeat:Connect(function()
-    pcall(function()
-        if Character:FindFirstChild("Stun") then Character.Stun.Value = 0 end
-        if Character:FindFirstChild("Busy") then Character.Busy.Value = false end
-        -- Xóa body velocity lạ để tránh bị đẩy lùi khi đánh quái
-        for _, v in pairs(Character.HumanoidRootPart:GetChildren()) do
-            if v:IsA("BodyVelocity") or v:IsA("BodyGyro") then
-                v:Destroy()
-            end
-        end
-    end)
+    if Config.BypassStun and Character then
+        pcall(function()
+            if Character:FindFirstChild("Stun") then Character.Stun.Value = 0 end
+            if Character:FindFirstChild("Busy") then Character.Busy.Value = false end
+        end)
+    end
 end)
 
-print("Fast Attack Optimized for Mobs - Loaded")
+print("Fast Attack (Universal Version) - Loaded")
