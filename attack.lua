@@ -1,16 +1,4 @@
---// Configuration
-_G.FastAttackRunning = true -- Đặt false để tắt script
-
-local Config = {
-    AttackDistance = 60,
-    AttackMobs = true,
-    AttackPlayers = true,
-    AttackCooldown = 0,      -- 0 là nhanh nhất có thể (theo tick của Heartbeat)
-    HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
-    AutoClickEnabled = true
-}
-
---// Micro-Optimizations (Localize functions for speed)
+--// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,13 +13,17 @@ local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
 
--- Cache math functions
-local insert = table.insert
-local find = table.find
-local ipairs = ipairs
-local tick = tick
-local wait = task.wait
-local V3 = Vector3.new
+-- Config (Super Fast)
+local Config = {
+    AttackDistance = 65,
+    AttackMobs = true,
+    AttackPlayers = true,
+    AttackCooldown = 0.0001,        -- giảm nhỏ hơn để attack cực nhanh
+    ComboResetTime = 0.0001,        -- combo reset tức thì
+    MaxCombo = math.huge,           -- combo vô hạn
+    HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
+    AutoClickEnabled = true
+}
 
 --// FastAttack Class
 local FastAttack = {}
@@ -45,220 +37,199 @@ function FastAttack.new()
         M1Combo = 0,
         EnemyRootPart = nil,
         Connections = {},
+        Overheat = {Dragonstorm = {MaxOverheat = 3, Cooldown = 0, TotalOverheat = 0, Distance = 350, Shooting = false}},
         ShootsPerTarget = {["Dual Flintlock"] = 2},
         SpecialShoots = {["Skull Guitar"] = "TAP", ["Bazooka"] = "Position", ["Cannon"] = "Position", ["Dragonstorm"] = "Overheat"}
     }, FastAttack)
 
-    task.spawn(function()
-        pcall(function()
-            self.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
-            self.ShootFunction = debug.getupvalue(require(ReplicatedStorage.Controllers.CombatController).Attack, 9)
-            local LocalScript = Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript")
-            if LocalScript and getsenv then
-                self.HitFunction = getsenv(LocalScript)._G.SendHitsToServer
-            end
-        end)
+    pcall(function()
+        self.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
+        self.ShootFunction = getupvalue(require(ReplicatedStorage.Controllers.CombatController).Attack, 9)
+        local LocalScript = Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript")
+        if LocalScript and getsenv then
+            self.HitFunction = getsenv(LocalScript)._G.SendHitsToServer
+        end
     end)
 
     return self
 end
 
 function FastAttack:IsEntityAlive(entity)
-    if not entity then return false end
-    local hum = entity:FindFirstChild("Humanoid")
-    return hum and hum.Health > 0
+    local humanoid = entity and entity:FindFirstChild("Humanoid")
+    return humanoid and humanoid.Health > 0
 end
 
--- Tối ưu hóa kiểm tra Stun
 function FastAttack:CheckStun(Character, Humanoid, ToolTip)
-    -- Nếu đang ngồi và cầm vũ khí cận chiến -> Skip
-    if Humanoid.Sit and (ToolTip ~= "Gun") then return false end
-    
-    -- Kiểm tra Stun/Busy trực tiếp giá trị (nhanh hơn FindFirstChild nhiều lần nếu gọi liên tục)
-    -- Tuy nhiên để an toàn vẫn dùng FindFirstChild nhưng tối ưu logic
     local Stun = Character:FindFirstChild("Stun")
     local Busy = Character:FindFirstChild("Busy")
-
-    if (Stun and Stun.Value > 0) or (Busy and Busy.Value) then
+    if Humanoid.Sit and (ToolTip == "Sword" or ToolTip == "Melee" or ToolTip == "Blox Fruit") then
+        return false
+    elseif Stun and Stun.Value > 0 or Busy and Busy.Value then
         return false
     end
     return true
 end
 
--- Tối ưu hóa tìm mục tiêu bằng Squared Magnitude (nhanh hơn Magnitude thường)
+-- GetBladeHits tối ưu, chọn HumanoidRootPart luôn
 function FastAttack:GetBladeHits(Character, Distance)
-    local MyRoot = Character:FindFirstChild("HumanoidRootPart")
-    if not MyRoot then return {} end
-    
-    local MyPos = MyRoot.Position
+    local Position = Character:GetPivot().Position
     local BladeHits = {}
-    local DistSq = (Distance or Config.AttackDistance) ^ 2 -- Bình phương khoảng cách để so sánh
+    Distance = Distance or Config.AttackDistance
 
-    local function ProcessFolder(Folder)
-        local Children = Folder:GetChildren()
-        for i = 1, #Children do
-            local Enemy = Children[i]
-            if Enemy ~= Character then
-                local EnemyRoot = Enemy:FindFirstChild("HumanoidRootPart")
-                local EnemyHum = Enemy:FindFirstChild("Humanoid")
-                
-                if EnemyRoot and EnemyHum and EnemyHum.Health > 0 then
-                    if (EnemyRoot.Position - MyPos).Magnitude <= (Distance or Config.AttackDistance) then
-                    -- Lưu ý: Roblox đã tối ưu .Magnitude, nhưng nếu muốn cực gắt có thể dùng phép tính vector tay
-                    -- Ở đây giữ .Magnitude để đảm bảo chính xác Hitbox của game
-                        insert(BladeHits, {Enemy, EnemyRoot})
-                        self.EnemyRootPart = EnemyRoot
+    local function ProcessTargets(Folder)
+        for _, Enemy in ipairs(Folder:GetChildren()) do
+            if Enemy ~= Character and self:IsEntityAlive(Enemy) then
+                local BasePart = Enemy:FindFirstChild("HumanoidRootPart")
+                if BasePart and (Position - BasePart.Position).Magnitude <= Distance then
+                    table.insert(BladeHits, {Enemy, BasePart})
+                    if not self.EnemyRootPart then
+                        self.EnemyRootPart = BasePart
                     end
                 end
             end
         end
     end
 
-    if Config.AttackMobs then ProcessFolder(Workspace.Enemies) end
-    if Config.AttackPlayers then ProcessFolder(Workspace.Characters) end
+    if Config.AttackMobs then ProcessTargets(Workspace.Enemies) end
+    if Config.AttackPlayers then ProcessTargets(Workspace.Characters) end
 
     return BladeHits
 end
 
-function FastAttack:GetCombo()
-    -- Reset combo logic cực nhanh
-    if (tick() - self.ComboDebounce) > 0.3 then -- Giới hạn thực tế của game để tránh bị anticheat reset
-        self.M1Combo = 0 
+function FastAttack:GetClosestEnemy(Character, Distance)
+    local BladeHits = self:GetBladeHits(Character, Distance)
+    local Closest, MinDistance = nil, math.huge
+
+    for _, Hit in ipairs(BladeHits) do
+        local Magnitude = (Character:GetPivot().Position - Hit[2].Position).Magnitude
+        if Magnitude < MinDistance then
+            MinDistance = Magnitude
+            Closest = Hit[2]
+        end
     end
-    self.M1Combo = self.M1Combo + 1
+    return Closest
+end
+
+function FastAttack:GetCombo()
+    local Combo = (tick() - self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0
+    Combo = Combo + 1
     self.ComboDebounce = tick()
-    return self.M1Combo
+    self.M1Combo = Combo
+    return Combo
 end
 
--- Bypass Validator (Giữ nguyên logic nhưng thêm pcall để tránh crash)
-function FastAttack:GetValidator2()
-    local success, result = pcall(function()
-        local v1 = debug.getupvalue(self.ShootFunction, 15)
-        local v2 = debug.getupvalue(self.ShootFunction, 13)
-        local v3 = debug.getupvalue(self.ShootFunction, 16)
-        local v4 = debug.getupvalue(self.ShootFunction, 17)
-        local v5 = debug.getupvalue(self.ShootFunction, 14)
-        local v6 = debug.getupvalue(self.ShootFunction, 12)
-        local v7 = debug.getupvalue(self.ShootFunction, 18)
+-- Shoot tối ưu, gần như liên tục
+function FastAttack:ShootInTarget(TargetPosition)
+    local Character = Player.Character
+    if not self:IsEntityAlive(Character) then return end
 
-        local v8 = v6 * v2
-        local v9 = (v5 * v2 + v6 * v1) % v3
-        v9 = (v9 * v3 + v8) % v4
-        v5 = math.floor(v9 / v3)
-        v6 = v9 - v5 * v3
-        v7 = v7 + 1
+    local Equipped = Character:FindFirstChildOfClass("Tool")
+    if not Equipped or Equipped.ToolTip ~= "Gun" then return end
 
-        debug.setupvalue(self.ShootFunction, 15, v1)
-        debug.setupvalue(self.ShootFunction, 13, v2)
-        debug.setupvalue(self.ShootFunction, 16, v3)
-        debug.setupvalue(self.ShootFunction, 17, v4)
-        debug.setupvalue(self.ShootFunction, 14, v5)
-        debug.setupvalue(self.ShootFunction, 12, v6)
-        debug.setupvalue(self.ShootFunction, 18, v7)
+    local Cooldown = 0.0001  -- bỏ cooldown gun, nhanh hơn
+    if (tick() - self.ShootDebounce) < Cooldown then return end
 
-        return math.floor(v9 / v4 * 16777215), v7
-    end)
-    
-    if success then return result else return 0, 1 end
-end
-
-function FastAttack:ShootInTarget(TargetPosition, Equipped)
-    -- Logic súng siêu nhanh
     local ShootType = self.SpecialShoots[Equipped.Name] or "Normal"
-    
     if ShootType == "Position" or (ShootType == "TAP" and Equipped:FindFirstChild("RemoteEvent")) then
         Equipped:SetAttribute("LocalTotalShots", (Equipped:GetAttribute("LocalTotalShots") or 0) + 1)
         GunValidator:FireServer(self:GetValidator2())
-        
+
         if ShootType == "TAP" then
             Equipped.RemoteEvent:FireServer("TAP", TargetPosition)
         else
             ShootGunEvent:FireServer(TargetPosition)
         end
+        self.ShootDebounce = tick()
     else
-        -- Giả lập click chuột ảo cực nhanh thay vì wait(0.0001)
         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+        task.wait(0.0001)
         VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+        self.ShootDebounce = tick()
     end
 end
 
-function FastAttack:UseNormalClick(Character, BladeHits)
-    -- Gửi gói tin tấn công
-    RegisterAttack:FireServer(Config.AttackCooldown)
-    
-    -- RegisterHit cho tất cả mục tiêu trong danh sách
-    for i = 1, #BladeHits do
-        local TargetRoot = BladeHits[i][2]
-        if TargetRoot then
-             if self.CombatFlags and self.HitFunction then
-                pcall(function() self.HitFunction(TargetRoot, BladeHits) end)
-            else
-                RegisterHit:FireServer(TargetRoot, BladeHits)
-            end
+function FastAttack:GetValidator2()
+    local v1 = getupvalue(self.ShootFunction, 15)
+    local v2 = getupvalue(self.ShootFunction, 13)
+    local v3 = getupvalue(self.ShootFunction, 16)
+    local v4 = getupvalue(self.ShootFunction, 17)
+    local v5 = getupvalue(self.ShootFunction, 14)
+    local v6 = getupvalue(self.ShootFunction, 12)
+    local v7 = getupvalue(self.ShootFunction, 18)
+
+    local v8 = v6 * v2
+    local v9 = (v5 * v2 + v6 * v1) % v3
+    v9 = (v9 * v3 + v8) % v4
+    v5 = math.floor(v9 / v3)
+    v6 = v9 - v5 * v3
+    v7 = v7 + 1
+
+    setupvalue(self.ShootFunction, 15, v1)
+    setupvalue(self.ShootFunction, 13, v2)
+    setupvalue(self.ShootFunction, 16, v3)
+    setupvalue(self.ShootFunction, 17, v4)
+    setupvalue(self.ShootFunction, 14, v5)
+    setupvalue(self.ShootFunction, 12, v6)
+    setupvalue(self.ShootFunction, 18, v7)
+
+    return math.floor(v9 / v4 * 16777215), v7
+end
+
+-- UseNormalClick: loop qua tất cả target để không bỏ ai
+function FastAttack:UseNormalClick(Character, Humanoid, Cooldown)
+    local BladeHits = self:GetBladeHits(Character)
+    for _, Hit in ipairs(BladeHits) do
+        local TargetRoot = Hit[2]
+        RegisterAttack:FireServer(Cooldown)
+        if self.CombatFlags and self.HitFunction then
+            self.HitFunction(TargetRoot, BladeHits)
+        else
+            RegisterHit:FireServer(TargetRoot, BladeHits)
         end
     end
 end
 
---// Main Attack Loop
-function FastAttack:Attack()
-    if not Config.AutoClickEnabled or not _G.FastAttackRunning then return end
-    
-    local Character = Player.Character
-    if not Character then return end
-    
-    local Humanoid = Character:FindFirstChild("Humanoid")
-    if not Humanoid or Humanoid.Health <= 0 then return end
+function FastAttack:UseFruitM1(Character, Equipped, Combo)
+    local Targets = self:GetBladeHits(Character)
+    if not Targets[1] then return end
 
+    local Direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
+    Equipped.LeftClickRemote:FireServer(Direction, Combo)
+end
+
+-- Attack Super Fast, loop qua tất cả target nếu là Gun
+function FastAttack:Attack()
+    if not Config.AutoClickEnabled then return end
+    local Character = Player.Character
+    if not Character or not self:IsEntityAlive(Character) then return end
+
+    local Humanoid = Character.Humanoid
     local Equipped = Character:FindFirstChildOfClass("Tool")
     if not Equipped then return end
 
     local ToolTip = Equipped.ToolTip
-    if not ToolTip or not find({"Melee", "Blox Fruit", "Sword", "Gun"}, ToolTip) then return end
-    
+    if not table.find({"Melee", "Blox Fruit", "Sword", "Gun"}, ToolTip) then return end
     if not self:CheckStun(Character, Humanoid, ToolTip) then return end
 
-    -- Xử lý theo loại vũ khí
+    local Combo = self:GetCombo()
+    self.Debounce = tick()
+
     if ToolTip == "Blox Fruit" and Equipped:FindFirstChild("LeftClickRemote") then
-        -- Blox Fruit M1
-        local Targets = self:GetBladeHits(Character)
-        if #Targets > 0 then
-            local Direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
-            Equipped.LeftClickRemote:FireServer(Direction, self:GetCombo())
-        end
-
+        self:UseFruitM1(Character, Equipped, Combo)
     elseif ToolTip == "Gun" then
-        -- Gun Spam
-        local Targets = self:GetBladeHits(Character, 100) -- Tăng range cho súng
-        for i = 1, #Targets do
-            self:ShootInTarget(Targets[i][2].Position, Equipped)
+        local Targets = self:GetBladeHits(Character, 120)
+        for _, t in ipairs(Targets) do
+            self:ShootInTarget(t[2].Position)
         end
-
     else
-        -- Melee / Sword
-        local Targets = self:GetBladeHits(Character)
-        if #Targets > 0 then
-            self:UseNormalClick(Character, Targets)
-        end
+        self:UseNormalClick(Character, Humanoid, 0.0001)
     end
 end
 
---// Init
+-- Instance
 local AttackInstance = FastAttack.new()
-
--- Sử dụng Heartbeat nhưng có kiểm tra để tránh crash client
-local HeartbeatConnection = RunService.Heartbeat:Connect(function()
-    pcall(function()
-        AttackInstance:Attack()
-    end)
-end)
-
-table.insert(AttackInstance.Connections, HeartbeatConnection)
-
--- Hàm hủy script khi cần
-_G.StopFastAttack = function()
-    _G.FastAttackRunning = false
-    if HeartbeatConnection then HeartbeatConnection:Disconnect() end
-    print("Fast Attack Stopped")
-end
+table.insert(AttackInstance.Connections, RunService.Heartbeat:Connect(function()
+    AttackInstance:Attack()
+end))
 
 return FastAttack
