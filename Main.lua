@@ -2023,67 +2023,80 @@ local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "",
 Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
+-- Khởi tạo biến đếm thứ tự (chỉ chạy 1 lần)
+if not _G.MobIndex then _G.MobIndex = 1 end
+
 spawn(function()
-    while task.wait() do -- Dùng task.wait() để lặp nhanh hơn, mượt hơn
+    while task.wait() do 
         if _G.AutoFarm_Bone then
-            pcall(function()
+            pcall(function()        
                 local player = game.Players.LocalPlayer
                 local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local questUI = player.PlayerGui.Main.Quest
+                
+                -- Danh sách quái theo thứ tự mong muốn
                 local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
                 
                 if not root then return end
 
-                -- 1. ƯU TIÊN KIỂM TRA QUEST TRƯỚC (Nếu bật auto nhận quest và chưa có quest)
+                -- 1. XÁC ĐỊNH MỤC TIÊU HIỆN TẠI
+                -- Lấy tên quái dựa theo số thứ tự đang chạy
+                local CurrentTargetName = BonesTable[_G.MobIndex]
+                
+                -- Tìm con quái đó (Chỉ tìm đúng tên con đang cần farm)
+                -- Lưu ý: Truyền vào GetConnectionEnemies một table chỉ chứa 1 tên
+                local bone = GetConnectionEnemies({CurrentTargetName})
+
+                -- 2. XỬ LÝ NHẬN QUEST (Giữ nguyên logic random của bạn, hoặc nên sửa theo quái)
                 if _G.AcceptQuestC and not questUI.Visible then
-                    local questPos = CFrame.new(-9516.99316, 172.017181, 6078.46533)
-                    
-                    -- Nếu đang ở xa chỗ nhận quest thì TP tới đó
-                    if (questPos.Position - root.Position).Magnitude > 10 then
-                         _tp(questPos)
-                         return -- Return để đợi TP tới nơi, không cố đánh quái lúc này
-                    else
-                        -- Đã đến nơi, nhận random quest
-                        local randomQuest = math.random(1, 4)
-                        local questData = {
+                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
+                     if (questPos.Position - root.Position).Magnitude > 50 then
+                          _tp(questPos)
+                          return -- Đợi TP đến nơi
+                     else
+                          -- Lưu ý: Quest Random này có thể không khớp với quái đang farm
+                          -- Nhưng mình giữ nguyên theo code gốc của bạn
+                          local randomQuest = math.random(1, 4)
+                          local questData = {
                             [1] = {"StartQuest", "HauntedQuest2", 2},
                             [2] = {"StartQuest", "HauntedQuest2", 1},
                             [3] = {"StartQuest", "HauntedQuest1", 1},
                             [4] = {"StartQuest", "HauntedQuest1", 2}
-                        }
-                        game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
-                        task.wait(0.5) -- Đợi server xử lý nhẹ
-                    end
+                          }                    
+                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                          task.wait(0.5)
+                     end
                 end
 
-                -- 2. LOGIC TÌM VÀ ĐÁNH QUÁI (Farm hết quái)
-                -- Hàm GetConnectionEnemies sẽ tìm con quái gần nhất còn sống
-                local bone = GetConnectionEnemies(BonesTable)
-
+                -- 3. LOGIC FARM & CHUYỂN MỤC TIÊU
                 if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
-                    -- Bắt đầu đánh con quái này
-                    repeat
-                        task.wait() -- Lặp cực nhanh để đánh liên tục
+                    -- A. Nếu tìm thấy quái -> Đánh cho chết
+                    repeat 
+                        task.wait() 
                         if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
-                            -- Gọi hàm tấn công
-                            Attack.Kill(bone, _G.AutoFarm_Bone)
+                            Attack.Kill(bone, _G.AutoFarm_Bone) 
                         else
-                            break -- Nếu quái chết hoặc mất tích, thoát vòng lặp ngay
+                            break 
                         end
-                    -- Điều kiện thoát: Tắt AutoFarm HOẶC Quái chết HOẶC Quái biến mất
-                    until not _G.AutoFarm_Bone or not bone.Parent or bone.Humanoid.Health <= 0
+                    until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
                 else
-                    -- 3. NẾU KHÔNG CÓ QUÁI -> TP RA CHỖ THOÁNG ĐỢI SPAWN
-                    -- Chỉ TP ra đây nếu đã có quest rồi mà không thấy quái, hoặc không bật auto quest
-                    if not _G.AcceptQuestC or questUI.Visible then
-                         _tp(CFrame.new(-9495.6806640625, 453.58624267578125, 5977.3486328125))
+                    -- B. Nếu KHÔNG tìm thấy quái hiện tại (đã giết hết loại này ở gần)
+                    -- -> Chuyển sang con tiếp theo trong danh sách
+                    _G.MobIndex = _G.MobIndex + 1
+                    
+                    -- Nếu đã farm hết danh sách (vượt quá số lượng quái) -> Reset về 1
+                    if _G.MobIndex > #BonesTable then
+                        _G.MobIndex = 1
                     end
+                    
+                    -- In ra thông báo để biết đang chuyển sang con nào (Bật F9 xem)
+                    print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
+                    task.wait(0.5) -- Đợi xíu để load
                 end
             end)
         end
     end
 end)
-
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
