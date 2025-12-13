@@ -10,7 +10,7 @@ local Humanoid = Character:WaitForChild("Humanoid")
 
 --// CONFIG
 local Config = {
-    SwitchDelay = 0,        -- Tốc độ đổi (Nên để 0.15 để tránh bị kẹt vũ khí)
+    SwitchDelay = 0.15,        -- Tốc độ đổi (Nên để 0.15 để tránh bị kẹt vũ khí)
     Range = 60
 }
 
