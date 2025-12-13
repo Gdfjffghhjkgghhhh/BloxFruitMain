@@ -104,6 +104,10 @@ RunService.Heartbeat:Connect(function()
             -- Bắn 2 phát cho chắc ăn
             Fruit.LeftClickRemote:FireServer(Dir, 1)
         else
+            -- Click ảo dự phòng
+            VirtualInputManager:SendMouseButtonEvent(0,0,0,true,game,0)
+            VirtualInputManager:SendMouseButtonEvent(0,0,0,false,game,0)
+        end
         
         -- B. Cầm Melee ra đánh thường
         Humanoid:EquipTool(Melee)
