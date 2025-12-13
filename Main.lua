@@ -5170,7 +5170,32 @@ spawn(function()
 end)
 Tabs.Mirage:AddButton({Title = "Teleport to Temple of Time", Description = "",
 Callback = function()
-  game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("requestEntrance",Vector3.new(28286.35546875, 14950, 102.62469482421875))
+ local Plr = game.Players.LocalPlayer
+local Char = Plr.Character or Plr.CharacterAdded:Wait()
+local Root = Char:WaitForChild("HumanoidRootPart")
+
+-- Tọa độ đích
+local TargetPos = Vector3.new(28286.35546875, 14895.3017578125, 102.62469482421875)
+
+-- 1. Tạo bệ đỡ tạm thời
+local platform = Instance.new("Part")
+platform.Size = Vector3.new(10, 1, 10) -- Kích thước bệ
+platform.Anchored = true
+platform.CanCollide = true
+platform.Transparency = 0.5 -- Để 1 nếu muốn tàng hình
+platform.Position = TargetPos - Vector3.new(0, 5, 0) -- Đặt dưới chân một chút
+platform.Parent = workspace
+
+-- 2. Dịch chuyển nhân vật đến đó trước
+Root.CFrame = CFrame.new(TargetPos)
+
+-- 3. Gọi Remote
+game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("requestEntrance", TargetPos)
+
+-- 4. Xóa bệ đỡ sau khi map đã load (khoảng 2-3 giây)
+task.delay(3, function()
+    if platform then platform:Destroy() end
+end)
 end})
 Tabs.Mirage:AddButton({Title = "Teleport to Ancient One", Description = "",
 Callback = function()
@@ -7598,4 +7623,3 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
-
