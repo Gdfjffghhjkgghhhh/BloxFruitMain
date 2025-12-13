@@ -10,7 +10,7 @@ local Humanoid = Character:WaitForChild("Humanoid")
 
 --// CONFIG
 local Config = {
-    SwitchDelay = 0.15,        -- Tăng nhẹ lên 0.15 để đỡ bị kẹt vũ khí khi đổi
+    SwitchDelay = 0.5,        -- Tốc độ đổi (Nên để 0.15 để tránh bị kẹt vũ khí)
     Range = 60
 }
 
@@ -40,7 +40,7 @@ local function GetTarget()
     return Target
 end
 
--- Hàm tìm Blox Fruit
+-- Hàm tìm Blox Fruit (Trên tay hoặc trong Balo)
 local function FindFruit()
     local Backpack = Player.Backpack
     local CharTool = Character:FindFirstChildOfClass("Tool")
@@ -55,20 +55,20 @@ local function FindFruit()
     return nil
 end
 
--- Hàm tìm BẤT KỲ Melee nào (Logic Mới)
+-- Hàm tìm BẤT KỲ Melee nào (Logic mới)
 local function FindAnyMelee()
     local Backpack = Player.Backpack
     local CharTool = Character:FindFirstChildOfClass("Tool")
 
-    -- 1. Kiểm tra xem đang cầm trên tay có phải Melee không
+    -- 1. Kiểm tra trên tay trước
     if CharTool and CharTool.ToolTip == "Melee" then
         return CharTool
     end
 
-    -- 2. Nếu không, tìm trong Balo cái Melee đầu tiên thấy được
+    -- 2. Kiểm tra trong Balo
     for _, v in pairs(Backpack:GetChildren()) do
         if v:IsA("Tool") and v.ToolTip == "Melee" then
-            return v
+            return v -- Lấy cái Melee đầu tiên tìm thấy
         end
     end
     return nil
@@ -78,20 +78,20 @@ local LastAttack = 0
 
 -- Vòng lặp chính
 RunService.Heartbeat:Connect(function()
-    -- Cập nhật nhân vật liên tục phòng khi chết
+    if tick() - LastAttack < Config.SwitchDelay then return end
+    
+    -- Cập nhật lại nhân vật nếu bị chết
     if not Character or not Character.Parent then
         Character = Player.Character
         Humanoid = Character:FindFirstChild("Humanoid")
         return
     end
 
-    if tick() - LastAttack < Config.SwitchDelay then return end
-    
     local Target = GetTarget()
     if not Target then return end
     
     local Fruit = FindFruit()
-    local Melee = FindAnyMelee() -- Tự động tìm Melee bất kỳ
+    local Melee = FindAnyMelee() -- Tự động tìm Melee
     
     if Fruit and Melee then
         LastAttack = tick()
@@ -101,10 +101,10 @@ RunService.Heartbeat:Connect(function()
         
         if Fruit:FindFirstChild("LeftClickRemote") then
             local Dir = (Target.Position - Character.HumanoidRootPart.Position).Unit
-            -- Bắn 2 phát cho chắc ăn
+            -- Bắn 2 lần cho chắc ăn
             Fruit.LeftClickRemote:FireServer(Dir, 1)
         else
-            -- Click ảo dự phòng
+            -- Click ảo nếu không thấy remote
             VirtualInputManager:SendMouseButtonEvent(0,0,0,true,game,0)
             VirtualInputManager:SendMouseButtonEvent(0,0,0,false,game,0)
         end
