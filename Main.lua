@@ -1895,6 +1895,20 @@ spawn(function()
     end)
   end
 end)
+local MobKilled = Tabs.Main:AddParagraph({
+    Title = "Cake Princes :",
+    Content = ""
+})
+spawn(function()
+  while wait(.2) do
+    pcall(function()
+  	  local Killed = string.match(replicated.Remotes.CommF_:InvokeServer("CakePrinceSpawner"),"%d+")
+      if Killed then
+        MobKilled:SetDesc(" Killed : " ..(500 - Killed))
+      end
+    end)
+  end
+end)
 local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Cakes", Description = "", Default = false})
 Q:OnChanged(function(Value)
 _G.Auto_Cake_Prince = Value
@@ -2009,183 +2023,67 @@ local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "",
 Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-
-local Player = Players.LocalPlayer
-
---// Cấu hình Tweens
-local function EnableNoClip(state)
-    local char = Player.Character
-    if char then
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = not state
-            end
-        end
-    end
-end
-
--- Hàm di chuyển mượt mà (Có xử lý lỗi)
-local function SmartTween(targetCF, speedDiv)
-    local char = Player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root or not targetCF then return end
-
-    local distance = (root.Position - targetCF.Position).Magnitude
-    local speed = speedDiv or 300 -- Tốc độ mặc định
-    local duration = distance / speed
-    
-    -- Nếu quá gần thì tele luôn cho nhanh
-    if distance < 10 then
-        root.CFrame = targetCF
-        return
-    end
-
-    local info = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-    local tween = TweenService:Create(root, info, {CFrame = targetCF})
-    
-    -- Bật NoClip khi bay
-    local noclipConnection
-    noclipConnection = RunService.Stepped:Connect(function()
-        if not tween.PlaybackState == Enum.PlaybackState.Playing then
-            noclipConnection:Disconnect()
-        else
-            EnableNoClip(true)
-        end
-    end)
-
-    tween:Play()
-    
-    -- Đợi tween xong hoặc bị hủy
-    local success, _ = pcall(function()
-        tween.Completed:Wait()
-    end)
-    
-    if noclipConnection then noclipConnection:Disconnect() end
-    EnableNoClip(false) -- Tắt NoClip khi đến nơi
-end
-
---// Tìm quái theo danh sách ưu tiên
-local BonesPriority = {
-    "Reborn Skeleton",
-    "Demonic Soul",
-    "Living Zombie",
-    "Posessed Mummy"
-}
-
-local function GetEnemyByPriority()
-    local Enemies = Workspace:FindFirstChild("Enemies")
-    if not Enemies then return nil end
-
-    for _, mobName in ipairs(BonesPriority) do
-        for _, mob in pairs(Enemies:GetChildren()) do
-            if mob:FindFirstChild("Humanoid") 
-            and mob:FindFirstChild("HumanoidRootPart") 
-            and mob.Humanoid.Health > 0 
-            and string.find(mob.Name, mobName) then
-                return mob
-            end
-        end
-    end
-    return nil
-end
-
---// Logic Main Farm
-task.spawn(function()
-    while task.wait() do -- Dùng wait() không tham số để chạy nhanh nhất có thể theo FPS
-        pcall(function()
-            if not _G.AutoFarm_Bone then 
-                task.wait(1) 
-                return 
-            end
-
-            -- 1. Kiểm tra sống chết (Quan trọng để fix lỗi dừng farm)
-            local char = Player.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            local hum = char and char:FindFirstChild("Humanoid")
-            
-            if not char or not root or not hum or hum.Health <= 0 then
-                task.wait(1) -- Đợi hồi sinh
-                return
-            end
-
-            local questUI = Player.PlayerGui.Main:FindFirstChild("Quest")
-            
-            -- 2. Xử lý Quest (Chỉ nhận khi chưa có Quest)
-            -- Logic: Nếu bật nhận quest VÀ (Quest UI ẩn HOẶC Quest UI hiện nhưng thanh tiến trình chưa đầy)
-            -- Ở đây mình dùng cách đơn giản nhất là check Visible của bảng Quest
-            local hasQuest = questUI and questUI.Visible
-            
-            if _G.AcceptQuestC and not hasQuest then
-                local questPos = CFrame.new(-9516.99, 172.01, 6078.46)
+spawn(function()
+    while task.wait() do -- Dùng task.wait() để lặp nhanh hơn, mượt hơn
+        if _G.AutoFarm_Bone then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local questUI = player.PlayerGui.Main.Quest
+                local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
                 
-                -- Bay đến chỗ nhận Quest
-                if (root.Position - questPos.Position).Magnitude > 50 then
-                    SmartTween(questPos, 350)
-                else
-                    -- Code nhận quest cũ của bạn
-                    local questData = {
-                        {"StartQuest","HauntedQuest2",2},
-                        {"StartQuest","HauntedQuest2",1},
-                        {"StartQuest","HauntedQuest1",1},
-                        {"StartQuest","HauntedQuest1",2},
-                    }
-                    local randomQuest = questData[math.random(1,#questData)]
-                    ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
-                    task.wait(0.5) -- Đợi chút để server xử lý
-                end
-                return -- Quay lại đầu vòng lặp để check lại
-            end
+                if not root then return end
 
-            -- 3. Xử lý đánh quái
-            local bone = GetEnemyByPriority()
-            
-            if bone then
-                local enemyRoot = bone:FindFirstChild("HumanoidRootPart")
-                local enemyHum = bone:FindFirstChild("Humanoid")
-
-                if enemyRoot and enemyHum and enemyHum.Health > 0 then
-                    -- Bay đến quái (Vị trí trên đầu 5 stud)
-                    local targetPos = enemyRoot.CFrame * CFrame.new(0, 5, 0) -- Giảm khoảng cách Z xuống 0 để đứng ngay trên đầu dễ đánh
+                -- 1. ƯU TIÊN KIỂM TRA QUEST TRƯỚC (Nếu bật auto nhận quest và chưa có quest)
+                if _G.AcceptQuestC and not questUI.Visible then
+                    local questPos = CFrame.new(-9516.99316, 172.017181, 6078.46533)
                     
-                    if (root.Position - targetPos.Position).Magnitude > 15 then
-                        SmartTween(targetPos, 400) -- Tốc độ bay tới quái nhanh hơn
+                    -- Nếu đang ở xa chỗ nhận quest thì TP tới đó
+                    if (questPos.Position - root.Position).Magnitude > 10 then
+                         _tp(questPos)
+                         return -- Return để đợi TP tới nơi, không cố đánh quái lúc này
                     else
-                        -- Giữ vị trí (Teleport liên tục để không bị rơi)
-                        root.CFrame = targetPos
-                        
-                        -- Gọi hàm đánh (Attack)
-                        -- Lưu ý: Mình dùng spawn để đánh không làm chặn luồng di chuyển
-                        if Attack and Attack.Kill then
-                            task.spawn(function()
-                                Attack.Kill(bone, _G.AutoFarm_Bone)
-                            end)
-                        else
-                            -- Nếu bạn không có module Attack, dùng tạm cái này
-                            local Tool = char:FindFirstChildOfClass("Tool")
-                            if Tool then 
-                                Tool:Activate() 
-                                -- Code đánh tay cơ bản nếu cần
-                                -- game:GetService("VirtualUser"):CaptureController()
-                                -- game:GetService("VirtualUser"):ClickButton1(Vector2.new(851, 158))
-                            end
-                        end
+                        -- Đã đến nơi, nhận random quest
+                        local randomQuest = math.random(1, 4)
+                        local questData = {
+                            [1] = {"StartQuest", "HauntedQuest2", 2},
+                            [2] = {"StartQuest", "HauntedQuest2", 1},
+                            [3] = {"StartQuest", "HauntedQuest1", 1},
+                            [4] = {"StartQuest", "HauntedQuest1", 2}
+                        }
+                        game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                        task.wait(0.5) -- Đợi server xử lý nhẹ
                     end
                 end
-            else
-                -- Không tìm thấy quái -> Bay về điểm Spawn chờ
-                local spawnPos = CFrame.new(-9495.68, 453.58, 5977.34)
-                if (root.Position - spawnPos.Position).Magnitude > 50 then
-                    SmartTween(spawnPos, 300)
+
+                -- 2. LOGIC TÌM VÀ ĐÁNH QUÁI (Farm hết quái)
+                -- Hàm GetConnectionEnemies sẽ tìm con quái gần nhất còn sống
+                local bone = GetConnectionEnemies(BonesTable)
+
+                if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
+                    -- Bắt đầu đánh con quái này
+                    repeat
+                        task.wait() -- Lặp cực nhanh để đánh liên tục
+                        if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
+                            -- Gọi hàm tấn công
+                            Attack.Kill(bone, _G.AutoFarm_Bone)
+                        else
+                            break -- Nếu quái chết hoặc mất tích, thoát vòng lặp ngay
+                        end
+                    -- Điều kiện thoát: Tắt AutoFarm HOẶC Quái chết HOẶC Quái biến mất
+                    until not _G.AutoFarm_Bone or not bone.Parent or bone.Humanoid.Health <= 0
+                else
+                    -- 3. NẾU KHÔNG CÓ QUÁI -> TP RA CHỖ THOÁNG ĐỢI SPAWN
+                    -- Chỉ TP ra đây nếu đã có quest rồi mà không thấy quái, hoặc không bật auto quest
+                    if not _G.AcceptQuestC or questUI.Visible then
+                         _tp(CFrame.new(-9495.6806640625, 453.58624267578125, 5977.3486328125))
+                    end
                 end
-            end
-        end)
+            end)
+        end
     end
 end)
+
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
@@ -3347,7 +3245,7 @@ spawn(function()
   end
 end)
 
-local Initialize = Tabs.Settings:AddToggle("Initialize", {Title = "Fast Attack 1 [M1/Melee/Sword]", Description = "[Turn off Fast Attack 1 so that Fast Attack 2 works.]", Default = true})
+local Initialize = Tabs.Settings:AddToggle("Initialize", {Title = "Initialize Attack [M1/Melee/Sword]", Description = "[ Not Supported Gas M1 ]", Default = true})
 Initialize:OnChanged(function(Value)
   _G.Seriality = Value
 end)
