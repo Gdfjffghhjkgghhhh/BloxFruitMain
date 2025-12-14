@@ -5170,32 +5170,39 @@ spawn(function()
 end)
 Tabs.Mirage:AddButton({Title = "Teleport to Temple of Time", Description = "",
 Callback = function()
- local Plr = game.Players.LocalPlayer
+local Plr = game.Players.LocalPlayer
 local Char = Plr.Character or Plr.CharacterAdded:Wait()
 local Root = Char:WaitForChild("HumanoidRootPart")
 
--- Tọa độ đích
+-- Tọa độ đích (Temple of Time)
 local TargetPos = Vector3.new(28286.35546875, 14895.3017578125, 102.62469482421875)
 
--- 1. Tạo bệ đỡ tạm thời
-local platform = Instance.new("Part")
-platform.Size = Vector3.new(10, 1, 10) -- Kích thước bệ
-platform.Anchored = true
-platform.CanCollide = true
-platform.Transparency = 0.5 -- Để 1 nếu muốn tàng hình
-platform.Position = TargetPos - Vector3.new(0, 5, 0) -- Đặt dưới chân một chút
-platform.Parent = workspace
+-- BƯỚC 1: Đóng băng nhân vật (Quan trọng nhất)
+Root.Anchored = true 
 
--- 2. Dịch chuyển nhân vật đến đó trước
+-- BƯỚC 2: Gọi lệnh vào cổng
+-- Lưu ý: Mình dời nhân vật đến đó trước bằng CFrame để Client load map
 Root.CFrame = CFrame.new(TargetPos)
-
--- 3. Gọi Remote
 game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("requestEntrance", TargetPos)
 
--- 4. Xóa bệ đỡ sau khi map đã load (khoảng 2-3 giây)
-task.delay(3, function()
-    if platform then platform:Destroy() end
-end)
+-- BƯỚC 3: Tạo một bệ đỡ vô hình (đề phòng Anchored bị game tự tắt)
+local platform = Instance.new("Part")
+platform.Size = Vector3.new(20, 1, 20)
+platform.Position = TargetPos - Vector3.new(0, 3, 0) -- Nằm ngay dưới chân
+platform.Anchored = true
+platform.CanCollide = true
+platform.Transparency = 0.5 -- Để bán trong suốt để bạn thấy nó hoạt động
+platform.Parent = workspace
+
+-- BƯỚC 4: Giữ nguyên trạng thái chờ Map Load (4 giây)
+task.wait(4) 
+
+-- BƯỚC 5: Thả nhân vật ra
+Root.Anchored = false
+if platform then platform:Destroy() end
+
+-- Bổ sung: Dịch chuyển lại một lần nữa cho chắc ăn nếu nãy giờ bị lệch
+Root.CFrame = CFrame.new(TargetPos)
 end})
 Tabs.Mirage:AddButton({Title = "Teleport to Ancient One", Description = "",
 Callback = function()
