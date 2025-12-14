@@ -5173,35 +5173,48 @@ Callback = function()
 local Plr = game.Players.LocalPlayer
 local Char = Plr.Character or Plr.CharacterAdded:Wait()
 local Root = Char:WaitForChild("HumanoidRootPart")
+local TweenService = game:GetService("TweenService")
 
--- Tọa độ đích (Temple of Time)
+-- Tọa độ Temple of Time
 local TargetPos = Vector3.new(28286.35546875, 14895.3017578125, 102.62469482421875)
 
--- BƯỚC 1: Đóng băng nhân vật (Quan trọng nhất)
-Root.Anchored = true 
+-- 1. BẬT CHẾ ĐỘ BAY (ZERO GRAVITY)
+-- Tạo lực nâng để giữ nhân vật không bị rơi xuống biển
+local bv = Instance.new("BodyVelocity")
+bv.Name = "FlyHold"
+bv.Parent = Root
+bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+bv.Velocity = Vector3.new(0, 0, 0) -- Giữ vận tốc bằng 0 để lơ lửng
 
--- BƯỚC 2: Gọi lệnh vào cổng
--- Lưu ý: Mình dời nhân vật đến đó trước bằng CFrame để Client load map
+-- 2. DỊCH CHUYỂN MƯỢT (Tránh bị kick)
+-- Dịch chuyển đến gần đó trước
 Root.CFrame = CFrame.new(TargetPos)
-game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("requestEntrance", TargetPos)
 
--- BƯỚC 3: Tạo một bệ đỡ vô hình (đề phòng Anchored bị game tự tắt)
-local platform = Instance.new("Part")
-platform.Size = Vector3.new(20, 1, 20)
-platform.Position = TargetPos - Vector3.new(0, 3, 0) -- Nằm ngay dưới chân
-platform.Anchored = true
-platform.CanCollide = true
-platform.Transparency = 0.5 -- Để bán trong suốt để bạn thấy nó hoạt động
-platform.Parent = workspace
+-- 3. GỬI LỆNH LIÊN TỤC (SPAM REMOTES)
+-- Thử gửi lệnh 5 lần, mỗi lần cách nhau 0.5s để đảm bảo server nhận
+spawn(function()
+    for i = 1, 10 do
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("requestEntrance", TargetPos)
+        task.wait(0.5)
+    end
+end)
 
--- BƯỚC 4: Giữ nguyên trạng thái chờ Map Load (4 giây)
-task.wait(4) 
+-- 4. GIỮ TRẠNG THÁI LƠ LỬNG TRONG 5 GIÂY
+-- Thông báo
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Đang tải Temple...",
+    Text = "Đang treo nhân vật để chờ map load...",
+    Duration = 5
+})
 
--- BƯỚC 5: Thả nhân vật ra
-Root.Anchored = false
-if platform then platform:Destroy() end
+task.wait(6) -- Chờ 6 giây cho chắc
 
--- Bổ sung: Dịch chuyển lại một lần nữa cho chắc ăn nếu nãy giờ bị lệch
+-- 5. HỦY CHẾ ĐỘ BAY (ĐỂ RƠI XUỐNG SÀN)
+if Root:FindFirstChild("FlyHold") then
+    Root.FlyHold:Destroy()
+end
+
+-- Dịch chuyển nhẹ lại xuống sàn 1 lần nữa cho chuẩn
 Root.CFrame = CFrame.new(TargetPos)
 end})
 Tabs.Mirage:AddButton({Title = "Teleport to Ancient One", Description = "",
