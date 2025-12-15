@@ -7616,78 +7616,57 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
---// Config
-local NPC_Position = CFrame.new(-16269.1016, 29.5177539, 1372.3204) -- Vị trí Submarine Worker
-local TargetLevel = 2600
-local StopFarmWhenTravel = true -- Tắt Auto Farm khi đi chuyển
+--// Cấu hình
+local TargetLevel = 2600 -- Cấp độ kích hoạt
+local SubmarinePos = CFrame.new(-16269, 29, 1372) -- Vị trí NPC Submarine Worker
 
---// Hàm Tween (Bay) mượt
-local function TweenToNPC(targetCFrame)
-    local player = game.Players.LocalPlayer
-    local char = player.Character or player.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart")
-    
-    local TweenService = game:GetService("TweenService")
-    local distance = (root.Position - targetCFrame.Position).Magnitude
-    local speed = 350 -- Tốc độ bay (chỉnh sửa tùy ý)
-    local tweenInfo = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
-    
-    local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
-    tween:Play()
-    
-    -- Giữ cho nhân vật không bị rơi khi bay
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.Name = "FlyVelocity"
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.MaxForce = Vector3.new(Math.huge, Math.huge, Math.huge)
-    bodyVelocity.Parent = root
-    
-    tween.Completed:Wait()
-    if bodyVelocity then bodyVelocity:Destroy() end
-end
-
---// Luồng kiểm tra Level và Tự động đi
 spawn(function()
     while task.wait(1) do -- Kiểm tra mỗi 1 giây
         pcall(function()
-            local player = game.Players.LocalPlayer
-            local myLevel = player.Data.Level.Value
+            local plr = game.Players.LocalPlayer
+            if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
             
-            -- Chỉ chạy nếu level >= 2600 và đang ở World 3 (Id check tránh lỗi world khác)
-            if myLevel >= TargetLevel and game.PlaceId == 7449423635 then 
+            local myLevel = plr.Data.Level.Value
+            local root = plr.Character.HumanoidRootPart
+            local dist = (root.Position - SubmarinePos.Position).Magnitude
+            
+            -- Chỉ chạy ở Sea 3 (ID: 7449423635) và khi đủ Level 2600
+            if game.PlaceId == 7449423635 and myLevel >= TargetLevel then
                 
-                -- Kiểm tra xem đã qua đảo mới chưa (Check vị trí hiện tại)
-                -- Nếu khoảng cách từ người chơi đến NPC quá xa (nghĩa là chưa đến chỗ NPC để qua đảo)
-                -- Hoặc bạn có thể check tên Map nếu game có đổi Map
-                local distToNPC = (player.Character.HumanoidRootPart.Position - NPC_Position.Position).Magnitude
+                -- Nếu đang ở xa NPC (> 100m) thì mới thực hiện bay
+                -- Điều này để tránh việc nó spam bay khi bạn đã qua đảo mới rồi
+                -- (Đảo Tiki cách NPC này rất xa, nên check khoảng cách là an toàn nhất)
                 
-                -- Logic: Nếu chưa đứng gần NPC (ví dụ > 5000 stud) thì mới bay lại
-                -- Bạn có thể tùy chỉnh điều kiện này để tránh nó bay lại khi đã qua đảo rồi
-                if distToNPC > 100 then 
-                    if StopFarmWhenTravel then
-                        _G.Level = false -- Tắt Auto Farm
-                        _G.FarmLevel = false
+                -- Kiểm tra xem có đang ở gần đảo Tiki chưa (Tiki thường ở tọa độ rất xa NPC này theo hướng khác)
+                -- Hoặc đơn giản: Nếu level đủ mà vẫn đứng xa NPC và chưa nhận quest mới thì bay lại.
+                
+                if dist > 50 and dist < 10000 then -- Thêm điều kiện < 10000 để tránh nó bay về khi đã ở đảo Tiki (Đảo Tiki rất xa)
+                    
+                    -- 1. Tắt Auto Farm để không bị xung đột
+                    if _G.Level then 
+                        _G.Level = false 
+                        print("Đã đạt cấp 2600! Tạm dừng farm để đi qua đảo mới...")
                     end
                     
-                    -- Thực hiện bay đến NPC
-                    TweenToNPC(NPC_Position)
-                    
-                    -- Sau khi đến nơi (khoảng cách <= 10), nói chuyện với NPC
-                    if (player.Character.HumanoidRootPart.Position - NPC_Position.Position).Magnitude <= 15 then
-
-                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelSubmerged") -- Thử key này hoặc key tương ứng
-                        
-                        
-                        task.wait(5) -- Đợi load map
-                        
-                        if StopFarmWhenTravel then
-                            _G.Level = true
-                        end
+                    -- 2. Sử dụng hàm _tp có sẵn của script gốc (An toàn và mượt hơn)
+                    if _tp then
+                        _tp(SubmarinePos)
+                    else
+                        -- Fallback nếu hàm _tp lỗi
+                        root.CFrame = SubmarinePos
                     end
+                    
+                elseif dist <= 20 then
+                    -- 3. Khi đã đến gần NPC
+                    -- Gọi Remote để nói chuyện qua đảo
+                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelSubmerged")
+                    
+                    wait(2) -- Đợi server phản hồi
                 end
             end
         end)
     end
 end)
 Window:SelectTab(1)
+
 
