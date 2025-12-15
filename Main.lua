@@ -1688,11 +1688,34 @@ if World3 then
         end
     end)
 end
-Tabs.Main:AddSection("Tab Farming")
-local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", Description = "", Default = false})
-FarmLevel:OnChanged(function(Value)
-  _G.Level = Value
-end)
+
+Tabs.Main:AddSection("Auto Farm Settings")
+
+-- 1. Tạo biến lưu chế độ (Mặc định là Level)
+_G.SelectFarmMode = "Level"
+_G.AutoFarmActive = false
+
+-- 2. Tạo Dropdown chọn chế độ
+Tabs.Main:AddDropdown("FarmModeSelect", {
+    Title = "Select Farm Mode",
+    Values = {"Level", "Bone", "Cake Prince", "Nearest"},
+    Multi = false,
+    Default = 1,
+    Callback = function(Value)
+        _G.SelectFarmMode = Value
+    end
+})
+
+-- 3. Tạo Toggle tổng để Bật/Tắt
+Tabs.Main:AddToggle("MasterFarmToggle", {
+    Title = "Start Auto Farm", 
+    Description = "",
+    Default = false,
+    Callback = function(Value)
+        _G.AutoFarmActive = Value
+    end
+})
+
 spawn(function()
     local plr = game.Players.LocalPlayer
     local replicated = game:GetService("ReplicatedStorage")
@@ -1700,7 +1723,8 @@ spawn(function()
     local Root = plr.Character:WaitForChild("HumanoidRootPart")
 
     while task.wait(Sec or 0.2) do
-        if _G.Level then
+        -- Kiểm tra điều kiện: Phải bật Toggle VÀ chọn đúng chế độ "Level"
+        if _G.AutoFarmActive and _G.SelectFarmMode == "Level" then
             pcall(function()
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
                 local q = QuestNeta()
@@ -1732,7 +1756,8 @@ spawn(function()
 
                         repeat
                             task.wait()
-                            if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
+                            -- Kiểm tra lại điều kiện trong vòng lặp con
+                            if not _G.AutoFarmActive or _G.SelectFarmMode ~= "Level" or not mob.Parent or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
                             if dist > 250 then
@@ -1740,7 +1765,7 @@ spawn(function()
                             elseif dist > 30 then
                                 Root.CFrame = Root.CFrame:Lerp(mobRoot.CFrame * CFrame.new(0, 20, 0), 0.25)
                             end
-                            Attack.Kill(mob, _G.Level)
+                            Attack.Kill(mob, true) -- Truyền true trực tiếp vì đã check ở ngoài
                         until mob.Humanoid.Health <= 0 or not mob.Parent
                         break
                     end
@@ -1758,6 +1783,170 @@ spawn(function()
     end
 end)
 
+-- HÀM 2: AUTO CAKE PRINCE
+spawn(function()
+    while task.wait(0.1) do
+        if _G.AutoFarmActive and _G.SelectFarmMode == "Cake Prince" then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local questUI = player.PlayerGui.Main.Quest
+                local enemies = workspace.Enemies
+                local cakeIslandPos = CFrame.new(-2077, 252, -12373)
+                if not root then return end
+
+                local cakeLoaf = workspace.Map:FindFirstChild("CakeLoaf")
+                local bigMirror = cakeLoaf and cakeLoaf:FindFirstChild("BigMirror")
+
+                if not bigMirror or not bigMirror:FindFirstChild("Other") or (cakeIslandPos.Position - root.Position).Magnitude > 3000 then
+                    _tp(cakeIslandPos)
+                end
+
+                local transparency = 1
+                if bigMirror and bigMirror:FindFirstChild("Other") then
+                    transparency = bigMirror.Other.Transparency
+                end
+
+                if transparency == 0 or enemies:FindFirstChild("Cake Prince") then
+                    local v = GetConnectionEnemies("Cake Prince")
+                    if v then
+                        repeat task.wait()
+                            Attack.Kill2(v, true)
+                        until not _G.AutoFarmActive or _G.SelectFarmMode ~= "Cake Prince" or not v.Parent or v.Humanoid.Health <= 0
+                    else
+                        if transparency == 0 and (CFrame.new(-1990.67, 4533, -14973.67).Position - root.Position).Magnitude >= 2000 then
+                            _tp(CFrame.new(-2151.82, 149.32, -12404.91))
+                        end
+                    end
+                else
+                    local CakePrince = {"Cookie Crafter","Cake Guard","Baking Staff","Head Baker"}
+                    for _, mobType in ipairs(CakePrince) do
+                        if not _G.AutoFarmActive or _G.SelectFarmMode ~= "Cake Prince" then break end
+                        
+                        local hasMobs = true
+                        while hasMobs and _G.AutoFarmActive and _G.SelectFarmMode == "Cake Prince" do
+                            local v = GetConnectionEnemies({mobType})
+                            if not v then
+                                local nearestMob = nil
+                                local shortestDistance = math.huge
+                                for _, enemy in pairs(enemies:GetChildren()) do
+                                    if enemy.Name == mobType and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
+                                        local distance = (root.Position - enemy.HumanoidRootPart.Position).Magnitude
+                                        if distance < shortestDistance then
+                                            shortestDistance = distance
+                                            nearestMob = enemy
+                                        end
+                                    end
+                                end
+                                v = nearestMob
+                            end
+                            
+                            if v then
+                                if _G.AcceptQuestC and not questUI.Visible then
+                                    local questPos = CFrame.new(-1927.92, 37.8, -12842.54)
+                                    _tp(questPos)
+                                    while root and (questPos.Position - root.Position).Magnitude > 15 do task.wait(0.2) end
+                                    local questData = {
+                                        {"StartQuest", "CakeQuest2", 2}, {"StartQuest", "CakeQuest2", 1},
+                                        {"StartQuest", "CakeQuest1", 1}, {"StartQuest", "CakeQuest1", 2}
+                                    }
+                                    local randomQuest = questData[math.random(1, #questData)]
+                                    local success = false
+                                    repeat
+                                        success = pcall(function() return game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest)) end)
+                                        task.wait(0.5)
+                                    until not _G.AutoFarmActive or questUI.Visible
+                                end
+
+                                repeat 
+                                    task.wait()
+                                    Attack.Kill(v, true)
+                                until not _G.AutoFarmActive or _G.SelectFarmMode ~= "Cake Prince" or not v.Parent or v.Humanoid.Health <= 0 or transparency == 0
+                                task.wait(0.5)
+                            else
+                                hasMobs = false
+                            end
+                        end
+                        if _G.AutoFarmActive and _G.SelectFarmMode == "Cake Prince" then task.wait(0.5) end
+                    end
+                    if _G.AutoFarmActive and _G.SelectFarmMode == "Cake Prince" and transparency ~= 0 then
+                        _tp(CFrame.new(-2077, 252, -12373))
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- HÀM 3: AUTO FARM BONES
+if not _G.MobIndex then _G.MobIndex = 1 end
+spawn(function()
+    while task.wait() do 
+        if _G.AutoFarmActive and _G.SelectFarmMode == "Bone" then
+            pcall(function()        
+                local player = game.Players.LocalPlayer
+                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local questUI = player.PlayerGui.Main.Quest
+                local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
+                
+                if not root then return end
+                local CurrentTargetName = BonesTable[_G.MobIndex]
+                local bone = GetConnectionEnemies({CurrentTargetName})
+                
+                if _G.AcceptQuestC and not questUI.Visible then
+                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
+                     if (questPos.Position - root.Position).Magnitude > 50 then
+                          _tp(questPos)
+                          return 
+                     else
+                          local randomQuest = math.random(1, 4)
+                          local questData = {
+                            [1] = {"StartQuest", "HauntedQuest2", 2}, [2] = {"StartQuest", "HauntedQuest2", 1},
+                            [3] = {"StartQuest", "HauntedQuest1", 1}, [4] = {"StartQuest", "HauntedQuest1", 2}
+                          }                    
+                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                          task.wait(0.5)
+                     end
+                end
+
+                if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
+                    repeat 
+                        task.wait() 
+                        if _G.AutoFarmActive and _G.SelectFarmMode == "Bone" and bone and bone.Parent and bone.Humanoid.Health > 0 then
+                            Attack.Kill(bone, true) 
+                        else
+                            break 
+                        end
+                    until not _G.AutoFarmActive or _G.SelectFarmMode ~= "Bone" or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
+                else
+                    _G.MobIndex = _G.MobIndex + 1
+                    if _G.MobIndex > #BonesTable then _G.MobIndex = 1 end
+                    print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+end)
+
+-- HÀM 4: AUTO FARM NEAREST
+spawn(function()
+    while wait() do
+        pcall(function()
+            if _G.AutoFarmActive and _G.SelectFarmMode == "Nearest" then
+                for i,v in pairs(workspace.Enemies:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") or v:FindFirstChild("HumanoidRootPart") then
+                        if v.Humanoid.Health > 0 then
+                            repeat wait() 
+                                Attack.Kill(v, true) 
+                            until not _G.AutoFarmActive or _G.SelectFarmMode ~= "Nearest" or not v.Parent or v.Humanoid.Health <= 0
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
 local TravelDress = Tabs.Quests:AddToggle("TravelDress", {Title = "Auto Travel Dressrosa", Description = "", Default = false})
 TravelDress:OnChanged(function(Value)
   _G.TravelDres = Value
@@ -1911,176 +2100,7 @@ spawn(function()
     end)
   end
 end)
-local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Cakes", Description = "", Default = false})
-Q:OnChanged(function(Value)
-_G.Auto_Cake_Prince = Value
-end)
-spawn(function()
-  while task.wait(0.1) do
-    if _G.Auto_Cake_Prince then
-      pcall(function()
-        local player = game.Players.LocalPlayer
-        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        local questUI = player.PlayerGui.Main.Quest
-        local enemies = workspace.Enemies
-        local cakeIslandPos = CFrame.new(-2077, 252, -12373)
-        if not root then return end
 
-        local cakeLoaf = workspace.Map:FindFirstChild("CakeLoaf")
-        local bigMirror = cakeLoaf and cakeLoaf:FindFirstChild("BigMirror")
-
-        if not bigMirror or not bigMirror:FindFirstChild("Other") or (cakeIslandPos.Position - root.Position).Magnitude > 3000 then
-          _tp(cakeIslandPos)
-        end
-
-        local transparency = 1
-        if bigMirror and bigMirror:FindFirstChild("Other") then
-          transparency = bigMirror.Other.Transparency
-        end
-
-        if transparency == 0 or enemies:FindFirstChild("Cake Prince") then
-          local v = GetConnectionEnemies("Cake Prince")
-          if v then
-            repeat task.wait()
-              Attack.Kill2(v, _G.Auto_Cake_Prince)
-            until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0
-          else
-            if transparency == 0 and (CFrame.new(-1990.67, 4533, -14973.67).Position - root.Position).Magnitude >= 2000 then
-              _tp(CFrame.new(-2151.82, 149.32, -12404.91))
-            end
-          end
-        else
-          local CakePrince = {"Cookie Crafter","Cake Guard","Baking Staff","Head Baker"}
-          for _, mobType in ipairs(CakePrince) do
-            if not _G.Auto_Cake_Prince then break end
-            
-            local hasMobs = true
-            while hasMobs and _G.Auto_Cake_Prince do
-              local v = GetConnectionEnemies({mobType})
-              
-              if not v then
-                local nearestMob = nil
-                local shortestDistance = math.huge
-                
-                for _, enemy in pairs(enemies:GetChildren()) do
-                  if enemy.Name == mobType and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
-                    local distance = (root.Position - enemy.HumanoidRootPart.Position).Magnitude
-                    if distance < shortestDistance then
-                      shortestDistance = distance
-                      nearestMob = enemy
-                    end
-                  end
-                end
-                v = nearestMob
-              end
-              
-              if v then
-                if _G.AcceptQuestC and not questUI.Visible then
-                  local questPos = CFrame.new(-1927.92, 37.8, -12842.54)
-                  _tp(questPos)
-
-                  while root and (questPos.Position - root.Position).Magnitude > 15 do
-                    task.wait(0.2)
-                  end
-
-                  local questData = {
-                    {"StartQuest", "CakeQuest2", 2},
-                    {"StartQuest", "CakeQuest2", 1},
-                    {"StartQuest", "CakeQuest1", 1},
-                    {"StartQuest", "CakeQuest1", 2}
-                  }
-                  local randomQuest = questData[math.random(1, #questData)]
-
-                  local success = false
-                  repeat
-                    success = pcall(function()
-                      return game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
-                    end)
-                    task.wait(0.5)
-                  until not _G.Auto_Cake_Prince or questUI.Visible
-                end
-
-                repeat 
-                  task.wait()
-                  Attack.Kill(v, _G.Auto_Cake_Prince)
-                until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0 or transparency == 0
-                task.wait(0.5)
-              else
-                hasMobs = false
-              end
-            end
-            if _G.Auto_Cake_Prince then
-              task.wait(0.5)
-            end
-          end
-          if _G.Auto_Cake_Prince and transparency ~= 0 then
-            _tp(CFrame.new(-2077, 252, -12373))
-          end
-        end
-      end)
-    end
-  end
-end)
-local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "", Default = false})
-Q:OnChanged(function(Value)
-  _G.AutoFarm_Bone = Value
-end)
-if not _G.MobIndex then _G.MobIndex = 1 end
-
-spawn(function()
-    while task.wait() do 
-        if _G.AutoFarm_Bone then
-            pcall(function()        
-                local player = game.Players.LocalPlayer
-                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local questUI = player.PlayerGui.Main.Quest
-                
-                local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
-                
-                if not root then return end
-                local CurrentTargetName = BonesTable[_G.MobIndex]
-                local bone = GetConnectionEnemies({CurrentTargetName})
-                if _G.AcceptQuestC and not questUI.Visible then
-                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
-                     if (questPos.Position - root.Position).Magnitude > 50 then
-                          _tp(questPos)
-                          return 
-                     else
-                          local randomQuest = math.random(1, 4)
-                          local questData = {
-                            [1] = {"StartQuest", "HauntedQuest2", 2},
-                            [2] = {"StartQuest", "HauntedQuest2", 1},
-                            [3] = {"StartQuest", "HauntedQuest1", 1},
-                            [4] = {"StartQuest", "HauntedQuest1", 2}
-                          }                    
-                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
-                          task.wait(0.5)
-                     end
-                end
-
-                if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
-
-                    repeat 
-                        task.wait() 
-                        if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
-                            Attack.Kill(bone, _G.AutoFarm_Bone) 
-                        else
-                            break 
-                        end
-                    until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
-                else
-                    _G.MobIndex = _G.MobIndex + 1
-                    
-                    if _G.MobIndex > #BonesTable then
-                        _G.MobIndex = 1
-                    end
-                    print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
-                    task.wait(0.5)
-                end
-            end)
-        end
-    end
-end)
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
@@ -2303,25 +2323,6 @@ end)
 
 Tabs.Main:AddSection("Miscellanea / Quest")
 
-local ClosetMons = Tabs.Main:AddToggle("ClosetMons", {Title = "Auto Farm Nearest", Description = "", Default = false})
-ClosetMons:OnChanged(function(Value)
-  _G.AutoFarmNear = Value
-end)
-spawn(function()
-  while wait() do
-    pcall(function()
-      if _G.AutoFarmNear then
-        for i,v in pairs(workspace.Enemies:GetChildren()) do
-          if v:FindFirstChild("Humanoid") or v:FindFirstChild("HumanoidRootPart") then
-            if v.Humanoid.Health > 0 then
-              repeat wait() Attack.Kill(v,_G.AutoFarmNear) until not _G.AutoFarmNear or not v.Parent or v.Humanoid.Health <= 0
-            end
-          end
-        end
-      end
-    end)
-  end
-end)
 local FactoryRaids = Tabs.Main:AddToggle("FactoryRaids", {Title = "Auto Factory Raid", Description = "", Default = false})
 FactoryRaids:OnChanged(function(Value)
   _G.AutoFactory = Value
@@ -7165,154 +7166,139 @@ Tabs.Shop:AddButton({Title = "Buy Ken", Description = "",Callback = function()
   replicated.Remotes.CommF_:InvokeServer("KenTalk","Buy")
 end})
 
-Tabs.Shop:AddSection("Auto Buy Fighting Style")
+Tabs.Shop:AddSection("Fighting - Style")
 
--- Danh sách các loại võ
+-- Danh sách các võ
 local StyleList = {
-    "Dark Step", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman", 
-    "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon", "God Human", "Sanguine Art"
+    "Black Leg", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman", 
+    "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon", "Godhuman", "Sanguine Art"
 }
 
--- Dropdown để chọn võ (Gán vào biến A)
+-- Hàm bay riêng (Fix lỗi không bay)
+local function TweenToStyle(targetCFrame)
+    local plr = game.Players.LocalPlayer
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local Root = plr.Character.HumanoidRootPart
+    local TweenService = game:GetService("TweenService")
+    local Distance = (Root.Position - targetCFrame.Position).Magnitude
+    local Speed = 300 -- Tốc độ bay
+    
+    -- Tạo BodyVelocity để giữ nhân vật không bị rơi khi bay
+    local BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.Name = "StyleBuyBV"
+    BodyVelocity.Vector = Vector3.new(0, 0, 0)
+    BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    BodyVelocity.Parent = Root
+    
+    -- Tắt va chạm để bay xuyên tường
+    for _, v in pairs(plr.Character:GetDescendants()) do
+        if v:IsA("BasePart") then v.CanCollide = false end
+    end
+
+    local Tween = TweenService:Create(Root, TweenInfo.new(Distance / Speed, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+    Tween:Play()
+    Tween.Completed:Wait()
+    
+    -- Xóa BodyVelocity sau khi bay xong
+    if BodyVelocity then BodyVelocity:Destroy() end
+end
+
+-- Menu chọn võ
 Tabs.Shop:AddDropdown("StyleSelect", {
     Title = "Select Fighting Style", 
     Values = StyleList, 
     Multi = false, 
     Default = 1, 
     Callback = function(Value)
-        getgenv().A = Value -- Gán giá trị cho biến A như logic của bạn
+        _G.SelectStyle = Value
     end
 })
 
--- Toggle để bật tắt
+-- Nút Bật/Tắt
 Tabs.Shop:AddToggle("AutoBuyStyle", {
     Title = "Auto Buy Selected Style", 
-    Description = "Teleport & Buy (Logic V2)", 
+    Description = "Auto Teleport & Buy (Fix No Fly)", 
     Default = false, 
     Callback = function(Value)
-        getgenv().AutoBuyStyle = Value
+        _G.AutoBuyStyle = Value
     end
 })
 
--- HÀM TOPOS (Bay cưỡng chế để khắc phục lỗi không bay)
-local function topos(TargetCFrame)
-    local Plr = game.Players.LocalPlayer
-    if not Plr.Character or not Plr.Character:FindFirstChild("HumanoidRootPart") then return end
-    local Root = Plr.Character.HumanoidRootPart
-    
-    -- Bay bằng cách set CFrame liên tục (Bypass script chống bay)
-    local Speed = 350
-    local RunService = game:GetService("RunService")
-    
-    while getgenv().AutoBuyStyle and (TargetCFrame.Position - Root.Position).Magnitude > 10 do
-        local Delta = RunService.Heartbeat:Wait()
-        if Root and Plr.Character.Humanoid.Health > 0 then
-            local CurrentPos = Root.Position
-            local TargetPos = TargetCFrame.Position
-            local Direction = (TargetPos - CurrentPos).Unit
-            
-            Root.CFrame = CFrame.new(CurrentPos + Direction * Speed * Delta)
-            Root.Velocity = Vector3.new(0,0,0)
-            
-            -- Tắt va chạm
-            for _, v in pairs(Plr.Character:GetChildren()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
-        else
-            break
-        end
-    end
-    -- Dịch chuyển lần cuối cho chính xác
-    if (TargetCFrame.Position - Root.Position).Magnitude < 50 then
-        Root.CFrame = TargetCFrame
-    end
-end
-
--- LOGIC CỦA BẠN (Đã tích hợp vào Menu)
 spawn(function()
-    while task.wait(0.5) do
-        if getgenv().AutoBuyStyle then
+    while task.wait(1) do
+        if _G.AutoBuyStyle and _G.SelectStyle then
             pcall(function()
-                local c = game:GetService("ReplicatedStorage")
-                local A = getgenv().A
-                
-                -- Định nghĩa lại World để đảm bảo chính xác
-                local World1 = game.PlaceId == 2753915549
-                local World2 = game.PlaceId == 4442272183
-                local World3 = game.PlaceId == 7449423635
-
-                if A then
-                    if World1 then
-                        if A == "Dark Step" then
-                            topos(CFrame.new(-984.7499389648438, 14.066271781921387, 3987.7001953125))
-                            c.Remotes.CommF_:InvokeServer("BuyBlackLeg")
-                        elseif A == "Electro" then
-                            topos(CFrame.new(-5382.93212890625, 14.407341957092285, -2150.54638671875))
-                            c.Remotes.CommF_:InvokeServer("BuyElectro")
-                        elseif A == "Fishman Karate" then
-                            topos(CFrame.new(61163.8, 11.6, 1819.8)) -- Teleport cửa
-                            wait(0.2)
-                            topos(CFrame.new(61581.8047, 18.8965912, 987.832703))
-                            c.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
-                        end
-                    
-                    elseif World2 then
-                        if A == "Dragon Claw" then
-                            topos(CFrame.new(701.625, 187.27423095703125, 655.7734985351562))
-                            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
-                            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
-                        elseif A == "Superhuman" then
-                            topos(CFrame.new(1375.435546875, 247.74224853515625, -5189.08642578125))
-                            c.Remotes.CommF_:InvokeServer("BuySuperhuman")
-                        elseif A == "Death Step" then
-                            topos(CFrame.new(6356.86474609375, 296.94586181640625, -6761.203125))
-                            c.Remotes.CommF_:InvokeServer("BuyDeathStep")
-                        elseif A == "Sharkman Karate" then
-                            topos(CFrame.new(-2601.416259765625, 239.27285766601562, -10312.27734375))
-                            c.Remotes.CommF_:InvokeServer("BuySharkmanKarate",true)
-                            c.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
-                        elseif A == "Dark Step" then
-                            topos(CFrame.new(-4996.2734375, 42.98426055908203, -4500.1748046875))
-                            c.Remotes.CommF_:InvokeServer("BuyBlackLeg")
-                        elseif A == "Electro" then
-                            topos(CFrame.new(-4947.47998046875, 42.54825973510742, -4439.400390625))
-                            c.Remotes.CommF_:InvokeServer("BuyElectro")
-                        elseif A == "Fishman Karate" then
-                            topos(CFrame.new(-4992.630859375, 43.027259826660156, -4460.2197265625))
-                            c.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
-                        end
-                    
-                    elseif World3 then
-                        if A == "God Human" then
-                            topos(CFrame.new(-13775.5732421875, 334.93670654296875, -9881.7685546875))
-                            c.Remotes.CommF_:InvokeServer("BuyGodhuman")
-                        elseif A == "Electric Claw" then
-                            topos(CFrame.new(-10370.771484375, 331.9684143066406, -10133.3828125))
-                            c.Remotes.CommF_:InvokeServer("BuyElectricClaw")
-                        elseif A == "Dragon Talon" then
-                            topos(CFrame.new(45662.095703125, 1211.600830078125, 864.2029418945312))
-                            c.Remotes.CommF_:InvokeServer("BuyDragonTalon")
-                        elseif A == "Sanguine Art" then
-                            topos(CFrame.new(-16515.34375, 23.451929092407227, -190.05908203125))
-                            c.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
-                            c.Remotes.CommF_:InvokeServer("BuySanguineArt")
-                        elseif A == "Dark Step" then
-                            topos(CFrame.new(-5043.21142578125, 371.627197265625, -3182.06689453125))
-                            c.Remotes.CommF_:InvokeServer("BuyBlackLeg")
-                        elseif A == "Electro" then
-                            topos(CFrame.new(-5024.8525390625, 371.627197265625, -3190.572509765625))
-                            c.Remotes.CommF_:InvokeServer("BuyElectro")
-                        elseif A == "Fishman Karate" then
-                            topos(CFrame.new(-5024.8525390625, 371.627197265625, -3190.572509765625))
-                            c.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
-                        elseif A == "Superhuman" then
-                            topos(CFrame.new(-5002.439453125, 371.627197265625, -3197.56640625))
-                            c.Remotes.CommF_:InvokeServer("BuySuperhuman")
-                        elseif A == "Dragon Claw" then
-                            topos(CFrame.new(-4982.60693359375, 371.627197265625, -3209.21337890625))
-                            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
-                            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
-                        end
+                local A = _G.SelectStyle
+                -- Logic mua võ cho từng Sea
+                if World1 then
+                    if A == "Black Leg" then
+                        TweenToStyle(CFrame.new(-984.75, 14.06, 3987.7))
+                        replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                    elseif A == "Electro" then
+                        TweenToStyle(CFrame.new(-5382.9, 14.4, -2150.5))
+                        replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+                    elseif A == "Fishman Karate" then
+                        TweenToStyle(CFrame.new(61163.8, 11.6, 1819.8)) -- Cửa vào
+                        wait(0.5)
+                        TweenToStyle(CFrame.new(61581.8, 18.9, 987.8))
+                        replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                    end
+                elseif World2 then
+                    if A == "Dragon Claw" then
+                        TweenToStyle(CFrame.new(701.6, 187.3, 655.8))
+                        replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
+                        replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
+                    elseif A == "Superhuman" then
+                        TweenToStyle(CFrame.new(1375.4, 247.7, -5189.1))
+                        replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+                    elseif A == "Death Step" then
+                        TweenToStyle(CFrame.new(6356.9, 296.9, -6761.2))
+                        replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
+                    elseif A == "Sharkman Karate" then
+                        TweenToStyle(CFrame.new(-2601.4, 239.3, -10312.3))
+                        replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate",true)
+                        replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+                    elseif A == "Black Leg" then
+                        TweenToStyle(CFrame.new(-4996.3, 43, -4500.2))
+                        replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                    elseif A == "Electro" then
+                        TweenToStyle(CFrame.new(-4947.5, 42.5, -4439.4))
+                        replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+                    elseif A == "Fishman Karate" then
+                        TweenToStyle(CFrame.new(-4992.6, 43, -4460.2))
+                        replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                    end
+                elseif World3 then
+                    if A == "Godhuman" then
+                        TweenToStyle(CFrame.new(-13775.6, 334.9, -9881.8))
+                        replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
+                    elseif A == "Electric Claw" then
+                        TweenToStyle(CFrame.new(-10370.8, 332, -10133.4))
+                        replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+                    elseif A == "Dragon Talon" then
+                        TweenToStyle(CFrame.new(45662.1, 1211.6, 864.2))
+                        replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+                    elseif A == "Sanguine Art" then
+                        TweenToStyle(CFrame.new(-16515.3, 23.5, -190.1))
+                        replicated.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
+                        replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
+                    elseif A == "Black Leg" then
+                        TweenToStyle(CFrame.new(-5043.2, 371.6, -3182.1))
+                        replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                    elseif A == "Electro" then
+                        TweenToStyle(CFrame.new(-5024.9, 371.6, -3190.6))
+                        replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+                    elseif A == "Fishman Karate" then
+                        TweenToStyle(CFrame.new(-5024.9, 371.6, -3190.6))
+                        replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                    elseif A == "Superhuman" then
+                        TweenToStyle(CFrame.new(-5002.4, 371.6, -3197.6))
+                        replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+                    elseif A == "Dragon Claw" then
+                        TweenToStyle(CFrame.new(-4982.6, 371.6, -3209.2))
+                        replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
+                        replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
                     end
                 end
             end)
@@ -7662,6 +7648,3 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
-
-
-
