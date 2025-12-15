@@ -7165,45 +7165,15 @@ Tabs.Shop:AddButton({Title = "Buy Ken", Description = "",Callback = function()
   replicated.Remotes.CommF_:InvokeServer("KenTalk","Buy")
 end})
 
-Tabs.Shop:AddSection("Fighting - Style")
+Tabs.Shop:AddSection("Auto Buy Styles (Fix V4)")
 
--- Danh sách các võ
+-- Danh sách Style
 local StyleList = {
     "Black Leg", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman", 
     "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon", "Godhuman", "Sanguine Art"
 }
 
--- Hàm bay riêng (Fix lỗi không bay)
-local function TweenToStyle(targetCFrame)
-    local plr = game.Players.LocalPlayer
-    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    local Root = plr.Character.HumanoidRootPart
-    local TweenService = game:GetService("TweenService")
-    local Distance = (Root.Position - targetCFrame.Position).Magnitude
-    local Speed = 300 -- Tốc độ bay
-    
-    -- Tạo BodyVelocity để giữ nhân vật không bị rơi khi bay
-    local BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "StyleBuyBV"
-    BodyVelocity.Vector = Vector3.new(0, 0, 0)
-    BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    BodyVelocity.Parent = Root
-    
-    -- Tắt va chạm để bay xuyên tường
-    for _, v in pairs(plr.Character:GetDescendants()) do
-        if v:IsA("BasePart") then v.CanCollide = false end
-    end
-
-    local Tween = TweenService:Create(Root, TweenInfo.new(Distance / Speed, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-    Tween:Play()
-    Tween.Completed:Wait()
-    
-    -- Xóa BodyVelocity sau khi bay xong
-    if BodyVelocity then BodyVelocity:Destroy() end
-end
-
--- Menu chọn võ
+-- Menu chọn
 Tabs.Shop:AddDropdown("StyleSelect", {
     Title = "Select Fighting Style", 
     Values = StyleList, 
@@ -7217,87 +7187,128 @@ Tabs.Shop:AddDropdown("StyleSelect", {
 -- Nút Bật/Tắt
 Tabs.Shop:AddToggle("AutoBuyStyle", {
     Title = "Auto Buy Selected Style", 
-    Description = "Auto Teleport & Buy (Fix No Fly)", 
+    Description = "Bypass Script Lock & Buy", 
     Default = false, 
     Callback = function(Value)
         _G.AutoBuyStyle = Value
     end
 })
 
+-- HÀM BAY BẤT CHẤP (Dùng Heartbeat để ghi đè mọi script khác)
+local function SuperFly(TargetCF)
+    local Plr = game.Players.LocalPlayer
+    if not Plr.Character or not Plr.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local Root = Plr.Character.HumanoidRootPart
+    local RunService = game:GetService("RunService")
+    local Speed = 300 -- Tốc độ bay
+    
+    -- Vòng lặp bay
+    while _G.AutoBuyStyle and (TargetCF.Position - Root.Position).Magnitude > 10 do
+        local Delta = RunService.Heartbeat:Wait() -- Chờ khung hình tiếp theo
+        
+        if Root and Plr.Character.Humanoid.Health > 0 then
+            -- Tính toán vị trí tiếp theo
+            local CurrentPos = Root.Position
+            local TargetPos = TargetCF.Position
+            local Direction = (TargetPos - CurrentPos).Unit
+            
+            -- Dịch chuyển từng chút một (Mượt hơn TP thẳng)
+            Root.CFrame = CFrame.new(CurrentPos + Direction * Speed * Delta)
+            Root.Velocity = Vector3.new(0,0,0) -- Triệt tiêu trọng lực
+            
+            -- Tắt va chạm để xuyên tường
+            for _, v in pairs(Plr.Character:GetChildren()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        else
+            break
+        end
+    end
+end
+
 spawn(function()
     while task.wait(1) do
         if _G.AutoBuyStyle and _G.SelectStyle then
             pcall(function()
+                local RS = game:GetService("ReplicatedStorage")
+                local CommF = RS:WaitForChild("Remotes"):WaitForChild("CommF_")
+                local MyPlaceId = game.PlaceId
                 local A = _G.SelectStyle
-                -- Logic mua võ cho từng Sea
-                if World1 then
+
+                -- World 1
+                if MyPlaceId == 2753915549 then
                     if A == "Black Leg" then
-                        TweenToStyle(CFrame.new(-984.75, 14.06, 3987.7))
-                        replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                        SuperFly(CFrame.new(-984.7, 14, 3987.7))
+                        CommF:InvokeServer("BuyBlackLeg")
                     elseif A == "Electro" then
-                        TweenToStyle(CFrame.new(-5382.9, 14.4, -2150.5))
-                        replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+                        SuperFly(CFrame.new(-5382.9, 14.4, -2150.5))
+                        CommF:InvokeServer("BuyElectro")
                     elseif A == "Fishman Karate" then
-                        TweenToStyle(CFrame.new(61163.8, 11.6, 1819.8)) -- Cửa vào
+                        SuperFly(CFrame.new(61163.8, 11.6, 1819.8))
                         wait(0.5)
-                        TweenToStyle(CFrame.new(61581.8, 18.9, 987.8))
-                        replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                        SuperFly(CFrame.new(61581.8, 18.9, 987.8))
+                        CommF:InvokeServer("BuyFishmanKarate")
                     end
-                elseif World2 then
+                
+                -- World 2
+                elseif MyPlaceId == 4442272183 then
                     if A == "Dragon Claw" then
-                        TweenToStyle(CFrame.new(701.6, 187.3, 655.8))
-                        replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
-                        replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
+                        SuperFly(CFrame.new(701.6, 187.3, 655.8))
+                        CommF:InvokeServer("BlackbeardReward","DragonClaw","1")
+                        CommF:InvokeServer("BlackbeardReward","DragonClaw","2")
                     elseif A == "Superhuman" then
-                        TweenToStyle(CFrame.new(1375.4, 247.7, -5189.1))
-                        replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+                        SuperFly(CFrame.new(1375.4, 247.7, -5189.1))
+                        CommF:InvokeServer("BuySuperhuman")
                     elseif A == "Death Step" then
-                        TweenToStyle(CFrame.new(6356.9, 296.9, -6761.2))
-                        replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
+                        SuperFly(CFrame.new(6356.9, 296.9, -6761.2))
+                        CommF:InvokeServer("BuyDeathStep")
                     elseif A == "Sharkman Karate" then
-                        TweenToStyle(CFrame.new(-2601.4, 239.3, -10312.3))
-                        replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate",true)
-                        replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+                        SuperFly(CFrame.new(-2601.4, 239.3, -10312.3))
+                        CommF:InvokeServer("BuySharkmanKarate",true)
+                        CommF:InvokeServer("BuySharkmanKarate")
                     elseif A == "Black Leg" then
-                        TweenToStyle(CFrame.new(-4996.3, 43, -4500.2))
-                        replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                        SuperFly(CFrame.new(-4996.3, 43, -4500.2))
+                        CommF:InvokeServer("BuyBlackLeg")
                     elseif A == "Electro" then
-                        TweenToStyle(CFrame.new(-4947.5, 42.5, -4439.4))
-                        replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+                        SuperFly(CFrame.new(-4947.5, 42.5, -4439.4))
+                        CommF:InvokeServer("BuyElectro")
                     elseif A == "Fishman Karate" then
-                        TweenToStyle(CFrame.new(-4992.6, 43, -4460.2))
-                        replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                        SuperFly(CFrame.new(-4992.6, 43, -4460.2))
+                        CommF:InvokeServer("BuyFishmanKarate")
                     end
-                elseif World3 then
+
+                -- World 3
+                elseif MyPlaceId == 7449423635 then
                     if A == "Godhuman" then
-                        TweenToStyle(CFrame.new(-13775.6, 334.9, -9881.8))
-                        replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
+                        SuperFly(CFrame.new(-13775.6, 334.9, -9881.8))
+                        CommF:InvokeServer("BuyGodhuman")
                     elseif A == "Electric Claw" then
-                        TweenToStyle(CFrame.new(-10370.8, 332, -10133.4))
-                        replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+                        SuperFly(CFrame.new(-10370.8, 332, -10133.4))
+                        CommF:InvokeServer("BuyElectricClaw")
                     elseif A == "Dragon Talon" then
-                        TweenToStyle(CFrame.new(45662.1, 1211.6, 864.2))
-                        replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+                        SuperFly(CFrame.new(45662.1, 1211.6, 864.2))
+                        CommF:InvokeServer("BuyDragonTalon")
                     elseif A == "Sanguine Art" then
-                        TweenToStyle(CFrame.new(-16515.3, 23.5, -190.1))
-                        replicated.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
-                        replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
+                        SuperFly(CFrame.new(-16515.3, 23.5, -190.1))
+                        CommF:InvokeServer("BuySanguineArt", true)
+                        CommF:InvokeServer("BuySanguineArt")
                     elseif A == "Black Leg" then
-                        TweenToStyle(CFrame.new(-5043.2, 371.6, -3182.1))
-                        replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                        SuperFly(CFrame.new(-5043.2, 371.6, -3182.1))
+                        CommF:InvokeServer("BuyBlackLeg")
                     elseif A == "Electro" then
-                        TweenToStyle(CFrame.new(-5024.9, 371.6, -3190.6))
-                        replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+                        SuperFly(CFrame.new(-5024.9, 371.6, -3190.6))
+                        CommF:InvokeServer("BuyElectro")
                     elseif A == "Fishman Karate" then
-                        TweenToStyle(CFrame.new(-5024.9, 371.6, -3190.6))
-                        replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                        SuperFly(CFrame.new(-5024.9, 371.6, -3190.6))
+                        CommF:InvokeServer("BuyFishmanKarate")
                     elseif A == "Superhuman" then
-                        TweenToStyle(CFrame.new(-5002.4, 371.6, -3197.6))
-                        replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+                        SuperFly(CFrame.new(-5002.4, 371.6, -3197.6))
+                        CommF:InvokeServer("BuySuperhuman")
                     elseif A == "Dragon Claw" then
-                        TweenToStyle(CFrame.new(-4982.6, 371.6, -3209.2))
-                        replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
-                        replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
+                        SuperFly(CFrame.new(-4982.6, 371.6, -3209.2))
+                        CommF:InvokeServer("BlackbeardReward","DragonClaw","1")
+                        CommF:InvokeServer("BlackbeardReward","DragonClaw","2")
                     end
                 end
             end)
@@ -7647,4 +7658,5 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
+
 
