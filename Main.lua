@@ -198,15 +198,11 @@ statsSetings = function(Num, value)
 end
 local plr = game.Players.LocalPlayer
 
-local TweenService = game:GetService("TweenService") -- Gọi dịch vụ Tween
-
 BringEnemy = function()
-    -- Kiểm tra điều kiện cơ bản
     if not _B or not PosMon then return end
     
-    -- Tăng bán kính mô phỏng để cố gắng lấy quyền điều khiển quái từ xa
     pcall(function()
-        sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+        sethiddenproperty(plr, "SimulationRadius", math.huge)
     end)
 
     task.defer(function()
@@ -216,49 +212,30 @@ BringEnemy = function()
             
             if hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - PosMon).Magnitude
-                
-                -- Điều kiện: Trong tầm 350 stud
-                -- Mình bỏ check 'isnetworkowner' ở ngoài để nó luôn cố gắng hút quái
-                -- Nhưng nếu server không cho phép, quái sẽ bị giật lại (Rubberband)
-                if dist <= 350 then
+                if dist <= 350 and isnetworkowner(hrp) then
                     
-                    -- Xử lý quái để nó nhẹ hơn (Anti-ghost)
-                    if not v:GetAttribute("Modified") then -- Chỉ set 1 lần để đỡ lag
-                        for _, part in ipairs(v:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.CanCollide = false
-                                part.Anchored = false
-                                part.Massless = true
-                            end
+                    -- Apply anti-ghost measures
+                    for _, part in ipairs(v:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                            part.Anchored = false
+                            part.Massless = true
                         end
-                        v:SetAttribute("Modified", true)
                     end
                     
-                    -- Làm đơ quái
-                    hum.WalkSpeed = 0
-                    hum.JumpPower = 0
+                    hum.WalkSpeed, hum.JumpPower = 0, 0
                     hum.PlatformStand = true
-                    if hum:FindFirstChild("Animator") then
-                        hum.Animator:Destroy()
-                    end
                     
-                    -- /// LOGIC DI CHUYỂN ///
+                    local anim = hum:FindFirstChildOfClass("Animator")
+                    if anim then anim.Parent = nil end
                     
-                    -- Khóa vận tốc để quái không bị văng đi
-                    hrp.AssemblyLinearVelocity = Vector3.zero
-                    hrp.AssemblyAngularVelocity = Vector3.zero
-                    
-                    if dist <= 5 then
-                        -- [BLOCK MODE]
-                        -- Khi ở gần (< 5 stud): Dùng Lerp để "trôi" nhẹ vào tâm PosMon
-                        -- Alpha 0.1 tạo cảm giác Tween mượt mà nhưng vẫn giữ chặt quái
-                        hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(PosMon), 0.2)
-                    else
-                        -- [BRING MODE]
-                        -- Khi ở xa: Dịch chuyển tức thời để tiết kiệm thời gian
-                        -- Chỉ dịch chuyển nếu có quyền mạng (để tránh bị kick)
+                    -- Smooth teleport without dropping to ground
+                    for i = 1, 3 do
                         if isnetworkowner(hrp) then
-                            hrp.CFrame = CFrame.new(PosMon)
+                            hrp.CFrame = CFrame.new(PosMon + Vector3.new(0, 5, 0))
+                            task.wait(0.05)
+                        else
+                            break
                         end
                     end
                 end
@@ -2048,50 +2025,85 @@ local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "",
 Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
-if not _G.MobIndex then _G.MobIndex = 1 end
+-- Khai báo Service cần thiết ở đầu (nếu chưa có)
+local TweenService = game:GetService("TweenService")
+if not _G.MobIndex then _G.MobIndex = 1 end -- Đảm bảo biến Index tồn tại
 
 spawn(function()
     while task.wait() do 
         if _G.AutoFarm_Bone then
             pcall(function()        
                 local player = game.Players.LocalPlayer
-                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local character = player.Character or player.CharacterAdded:Wait()
+                local root = character:FindFirstChild("HumanoidRootPart")
                 local questUI = player.PlayerGui.Main.Quest
                 
                 local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
                 
                 if not root then return end
+                
                 local CurrentTargetName = BonesTable[_G.MobIndex]
                 local bone = GetConnectionEnemies({CurrentTargetName})
+                
+                -- 1. LOGIC NHẬN QUEST
                 if _G.AcceptQuestC and not questUI.Visible then
-                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
-                     if (questPos.Position - root.Position).Magnitude > 50 then
-                          _tp(questPos)
-                          return 
-                     else
-                          local randomQuest = math.random(1, 4)
-                          local questData = {
-                            [1] = {"StartQuest", "HauntedQuest2", 2},
-                            [2] = {"StartQuest", "HauntedQuest2", 1},
-                            [3] = {"StartQuest", "HauntedQuest1", 1},
-                            [4] = {"StartQuest", "HauntedQuest1", 2}
-                          }                    
-                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
-                          task.wait(0.5)
-                     end
+                      local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
+                      if (questPos.Position - root.Position).Magnitude > 50 then
+                           if _tp then _tp(questPos) else root.CFrame = questPos end -- Fallback nếu hàm _tp lỗi
+                           return 
+                      else
+                           local randomQuest = math.random(1, 4)
+                           local questData = {
+                             [1] = {"StartQuest", "HauntedQuest2", 2},
+                             [2] = {"StartQuest", "HauntedQuest2", 1},
+                             [3] = {"StartQuest", "HauntedQuest1", 1},
+                             [4] = {"StartQuest", "HauntedQuest1", 2}
+                           }                    
+                           game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                           task.wait(0.5)
+                      end
                 end
 
+                -- 2. LOGIC TẤN CÔNG & TWEEN BLOCK
                 if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
+                    -- Lấy phần Root của quái
+                    local enemyRoot = bone:FindFirstChild("HumanoidRootPart") or bone:FindFirstChild("Torso")
 
                     repeat 
                         task.wait() 
                         if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
+                            
+                            -- /// PHẦN THÊM MỚI: TWEEN BLOCK LÊN QUÁI ///
+                            if enemyRoot and root then
+                                -- Vị trí đích: Trên đầu quái 5 stud để tránh bị đánh
+                                local targetCFrame = enemyRoot.CFrame * CFrame.new(0, 5, 0)
+                                
+                                -- Tính toán Tween
+                                local distance = (targetCFrame.Position - root.Position).Magnitude
+                                local speed = 300 -- Tốc độ bay
+                                local tweenInfo = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
+                                
+                                -- Nếu ở xa thì Tween, ở gần thì giữ CFrame (Block)
+                                if distance > 10 then
+                                    local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
+                                    tween:Play()
+                                else
+                                    root.CFrame = targetCFrame
+                                end
+
+                                -- Khóa Velocity (Block Physics) để không bị rơi hoặc đẩy
+                                root.AssemblyLinearVelocity = Vector3.new(0,0,0) 
+                                root.AssemblyAngularVelocity = Vector3.new(0,0,0)
+                            end
+                            -- /// KẾT THÚC PHẦN THÊM MỚI ///
+
                             Attack.Kill(bone, _G.AutoFarm_Bone) 
                         else
                             break 
                         end
                     until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
                 else
+                    -- Chuyển đổi quái nếu không tìm thấy
                     _G.MobIndex = _G.MobIndex + 1
                     
                     if _G.MobIndex > #BonesTable then
@@ -7188,161 +7200,41 @@ Tabs.Shop:AddButton({Title = "Buy Ken", Description = "",Callback = function()
   replicated.Remotes.CommF_:InvokeServer("KenTalk","Buy")
 end})
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-
--- Biến điều khiển
-local CurrentStyle = "" -- Biến lưu loại võ đang chọn để mua
-
--- Hàm dịch chuyển (Teleport)
-function topos(CFrameArg)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrameArg
-    end
-end
-
--- --- PHẦN GIAO DIỆN (BUTTONS) ---
--- Khi bấm nút, nó sẽ đặt biến CurrentStyle để vòng lặp bên dưới xử lý
-
-Tabs.Shop:AddSection("Fighting - Style Control")
-
-Tabs.Shop:AddButton({Title = "Stop Auto Buy", Description = "Dừng tự động mua/dịch chuyển", Callback = function()
-    CurrentStyle = "" 
+Tabs.Shop:AddSection("Fighting - Style")
+Tabs.Shop:AddButton({Title = "Buy Black Leg", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+end})
+Tabs.Shop:AddButton({Title = "Buy Electro", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+end})
+Tabs.Shop:AddButton({Title = "Buy Fishman Karate", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+end})
+Tabs.Shop:AddButton({Title = "Buy DragonClaw", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
+end})
+Tabs.Shop:AddButton({Title = "Buy Superhuman", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+end})
+Tabs.Shop:AddButton({Title = "Buy Death Step", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
+end})
+Tabs.Shop:AddButton({Title = "Buy Sharkman Karate", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+end})
+Tabs.Shop:AddButton({Title = "Buy ElectricClaw", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+end})
+Tabs.Shop:AddButton({Title = "Buy DragonTalon", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+end})
+Tabs.Shop:AddButton({Title = "Buy Godhuman", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
+end})
+Tabs.Shop:AddButton({Title = "Buy SanguineArt", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
 end})
 
-Tabs.Shop:AddSection("Fighting - Styles")
-
-Tabs.Shop:AddButton({Title = "Buy Black Leg", Description = "World 1, 2, 3", Callback = function()
-    CurrentStyle = "Dark Step"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Electro", Description = "World 1, 2, 3", Callback = function()
-    CurrentStyle = "Electro"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Fishman Karate", Description = "World 1, 2, 3", Callback = function()
-    CurrentStyle = "Fishman Karate"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Dragon Claw", Description = "World 2, 3", Callback = function()
-    CurrentStyle = "Dragon Claw"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Superhuman", Description = "World 2, 3", Callback = function()
-    CurrentStyle = "Superhuman"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Death Step", Description = "World 2, 3", Callback = function()
-    CurrentStyle = "Death Step"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Sharkman Karate", Description = "World 2, 3", Callback = function()
-    CurrentStyle = "Sharkman Karate"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Electric Claw", Description = "World 3", Callback = function()
-    CurrentStyle = "Electric Claw"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Dragon Talon", Description = "World 3", Callback = function()
-    CurrentStyle = "Dragon Talon"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Godhuman", Description = "World 3", Callback = function()
-    CurrentStyle = "God Human"
-end})
-
-Tabs.Shop:AddButton({Title = "Buy Sanguine Art", Description = "World 3", Callback = function()
-    CurrentStyle = "Sanguine Art"
-end})
-
-
--- --- PHẦN LOGIC (LOOP) ---
-
-local World1 = game.PlaceId == 2753915549
-local World2 = game.PlaceId == 4442272183
-local World3 = game.PlaceId == 7449423635
-
-spawn(function()
-    pcall(function()            
-        while task.wait(0.5) do -- Dùng task.wait để tối ưu hơn
-            if CurrentStyle and CurrentStyle ~= "" then
-                
-                if World1 then
-                    if CurrentStyle == "Dark Step" then
-                        topos(CFrame.new(-984.7499389648438, 14.066271781921387, 3987.7001953125))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyBlackLeg")
-                    elseif CurrentStyle == "Electro" then
-                        topos(CFrame.new(-5382.93212890625, 14.407341957092285, -2150.54638671875))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyElectro")
-                    elseif CurrentStyle == "Fishman Karate" then
-                        topos(CFrame.new(61581.8047, 18.8965912, 987.832703))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
-                    end
-                    
-                elseif World2 then
-                    if CurrentStyle == "Dragon Claw" then
-                        topos(CFrame.new(701.625, 187.27423095703125, 655.7734985351562))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
-                    elseif CurrentStyle == "Superhuman" then
-                        topos(CFrame.new(1375.435546875, 247.74224853515625, -5189.08642578125))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySuperhuman")
-                    elseif CurrentStyle == "Death Step" then
-                        topos(CFrame.new(6356.86474609375, 296.94586181640625, -6761.203125))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyDeathStep")
-                    elseif CurrentStyle == "Sharkman Karate" then
-                        topos(CFrame.new(-2601.416259765625, 239.27285766601562, -10312.27734375))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySharkmanKarate",true)
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
-                    elseif CurrentStyle == "Dark Step" then
-                        topos(CFrame.new(-4996.2734375, 42.98426055908203, -4500.1748046875))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyBlackLeg")
-                    elseif CurrentStyle == "Electro" then
-                        topos(CFrame.new(-4947.47998046875, 42.54825973510742, -4439.400390625))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyElectro")
-                    elseif CurrentStyle == "Fishman Karate" then
-                        topos(CFrame.new(-4992.630859375, 43.027259826660156, -4460.2197265625))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
-                    end
-
-                elseif World3 then
-                    if CurrentStyle == "God Human" then
-                        topos(CFrame.new(-13775.5732421875, 334.93670654296875, -9881.7685546875))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyGodhuman")
-                    elseif CurrentStyle == "Electric Claw" then
-                        topos(CFrame.new(-10370.771484375, 331.9684143066406, -10133.3828125))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyElectricClaw")
-                    elseif CurrentStyle == "Dragon Talon" then
-                        topos(CFrame.new(45662.095703125, 1211.600830078125, 864.2029418945312))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyDragonTalon")
-                    elseif CurrentStyle == "Sanguine Art" then
-                        topos(CFrame.new(-16515.34375, 23.451929092407227, -190.05908203125))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySanguineArt")
-                    elseif CurrentStyle == "Dark Step" then
-                        topos(CFrame.new(-5043.21142578125, 371.627197265625, -3182.06689453125))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyBlackLeg")
-                    elseif CurrentStyle == "Electro" then
-                        topos(CFrame.new(-5024.8525390625, 371.627197265625, -3190.572509765625))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyElectro")
-                    elseif CurrentStyle == "Fishman Karate" then
-                        topos(CFrame.new(-5024.8525390625, 371.627197265625, -3190.572509765625))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
-                    elseif CurrentStyle == "Superhuman" then
-                        topos(CFrame.new(-5002.439453125, 371.627197265625, -3197.56640625))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySuperhuman")
-                    elseif CurrentStyle == "Dragon Claw" then
-                        topos(CFrame.new(-4982.60693359375, 371.627197265625, -3209.21337890625))
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
-                        ReplicatedStorage.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
-                    end
-                end
-            end
-        end
-    end)
-end)
 Tabs.Shop:AddSection("Accessory")
 Tabs.Shop:AddButton({Title = "Buy Tomoe Ring", Description = "",Callback = function()
   replicated.Remotes.CommF_:InvokeServer("BuyItem","Tomoe Ring")
@@ -7686,4 +7578,3 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
-
