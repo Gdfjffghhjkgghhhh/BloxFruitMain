@@ -7165,59 +7165,56 @@ Tabs.Shop:AddButton({Title = "Buy Ken", Description = "",Callback = function()
   replicated.Remotes.CommF_:InvokeServer("KenTalk","Buy")
 end})
 
-Tabs.Shop:AddSection("Auto Buy Styles (Fix V4)")
+Tabs.Shop:AddSection("Auto Buy Fighting Style")
 
--- Danh sách Style
+-- Danh sách các loại võ
 local StyleList = {
-    "Black Leg", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman", 
-    "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon", "Godhuman", "Sanguine Art"
+    "Dark Step", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman", 
+    "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon", "God Human", "Sanguine Art"
 }
 
--- Menu chọn
+-- Dropdown để chọn võ (Gán vào biến A)
 Tabs.Shop:AddDropdown("StyleSelect", {
     Title = "Select Fighting Style", 
     Values = StyleList, 
     Multi = false, 
     Default = 1, 
     Callback = function(Value)
-        _G.SelectStyle = Value
+        getgenv().A = Value -- Gán giá trị cho biến A như logic của bạn
     end
 })
 
--- Nút Bật/Tắt
+-- Toggle để bật tắt
 Tabs.Shop:AddToggle("AutoBuyStyle", {
     Title = "Auto Buy Selected Style", 
-    Description = "Bypass Script Lock & Buy", 
+    Description = "Teleport & Buy (Logic V2)", 
     Default = false, 
     Callback = function(Value)
-        _G.AutoBuyStyle = Value
+        getgenv().AutoBuyStyle = Value
     end
 })
 
--- HÀM BAY BẤT CHẤP (Dùng Heartbeat để ghi đè mọi script khác)
-local function SuperFly(TargetCF)
+-- HÀM TOPOS (Bay cưỡng chế để khắc phục lỗi không bay)
+local function topos(TargetCFrame)
     local Plr = game.Players.LocalPlayer
     if not Plr.Character or not Plr.Character:FindFirstChild("HumanoidRootPart") then return end
-    
     local Root = Plr.Character.HumanoidRootPart
-    local RunService = game:GetService("RunService")
-    local Speed = 300 -- Tốc độ bay
     
-    -- Vòng lặp bay
-    while _G.AutoBuyStyle and (TargetCF.Position - Root.Position).Magnitude > 10 do
-        local Delta = RunService.Heartbeat:Wait() -- Chờ khung hình tiếp theo
-        
+    -- Bay bằng cách set CFrame liên tục (Bypass script chống bay)
+    local Speed = 350
+    local RunService = game:GetService("RunService")
+    
+    while getgenv().AutoBuyStyle and (TargetCFrame.Position - Root.Position).Magnitude > 10 do
+        local Delta = RunService.Heartbeat:Wait()
         if Root and Plr.Character.Humanoid.Health > 0 then
-            -- Tính toán vị trí tiếp theo
             local CurrentPos = Root.Position
-            local TargetPos = TargetCF.Position
+            local TargetPos = TargetCFrame.Position
             local Direction = (TargetPos - CurrentPos).Unit
             
-            -- Dịch chuyển từng chút một (Mượt hơn TP thẳng)
             Root.CFrame = CFrame.new(CurrentPos + Direction * Speed * Delta)
-            Root.Velocity = Vector3.new(0,0,0) -- Triệt tiêu trọng lực
+            Root.Velocity = Vector3.new(0,0,0)
             
-            -- Tắt va chạm để xuyên tường
+            -- Tắt va chạm
             for _, v in pairs(Plr.Character:GetChildren()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
             end
@@ -7225,90 +7222,97 @@ local function SuperFly(TargetCF)
             break
         end
     end
+    -- Dịch chuyển lần cuối cho chính xác
+    if (TargetCFrame.Position - Root.Position).Magnitude < 50 then
+        Root.CFrame = TargetCFrame
+    end
 end
 
+-- LOGIC CỦA BẠN (Đã tích hợp vào Menu)
 spawn(function()
-    while task.wait(1) do
-        if _G.AutoBuyStyle and _G.SelectStyle then
+    while task.wait(0.5) do
+        if getgenv().AutoBuyStyle then
             pcall(function()
-                local RS = game:GetService("ReplicatedStorage")
-                local CommF = RS:WaitForChild("Remotes"):WaitForChild("CommF_")
-                local MyPlaceId = game.PlaceId
-                local A = _G.SelectStyle
-
-                -- World 1
-                if MyPlaceId == 2753915549 then
-                    if A == "Black Leg" then
-                        SuperFly(CFrame.new(-984.7, 14, 3987.7))
-                        CommF:InvokeServer("BuyBlackLeg")
-                    elseif A == "Electro" then
-                        SuperFly(CFrame.new(-5382.9, 14.4, -2150.5))
-                        CommF:InvokeServer("BuyElectro")
-                    elseif A == "Fishman Karate" then
-                        SuperFly(CFrame.new(61163.8, 11.6, 1819.8))
-                        wait(0.5)
-                        SuperFly(CFrame.new(61581.8, 18.9, 987.8))
-                        CommF:InvokeServer("BuyFishmanKarate")
-                    end
+                local c = game:GetService("ReplicatedStorage")
+                local A = getgenv().A
                 
-                -- World 2
-                elseif MyPlaceId == 4442272183 then
-                    if A == "Dragon Claw" then
-                        SuperFly(CFrame.new(701.6, 187.3, 655.8))
-                        CommF:InvokeServer("BlackbeardReward","DragonClaw","1")
-                        CommF:InvokeServer("BlackbeardReward","DragonClaw","2")
-                    elseif A == "Superhuman" then
-                        SuperFly(CFrame.new(1375.4, 247.7, -5189.1))
-                        CommF:InvokeServer("BuySuperhuman")
-                    elseif A == "Death Step" then
-                        SuperFly(CFrame.new(6356.9, 296.9, -6761.2))
-                        CommF:InvokeServer("BuyDeathStep")
-                    elseif A == "Sharkman Karate" then
-                        SuperFly(CFrame.new(-2601.4, 239.3, -10312.3))
-                        CommF:InvokeServer("BuySharkmanKarate",true)
-                        CommF:InvokeServer("BuySharkmanKarate")
-                    elseif A == "Black Leg" then
-                        SuperFly(CFrame.new(-4996.3, 43, -4500.2))
-                        CommF:InvokeServer("BuyBlackLeg")
-                    elseif A == "Electro" then
-                        SuperFly(CFrame.new(-4947.5, 42.5, -4439.4))
-                        CommF:InvokeServer("BuyElectro")
-                    elseif A == "Fishman Karate" then
-                        SuperFly(CFrame.new(-4992.6, 43, -4460.2))
-                        CommF:InvokeServer("BuyFishmanKarate")
-                    end
+                -- Định nghĩa lại World để đảm bảo chính xác
+                local World1 = game.PlaceId == 2753915549
+                local World2 = game.PlaceId == 4442272183
+                local World3 = game.PlaceId == 7449423635
 
-                -- World 3
-                elseif MyPlaceId == 7449423635 then
-                    if A == "Godhuman" then
-                        SuperFly(CFrame.new(-13775.6, 334.9, -9881.8))
-                        CommF:InvokeServer("BuyGodhuman")
-                    elseif A == "Electric Claw" then
-                        SuperFly(CFrame.new(-10370.8, 332, -10133.4))
-                        CommF:InvokeServer("BuyElectricClaw")
-                    elseif A == "Dragon Talon" then
-                        SuperFly(CFrame.new(45662.1, 1211.6, 864.2))
-                        CommF:InvokeServer("BuyDragonTalon")
-                    elseif A == "Sanguine Art" then
-                        SuperFly(CFrame.new(-16515.3, 23.5, -190.1))
-                        CommF:InvokeServer("BuySanguineArt", true)
-                        CommF:InvokeServer("BuySanguineArt")
-                    elseif A == "Black Leg" then
-                        SuperFly(CFrame.new(-5043.2, 371.6, -3182.1))
-                        CommF:InvokeServer("BuyBlackLeg")
-                    elseif A == "Electro" then
-                        SuperFly(CFrame.new(-5024.9, 371.6, -3190.6))
-                        CommF:InvokeServer("BuyElectro")
-                    elseif A == "Fishman Karate" then
-                        SuperFly(CFrame.new(-5024.9, 371.6, -3190.6))
-                        CommF:InvokeServer("BuyFishmanKarate")
-                    elseif A == "Superhuman" then
-                        SuperFly(CFrame.new(-5002.4, 371.6, -3197.6))
-                        CommF:InvokeServer("BuySuperhuman")
-                    elseif A == "Dragon Claw" then
-                        SuperFly(CFrame.new(-4982.6, 371.6, -3209.2))
-                        CommF:InvokeServer("BlackbeardReward","DragonClaw","1")
-                        CommF:InvokeServer("BlackbeardReward","DragonClaw","2")
+                if A then
+                    if World1 then
+                        if A == "Dark Step" then
+                            topos(CFrame.new(-984.7499389648438, 14.066271781921387, 3987.7001953125))
+                            c.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                        elseif A == "Electro" then
+                            topos(CFrame.new(-5382.93212890625, 14.407341957092285, -2150.54638671875))
+                            c.Remotes.CommF_:InvokeServer("BuyElectro")
+                        elseif A == "Fishman Karate" then
+                            topos(CFrame.new(61163.8, 11.6, 1819.8)) -- Teleport cửa
+                            wait(0.2)
+                            topos(CFrame.new(61581.8047, 18.8965912, 987.832703))
+                            c.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                        end
+                    
+                    elseif World2 then
+                        if A == "Dragon Claw" then
+                            topos(CFrame.new(701.625, 187.27423095703125, 655.7734985351562))
+                            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
+                            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
+                        elseif A == "Superhuman" then
+                            topos(CFrame.new(1375.435546875, 247.74224853515625, -5189.08642578125))
+                            c.Remotes.CommF_:InvokeServer("BuySuperhuman")
+                        elseif A == "Death Step" then
+                            topos(CFrame.new(6356.86474609375, 296.94586181640625, -6761.203125))
+                            c.Remotes.CommF_:InvokeServer("BuyDeathStep")
+                        elseif A == "Sharkman Karate" then
+                            topos(CFrame.new(-2601.416259765625, 239.27285766601562, -10312.27734375))
+                            c.Remotes.CommF_:InvokeServer("BuySharkmanKarate",true)
+                            c.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+                        elseif A == "Dark Step" then
+                            topos(CFrame.new(-4996.2734375, 42.98426055908203, -4500.1748046875))
+                            c.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                        elseif A == "Electro" then
+                            topos(CFrame.new(-4947.47998046875, 42.54825973510742, -4439.400390625))
+                            c.Remotes.CommF_:InvokeServer("BuyElectro")
+                        elseif A == "Fishman Karate" then
+                            topos(CFrame.new(-4992.630859375, 43.027259826660156, -4460.2197265625))
+                            c.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                        end
+                    
+                    elseif World3 then
+                        if A == "God Human" then
+                            topos(CFrame.new(-13775.5732421875, 334.93670654296875, -9881.7685546875))
+                            c.Remotes.CommF_:InvokeServer("BuyGodhuman")
+                        elseif A == "Electric Claw" then
+                            topos(CFrame.new(-10370.771484375, 331.9684143066406, -10133.3828125))
+                            c.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+                        elseif A == "Dragon Talon" then
+                            topos(CFrame.new(45662.095703125, 1211.600830078125, 864.2029418945312))
+                            c.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+                        elseif A == "Sanguine Art" then
+                            topos(CFrame.new(-16515.34375, 23.451929092407227, -190.05908203125))
+                            c.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
+                            c.Remotes.CommF_:InvokeServer("BuySanguineArt")
+                        elseif A == "Dark Step" then
+                            topos(CFrame.new(-5043.21142578125, 371.627197265625, -3182.06689453125))
+                            c.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+                        elseif A == "Electro" then
+                            topos(CFrame.new(-5024.8525390625, 371.627197265625, -3190.572509765625))
+                            c.Remotes.CommF_:InvokeServer("BuyElectro")
+                        elseif A == "Fishman Karate" then
+                            topos(CFrame.new(-5024.8525390625, 371.627197265625, -3190.572509765625))
+                            c.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+                        elseif A == "Superhuman" then
+                            topos(CFrame.new(-5002.439453125, 371.627197265625, -3197.56640625))
+                            c.Remotes.CommF_:InvokeServer("BuySuperhuman")
+                        elseif A == "Dragon Claw" then
+                            topos(CFrame.new(-4982.60693359375, 371.627197265625, -3209.21337890625))
+                            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","1")
+                            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
+                        end
                     end
                 end
             end)
@@ -7658,5 +7662,6 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
+
 
 
