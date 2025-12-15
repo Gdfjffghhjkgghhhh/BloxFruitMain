@@ -2036,65 +2036,44 @@ local Player = Players.LocalPlayer
 
 --// CONFIG
 local Settings = {
-    LockRange = 20,      -- Khoảng cách coi là "Gần" để TP thẳng
-    LockOffset = 5,      -- Treo trên đầu quái 5 studs
-    TweenSpeed = 350     -- Tốc độ bay khi ở xa (Speed 300)
+    LockRange = 15,      
+    TweenSpeed = 350    
 }
 
--- Biến lưu Tween để quản lý
 local CurrentTween = nil
 
---// HÀM DI CHUYỂN THÔNG MINH (SMART MOVE)
 local function SmartMove(TargetPart)
     local Character = Player.Character
     if not Character then return end
     local Root = Character:FindFirstChild("HumanoidRootPart")
     if not Root or not TargetPart then return end
-
-    -- Vị trí đích: Trên đầu quái 5 studs
-    local TargetCFrame = TargetPart.CFrame * CFrame.new(0, Settings.LockOffset, 0)
-    local Distance = (Root.Position - TargetCFrame.Position).Magnitude
     
-    -- LOGIC: GẦN TP THẲNG - XA TWEEN 300
     if Distance <= Settings.LockRange then
-        -- [TRƯỜNG HỢP 1: Ở GẦN <= 15] -> TP THẲNG (INSTANT)
-        -- Hủy Tween nếu đang chạy để chuyển sang chế độ bám dính
         if CurrentTween then CurrentTween:Cancel() CurrentTween = nil end
         
         Root.CFrame = TargetCFrame
         
-        -- Khóa quán tính để đứng im phăng phắc
         Root.AssemblyLinearVelocity = Vector3.zero 
         Root.AssemblyAngularVelocity = Vector3.zero
         
     else
-        -- [TRƯỜNG HỢP 2: Ở XA > 15] -> TWEEN (SPEED 300)
-        -- Tính thời gian dựa trên tốc độ 300 (Time = Quãng đường / Tốc độ)
         local Time = Distance / Settings.TweenSpeed
         local TweenInfoObj = TweenInfo.new(Time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
         
-        -- Nếu chưa có tween hoặc mục tiêu thay đổi quá xa, tạo tween mới
         if not CurrentTween or (CurrentTween.PlaybackState == Enum.PlaybackState.Completed) then
              CurrentTween = TweenService:Create(Root, TweenInfoObj, {CFrame = TargetCFrame})
              CurrentTween:Play()
         end
         
-        -- Vẫn khóa quán tính để bay ổn định
         Root.AssemblyLinearVelocity = Vector3.zero 
         Root.AssemblyAngularVelocity = Vector3.zero
-        
-        -- *Lưu ý: Đoạn này có thể cập nhật CFrame đích liên tục nếu muốn bám sát hơn khi đang bay
-        -- Nhưng để tối ưu FPS, ta chỉ update khi cần thiết hoặc để Tween tự chạy.
-        -- Để mượt nhất khi quái di chuyển lúc đang bay, ta force update:
         local UpdateTween = TweenService:Create(Root, TweenInfoObj, {CFrame = TargetCFrame})
         UpdateTween:Play()
     end
 end
 
---// BIẾN ĐẾM QUÁI
 if not _G.MobIndex then _G.MobIndex = 1 end
 
---// VÒNG LẶP CHÍNH
 spawn(function()
     while task.wait() do 
         if _G.AutoFarm_Bone then
@@ -7628,4 +7607,3 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
-
