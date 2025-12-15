@@ -7616,4 +7616,78 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
+--// Config
+local NPC_Position = CFrame.new(-16269.1016, 29.5177539, 1372.3204) -- Vị trí Submarine Worker
+local TargetLevel = 2600
+local StopFarmWhenTravel = true -- Tắt Auto Farm khi đi chuyển
+
+--// Hàm Tween (Bay) mượt
+local function TweenToNPC(targetCFrame)
+    local player = game.Players.LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    
+    local TweenService = game:GetService("TweenService")
+    local distance = (root.Position - targetCFrame.Position).Magnitude
+    local speed = 350 -- Tốc độ bay (chỉnh sửa tùy ý)
+    local tweenInfo = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
+    
+    local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
+    tween:Play()
+    
+    -- Giữ cho nhân vật không bị rơi khi bay
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Name = "FlyVelocity"
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.MaxForce = Vector3.new(Math.huge, Math.huge, Math.huge)
+    bodyVelocity.Parent = root
+    
+    tween.Completed:Wait()
+    if bodyVelocity then bodyVelocity:Destroy() end
+end
+
+--// Luồng kiểm tra Level và Tự động đi
+spawn(function()
+    while task.wait(1) do -- Kiểm tra mỗi 1 giây
+        pcall(function()
+            local player = game.Players.LocalPlayer
+            local myLevel = player.Data.Level.Value
+            
+            -- Chỉ chạy nếu level >= 2600 và đang ở World 3 (Id check tránh lỗi world khác)
+            if myLevel >= TargetLevel and game.PlaceId == 7449423635 then 
+                
+                -- Kiểm tra xem đã qua đảo mới chưa (Check vị trí hiện tại)
+                -- Nếu khoảng cách từ người chơi đến NPC quá xa (nghĩa là chưa đến chỗ NPC để qua đảo)
+                -- Hoặc bạn có thể check tên Map nếu game có đổi Map
+                local distToNPC = (player.Character.HumanoidRootPart.Position - NPC_Position.Position).Magnitude
+                
+                -- Logic: Nếu chưa đứng gần NPC (ví dụ > 5000 stud) thì mới bay lại
+                -- Bạn có thể tùy chỉnh điều kiện này để tránh nó bay lại khi đã qua đảo rồi
+                if distToNPC > 100 then 
+                    if StopFarmWhenTravel then
+                        _G.Level = false -- Tắt Auto Farm
+                        _G.FarmLevel = false
+                    end
+                    
+                    -- Thực hiện bay đến NPC
+                    TweenToNPC(NPC_Position)
+                    
+                    -- Sau khi đến nơi (khoảng cách <= 10), nói chuyện với NPC
+                    if (player.Character.HumanoidRootPart.Position - NPC_Position.Position).Magnitude <= 15 then
+
+                        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TravelSubmerged") -- Thử key này hoặc key tương ứng
+                        
+                        
+                        task.wait(5) -- Đợi load map
+                        
+                        if StopFarmWhenTravel then
+                            _G.Level = true
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
 Window:SelectTab(1)
+
