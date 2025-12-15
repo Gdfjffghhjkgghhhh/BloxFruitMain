@@ -1688,20 +1688,7 @@ if World3 then
         end
     end)
 end
-local MobKilled = Tabs.Main:AddParagraph({
-    Title = "Cake Princes :",
-    Content = ""
-})
-spawn(function()
-  while wait(.2) do
-    pcall(function()
-  	  local Killed = string.match(replicated.Remotes.CommF_:InvokeServer("CakePrinceSpawner"),"%d+")
-      if Killed then
-        MobKilled:SetDesc(" Killed : " ..(500 - Killed))
-      end
-    end)
-  end
-end)
+
 Tabs.Main:AddSection("Tab Farming")
 local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", Description = "", Default = false})
 FarmLevel:OnChanged(function(Value)
@@ -1911,7 +1898,20 @@ spawn(function()
     end)
   end
 end)
-
+local MobKilled = Tabs.Main:AddParagraph({
+    Title = "Cake Princes :",
+    Content = ""
+})
+spawn(function()
+  while wait(.2) do
+    pcall(function()
+  	  local Killed = string.match(replicated.Remotes.CommF_:InvokeServer("CakePrinceSpawner"),"%d+")
+      if Killed then
+        MobKilled:SetDesc(" Killed : " ..(500 - Killed))
+      end
+    end)
+  end
+end)
 local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Cakes", Description = "", Default = false})
 Q:OnChanged(function(Value)
 _G.Auto_Cake_Prince = Value
