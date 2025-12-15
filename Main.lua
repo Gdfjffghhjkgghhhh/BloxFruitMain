@@ -198,6 +198,8 @@ statsSetings = function(Num, value)
 end
 local plr = game.Players.LocalPlayer
 
+local TweenService = game:GetService("TweenService") -- Gọi dịch vụ Tween
+
 BringEnemy = function()
     if not _B or not PosMon then return end
     
@@ -212,9 +214,11 @@ BringEnemy = function()
             
             if hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - PosMon).Magnitude
+                
+                -- Chỉ gom quái trong bán kính 350 và mình là chủ mạng (network owner)
                 if dist <= 350 and isnetworkowner(hrp) then
                     
-                    -- Apply anti-ghost measures
+                    -- Anti-ghost / Xóa va chạm
                     for _, part in ipairs(v:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CanCollide = false
@@ -229,15 +233,26 @@ BringEnemy = function()
                     local anim = hum:FindFirstChildOfClass("Animator")
                     if anim then anim.Parent = nil end
                     
-                    -- Smooth teleport without dropping to ground
-                    for i = 1, 3 do
-                        if isnetworkowner(hrp) then
-                            hrp.CFrame = CFrame.new(PosMon + Vector3.new(0, 0, 0))
-                            task.wait(0.05)
-                        else
-                            break
-                        end
+                    -- /// LOGIC MỚI: TWEEN BLOCK KHI GẦN 5 STUD ///
+                    if dist <= 5 then
+                        -- Tạo Tween để gom quái mượt mà vào vị trí
+                        local info = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                        local tween = TweenService:Create(hrp, info, {CFrame = CFrame.new(PosMon)})
+                        tween:Play()
+                        
+                        -- Khóa vận tốc để quái đứng im thành khối (Block), không bị trôi
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                        hrp.AssemblyAngularVelocity = Vector3.zero
+                    else
+                        -- Nếu quái ở xa (> 5 stud), dùng CFrame Teleport để kéo lại nhanh hơn
+                        hrp.CFrame = CFrame.new(PosMon)
+                        
+                        -- Giữ vận tốc 0 để tránh bị kick khi tp xa
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                        hrp.AssemblyAngularVelocity = Vector3.zero
                     end
+                    -- /// KẾT THÚC LOGIC MỚI ///
+                    
                 end
             end
         end
