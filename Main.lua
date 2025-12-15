@@ -2025,31 +2025,99 @@ local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "",
 Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
--- Khai báo Service cần thiết ở đầu (nếu chưa có)
+--// SERVICES
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-if not _G.MobIndex then _G.MobIndex = 1 end -- Đảm bảo biến Index tồn tại
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
+local Player = Players.LocalPlayer
+
+--// CONFIG
+local Settings = {
+    LockRange = 15,      -- Khoảng cách coi là "Gần" để TP thẳng
+    LockOffset = 5,      -- Treo trên đầu quái 5 studs
+    TweenSpeed = 300     -- Tốc độ bay khi ở xa (Speed 300)
+}
+
+-- Biến lưu Tween để quản lý
+local CurrentTween = nil
+
+--// HÀM DI CHUYỂN THÔNG MINH (SMART MOVE)
+local function SmartMove(TargetPart)
+    local Character = Player.Character
+    if not Character then return end
+    local Root = Character:FindFirstChild("HumanoidRootPart")
+    if not Root or not TargetPart then return end
+
+    -- Vị trí đích: Trên đầu quái 5 studs
+    local TargetCFrame = TargetPart.CFrame * CFrame.new(0, Settings.LockOffset, 0)
+    local Distance = (Root.Position - TargetCFrame.Position).Magnitude
+    
+    -- LOGIC: GẦN TP THẲNG - XA TWEEN 300
+    if Distance <= Settings.LockRange then
+        -- [TRƯỜNG HỢP 1: Ở GẦN <= 15] -> TP THẲNG (INSTANT)
+        -- Hủy Tween nếu đang chạy để chuyển sang chế độ bám dính
+        if CurrentTween then CurrentTween:Cancel() CurrentTween = nil end
+        
+        Root.CFrame = TargetCFrame
+        
+        -- Khóa quán tính để đứng im phăng phắc
+        Root.AssemblyLinearVelocity = Vector3.zero 
+        Root.AssemblyAngularVelocity = Vector3.zero
+        
+    else
+        -- [TRƯỜNG HỢP 2: Ở XA > 15] -> TWEEN (SPEED 300)
+        -- Tính thời gian dựa trên tốc độ 300 (Time = Quãng đường / Tốc độ)
+        local Time = Distance / Settings.TweenSpeed
+        local TweenInfoObj = TweenInfo.new(Time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+        
+        -- Nếu chưa có tween hoặc mục tiêu thay đổi quá xa, tạo tween mới
+        if not CurrentTween or (CurrentTween.PlaybackState == Enum.PlaybackState.Completed) then
+             CurrentTween = TweenService:Create(Root, TweenInfoObj, {CFrame = TargetCFrame})
+             CurrentTween:Play()
+        end
+        
+        -- Vẫn khóa quán tính để bay ổn định
+        Root.AssemblyLinearVelocity = Vector3.zero 
+        Root.AssemblyAngularVelocity = Vector3.zero
+        
+        -- *Lưu ý: Đoạn này có thể cập nhật CFrame đích liên tục nếu muốn bám sát hơn khi đang bay
+        -- Nhưng để tối ưu FPS, ta chỉ update khi cần thiết hoặc để Tween tự chạy.
+        -- Để mượt nhất khi quái di chuyển lúc đang bay, ta force update:
+        local UpdateTween = TweenService:Create(Root, TweenInfoObj, {CFrame = TargetCFrame})
+        UpdateTween:Play()
+    end
+end
+
+--// BIẾN ĐẾM QUÁI
+if not _G.MobIndex then _G.MobIndex = 1 end
+
+--// VÒNG LẶP CHÍNH
 spawn(function()
     while task.wait() do 
         if _G.AutoFarm_Bone then
             pcall(function()        
-                local player = game.Players.LocalPlayer
-                local character = player.Character or player.CharacterAdded:Wait()
-                local root = character:FindFirstChild("HumanoidRootPart")
-                local questUI = player.PlayerGui.Main.Quest
-                
+                local root = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                local questUI = Player.PlayerGui.Main.Quest
                 local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
                 
                 if not root then return end
                 
+                -- 1. TÌM QUÁI
                 local CurrentTargetName = BonesTable[_G.MobIndex]
-                local bone = GetConnectionEnemies({CurrentTargetName})
+                local bone = GetConnectionEnemies({CurrentTargetName}) 
                 
-                -- 1. LOGIC NHẬN QUEST
+                -- 2. NHẬN QUEST
                 if _G.AcceptQuestC and not questUI.Visible then
                       local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
                       if (questPos.Position - root.Position).Magnitude > 50 then
-                           if _tp then _tp(questPos) else root.CFrame = questPos end -- Fallback nếu hàm _tp lỗi
+                           -- Dùng SmartMove để bay đến chỗ nhận quest (Speed 300)
+                           local FakePart = Instance.new("Part") 
+                           FakePart.CFrame = questPos
+                           SmartMove(FakePart)
+                           FakePart:Destroy()
                            return 
                       else
                            local randomQuest = math.random(1, 4)
@@ -2059,57 +2127,39 @@ spawn(function()
                              [3] = {"StartQuest", "HauntedQuest1", 1},
                              [4] = {"StartQuest", "HauntedQuest1", 2}
                            }                    
-                           game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                           ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
                            task.wait(0.5)
                       end
                 end
 
-                -- 2. LOGIC TẤN CÔNG & TWEEN BLOCK
+                -- 3. FARM & DI CHUYỂN
                 if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
-                    -- Lấy phần Root của quái
-                    local enemyRoot = bone:FindFirstChild("HumanoidRootPart") or bone:FindFirstChild("Torso")
-
-                    repeat 
-                        task.wait() 
-                        if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
-                            
-                            -- /// PHẦN THÊM MỚI: TWEEN BLOCK LÊN QUÁI ///
-                            if enemyRoot and root then
-                                -- Vị trí đích: Trên đầu quái 5 stud để tránh bị đánh
-                                local targetCFrame = enemyRoot.CFrame * CFrame.new(0, 5, 0)
-                                
-                                -- Tính toán Tween
-                                local distance = (targetCFrame.Position - root.Position).Magnitude
-                                local speed = 300 -- Tốc độ bay
-                                local tweenInfo = TweenInfo.new(distance / speed, Enum.EasingStyle.Linear)
-                                
-                                -- Nếu ở xa thì Tween, ở gần thì giữ CFrame (Block)
-                                if distance > 10 then
-                                    local tween = TweenService:Create(root, tweenInfo, {CFrame = targetCFrame})
-                                    tween:Play()
-                                else
-                                    root.CFrame = targetCFrame
-                                end
-
-                                -- Khóa Velocity (Block Physics) để không bị rơi hoặc đẩy
-                                root.AssemblyLinearVelocity = Vector3.new(0,0,0) 
-                                root.AssemblyAngularVelocity = Vector3.new(0,0,0)
-                            end
-                            -- /// KẾT THÚC PHẦN THÊM MỚI ///
-
-                            Attack.Kill(bone, _G.AutoFarm_Bone) 
-                        else
-                            break 
-                        end
-                    until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
-                else
-                    -- Chuyển đổi quái nếu không tìm thấy
-                    _G.MobIndex = _G.MobIndex + 1
+                    local EnemyRoot = bone:FindFirstChild("HumanoidRootPart") or bone:FindFirstChild("Torso")
                     
-                    if _G.MobIndex > #BonesTable then
-                        _G.MobIndex = 1
+                    if EnemyRoot then
+                        repeat 
+                            task.wait() -- Lặp siêu nhanh
+                            
+                            if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
+                                -- /// KÍCH HOẠT DI CHUYỂN ///
+                                SmartMove(EnemyRoot)
+                                
+                                -- Đánh quái
+                                Attack.Kill(bone, _G.AutoFarm_Bone) 
+                            else
+                                break 
+                            end
+                            
+                        until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
+                        
+                        -- Hủy Tween khi xong việc
+                        if CurrentTween then CurrentTween:Cancel() CurrentTween = nil end
                     end
-                    print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
+                else
+                    -- Đổi quái
+                    _G.MobIndex = _G.MobIndex + 1
+                    if _G.MobIndex > #BonesTable then _G.MobIndex = 1 end
+                    print("Next Mob: " .. BonesTable[_G.MobIndex])
                     task.wait(0.5)
                 end
             end)
