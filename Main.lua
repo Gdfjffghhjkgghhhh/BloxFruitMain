@@ -2036,9 +2036,9 @@ local Player = Players.LocalPlayer
 
 --// CONFIG
 local Settings = {
-    LockRange = 15,      -- Khoảng cách coi là "Gần" để TP thẳng
+    LockRange = 20,      -- Khoảng cách coi là "Gần" để TP thẳng
     LockOffset = 5,      -- Treo trên đầu quái 5 studs
-    TweenSpeed = 300     -- Tốc độ bay khi ở xa (Speed 300)
+    TweenSpeed = 350     -- Tốc độ bay khi ở xa (Speed 300)
 }
 
 -- Biến lưu Tween để quản lý
@@ -7628,3 +7628,4 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
+
