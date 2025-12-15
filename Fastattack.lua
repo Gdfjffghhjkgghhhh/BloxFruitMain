@@ -14,8 +14,6 @@ local Config = {
     NoAnim = true              -- Bật/Tắt xóa animation
 }
 
-print("--- AUTO WEAPON SWAPPER (NO CLICK) LOADED ---")
-
 --// HÀM XÓA ANIMATION
 task.spawn(function()
     RunService.Stepped:Connect(function()
