@@ -201,10 +201,12 @@ local plr = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService") -- Gọi dịch vụ Tween
 
 BringEnemy = function()
+    -- Kiểm tra điều kiện cơ bản
     if not _B or not PosMon then return end
     
+    -- Tăng bán kính mô phỏng để cố gắng lấy quyền điều khiển quái từ xa
     pcall(function()
-        sethiddenproperty(plr, "SimulationRadius", math.huge)
+        sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
     end)
 
     task.defer(function()
@@ -215,44 +217,50 @@ BringEnemy = function()
             if hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - PosMon).Magnitude
                 
-                -- Chỉ gom quái trong bán kính 350 và mình là chủ mạng (network owner)
-                if dist <= 350 and isnetworkowner(hrp) then
+                -- Điều kiện: Trong tầm 350 stud
+                -- Mình bỏ check 'isnetworkowner' ở ngoài để nó luôn cố gắng hút quái
+                -- Nhưng nếu server không cho phép, quái sẽ bị giật lại (Rubberband)
+                if dist <= 350 then
                     
-                    -- Anti-ghost / Xóa va chạm
-                    for _, part in ipairs(v:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                            part.Anchored = false
-                            part.Massless = true
+                    -- Xử lý quái để nó nhẹ hơn (Anti-ghost)
+                    if not v:GetAttribute("Modified") then -- Chỉ set 1 lần để đỡ lag
+                        for _, part in ipairs(v:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                                part.Anchored = false
+                                part.Massless = true
+                            end
+                        end
+                        v:SetAttribute("Modified", true)
+                    end
+                    
+                    -- Làm đơ quái
+                    hum.WalkSpeed = 0
+                    hum.JumpPower = 0
+                    hum.PlatformStand = true
+                    if hum:FindFirstChild("Animator") then
+                        hum.Animator:Destroy()
+                    end
+                    
+                    -- /// LOGIC DI CHUYỂN ///
+                    
+                    -- Khóa vận tốc để quái không bị văng đi
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    hrp.AssemblyAngularVelocity = Vector3.zero
+                    
+                    if dist <= 5 then
+                        -- [BLOCK MODE]
+                        -- Khi ở gần (< 5 stud): Dùng Lerp để "trôi" nhẹ vào tâm PosMon
+                        -- Alpha 0.1 tạo cảm giác Tween mượt mà nhưng vẫn giữ chặt quái
+                        hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(PosMon), 0.2)
+                    else
+                        -- [BRING MODE]
+                        -- Khi ở xa: Dịch chuyển tức thời để tiết kiệm thời gian
+                        -- Chỉ dịch chuyển nếu có quyền mạng (để tránh bị kick)
+                        if isnetworkowner(hrp) then
+                            hrp.CFrame = CFrame.new(PosMon)
                         end
                     end
-                    
-                    hum.WalkSpeed, hum.JumpPower = 0, 0
-                    hum.PlatformStand = true
-                    
-                    local anim = hum:FindFirstChildOfClass("Animator")
-                    if anim then anim.Parent = nil end
-                    
-                    -- /// LOGIC MỚI: TWEEN BLOCK KHI GẦN 5 STUD ///
-                    if dist <= 5 then
-                        -- Tạo Tween để gom quái mượt mà vào vị trí
-                        local info = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                        local tween = TweenService:Create(hrp, info, {CFrame = CFrame.new(PosMon)})
-                        tween:Play()
-                        
-                        -- Khóa vận tốc để quái đứng im thành khối (Block), không bị trôi
-                        hrp.AssemblyLinearVelocity = Vector3.zero
-                        hrp.AssemblyAngularVelocity = Vector3.zero
-                    else
-                        -- Nếu quái ở xa (> 5 stud), dùng CFrame Teleport để kéo lại nhanh hơn
-                        hrp.CFrame = CFrame.new(PosMon)
-                        
-                        -- Giữ vận tốc 0 để tránh bị kick khi tp xa
-                        hrp.AssemblyLinearVelocity = Vector3.zero
-                        hrp.AssemblyAngularVelocity = Vector3.zero
-                    end
-                    -- /// KẾT THÚC LOGIC MỚI ///
-                    
                 end
             end
         end
@@ -7678,3 +7686,4 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
+
