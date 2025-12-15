@@ -1688,6 +1688,20 @@ if World3 then
         end
     end)
 end
+local MobKilled = Tabs.Main:AddParagraph({
+    Title = "Cake Princes :",
+    Content = ""
+})
+spawn(function()
+  while wait(.2) do
+    pcall(function()
+  	  local Killed = string.match(replicated.Remotes.CommF_:InvokeServer("CakePrinceSpawner"),"%d+")
+      if Killed then
+        MobKilled:SetDesc(" Killed : " ..(500 - Killed))
+      end
+    end)
+  end
+end)
 Tabs.Main:AddSection("Tab Farming")
 local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", Description = "", Default = false})
 FarmLevel:OnChanged(function(Value)
@@ -1897,20 +1911,7 @@ spawn(function()
     end)
   end
 end)
-local MobKilled = Tabs.Main:AddParagraph({
-    Title = "Cake Princes :",
-    Content = ""
-})
-spawn(function()
-  while wait(.2) do
-    pcall(function()
-  	  local Killed = string.match(replicated.Remotes.CommF_:InvokeServer("CakePrinceSpawner"),"%d+")
-      if Killed then
-        MobKilled:SetDesc(" Killed : " ..(500 - Killed))
-      end
-    end)
-  end
-end)
+
 local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Cakes", Description = "", Default = false})
 Q:OnChanged(function(Value)
 _G.Auto_Cake_Prince = Value
@@ -2036,8 +2037,9 @@ local Player = Players.LocalPlayer
 
 --// CONFIG
 local Settings = {
-    LockRange = 15,      
-    TweenSpeed = 350    
+    LockRange = 15,      -- Khoảng cách coi là "Gần" để TP thẳng
+    LockOffset = 5,      -- Treo trên đầu quái 5 studs
+    TweenSpeed = 300     -- Tốc độ bay khi ở xa (Speed 300)
 }
 
 local CurrentTween = nil
@@ -2047,6 +2049,9 @@ local function SmartMove(TargetPart)
     if not Character then return end
     local Root = Character:FindFirstChild("HumanoidRootPart")
     if not Root or not TargetPart then return end
+
+    local TargetCFrame = TargetPart.CFrame * CFrame.new(0, Settings.LockOffset, 0)
+    local Distance = (Root.Position - TargetCFrame.Position).Magnitude
     
     if Distance <= Settings.LockRange then
         if CurrentTween then CurrentTween:Cancel() CurrentTween = nil end
@@ -2056,7 +2061,8 @@ local function SmartMove(TargetPart)
         Root.AssemblyLinearVelocity = Vector3.zero 
         Root.AssemblyAngularVelocity = Vector3.zero
         
-    else
+    elseif
+
         local Time = Distance / Settings.TweenSpeed
         local TweenInfoObj = TweenInfo.new(Time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
         
@@ -2067,13 +2073,16 @@ local function SmartMove(TargetPart)
         
         Root.AssemblyLinearVelocity = Vector3.zero 
         Root.AssemblyAngularVelocity = Vector3.zero
+
         local UpdateTween = TweenService:Create(Root, TweenInfoObj, {CFrame = TargetCFrame})
         UpdateTween:Play()
     end
 end
 
+--// BIẾN ĐẾM QUÁI
 if not _G.MobIndex then _G.MobIndex = 1 end
 
+--// VÒNG LẶP CHÍNH
 spawn(function()
     while task.wait() do 
         if _G.AutoFarm_Bone then
@@ -2145,6 +2154,11 @@ spawn(function()
         end
     end
 end)
+
+local Q = Tabs.Main:AddToggle("Q", {Title = "Accept Quests", Description = "", Default = false})
+Q:OnChanged(function(Value)
+  _G.AcceptQuestC = Value
+end)          
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
@@ -2869,10 +2883,6 @@ end)
 
 Tabs.Main:AddSection("Generals Quests / Items")
 
-local Q = Tabs.Main:AddToggle("Q", {Title = "Accept Quests", Description = "", Default = false})
-Q:OnChanged(function(Value)
-  _G.AcceptQuestC = Value
-end)          
 local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Mirror", Description = "", Default = false})
 Q:OnChanged(function(Value)
   _G.AutoMiror = Value
