@@ -1689,13 +1689,17 @@ if World3 then
     end)
 end
 
+--[[ ==========================================
+        PHẦN GIAO DIỆN (UI) - CẤU HÌNH
+========================================== ]]
+
 Tabs.Main:AddSection("Auto Farm Settings")
 
--- 1. Tạo biến lưu chế độ (Mặc định là Level)
+-- Khởi tạo biến
 _G.SelectFarmMode = "Level"
 _G.AutoFarmActive = false
 
--- 2. Tạo Dropdown chọn chế độ
+-- 1. Dropdown chọn chế độ
 Tabs.Main:AddDropdown("FarmModeSelect", {
     Title = "Select Farm Mode",
     Values = {"Level", "Bone", "Cake Prince", "Nearest"},
@@ -1703,19 +1707,70 @@ Tabs.Main:AddDropdown("FarmModeSelect", {
     Default = 1,
     Callback = function(Value)
         _G.SelectFarmMode = Value
+        -- Reset các biến khi đổi chế độ để tránh lỗi
+        _G.Level = false
+        _G.AutoFarm_Bone = false
+        _G.Auto_Cake_Prince = false
+        _G.AutoFarmNear = false
     end
 })
 
--- 3. Tạo Toggle tổng để Bật/Tắt
+-- 2. Toggle Bật/Tắt tổng
 Tabs.Main:AddToggle("MasterFarmToggle", {
     Title = "Start Auto Farm", 
-    Description = "",
+    Description = "Bật cái này để bắt đầu farm theo chế độ đã chọn",
     Default = false,
     Callback = function(Value)
         _G.AutoFarmActive = Value
     end
 })
 
+--[[ ==========================================
+      BỘ ĐIỀU KHIỂN TRUNG TÂM (CONTROLLER)
+      (Đây là phần quan trọng để FIX lỗi không bay)
+========================================== ]]
+
+spawn(function()
+    while task.wait() do
+        -- Nếu nút Start đang TẮT -> Tắt hết các biến farm
+        if not _G.AutoFarmActive then
+            _G.Level = false
+            _G.AutoFarm_Bone = false
+            _G.Auto_Cake_Prince = false
+            _G.AutoFarmNear = false
+        else
+            -- Nếu nút Start đang BẬT -> Kích hoạt biến tương ứng với Dropdown
+            -- Việc này giúp script gốc nhận diện được đang farm và cho phép bay (shouldTween)
+            if _G.SelectFarmMode == "Level" then
+                _G.Level = true
+                _G.AutoFarm_Bone = false
+                _G.Auto_Cake_Prince = false
+                _G.AutoFarmNear = false
+            elseif _G.SelectFarmMode == "Bone" then
+                _G.Level = false
+                _G.AutoFarm_Bone = true
+                _G.Auto_Cake_Prince = false
+                _G.AutoFarmNear = false
+            elseif _G.SelectFarmMode == "Cake Prince" then
+                _G.Level = false
+                _G.AutoFarm_Bone = false
+                _G.Auto_Cake_Prince = true
+                _G.AutoFarmNear = false
+            elseif _G.SelectFarmMode == "Nearest" then
+                _G.Level = false
+                _G.AutoFarm_Bone = false
+                _G.Auto_Cake_Prince = false
+                _G.AutoFarmNear = true
+            end
+        end
+    end
+end)
+
+--[[ ==========================================
+            CÁC LOGIC FARM (ĐÃ CHUẨN HÓA)
+========================================== ]]
+
+-- 1. LOGIC FARM LEVEL
 spawn(function()
     local plr = game.Players.LocalPlayer
     local replicated = game:GetService("ReplicatedStorage")
@@ -1723,8 +1778,7 @@ spawn(function()
     local Root = plr.Character:WaitForChild("HumanoidRootPart")
 
     while task.wait(Sec or 0.2) do
-        -- Kiểm tra điều kiện: Phải bật Toggle VÀ chọn đúng chế độ "Level"
-        if _G.AutoFarmActive and _G.SelectFarmMode == "Level" then
+        if _G.Level then -- Biến này sẽ được Controller bật
             pcall(function()
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
                 local q = QuestNeta()
@@ -1737,140 +1791,79 @@ spawn(function()
                 if questGui:FindFirstChild("Container") and questGui.Container:FindFirstChild("QuestTitle") then
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
+                
+                -- Nhận nhiệm vụ
                 if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
                     task.wait(0.25)
                     _tp(questPos)
-                    repeat
-                        task.wait()
-                    until (Root.Position - questPos.Position).Magnitude <= 6
-                    replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                    if (Root.Position - questPos.Position).Magnitude <= 10 then
+                        replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                    end
                     return
                 end
+
+                -- Tìm quái và đánh
                 local foundMob = false
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
                         foundMob = true
-                        local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-                        if not mobRoot then continue end
-
                         repeat
                             task.wait()
-                            -- Kiểm tra lại điều kiện trong vòng lặp con
-                            if not _G.AutoFarmActive or _G.SelectFarmMode ~= "Level" or not mob.Parent or mob.Humanoid.Health <= 0 then break end
-
-                            local dist = (Root.Position - mobRoot.Position).Magnitude
+                            if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
+                            
+                            -- Logic bay đến quái
+                            local mobPos = mob.HumanoidRootPart.CFrame
+                            local dist = (Root.Position - mobPos.Position).Magnitude
+                            
                             if dist > 250 then
-                                _tp(mobRoot.CFrame * CFrame.new(0, 40, 0))
-                            elseif dist > 30 then
-                                Root.CFrame = Root.CFrame:Lerp(mobRoot.CFrame * CFrame.new(0, 20, 0), 0.25)
+                                _tp(mobPos * CFrame.new(0, 40, 0))
+                            else
+                                _tp(mobPos * CFrame.new(0, 30, 0)) -- Bay trên đầu quái
+                                Attack.Kill(mob, _G.Level)
                             end
-                            Attack.Kill(mob, true) -- Truyền true trực tiếp vì đã check ở ngoài
                         until mob.Humanoid.Health <= 0 or not mob.Parent
                         break
                     end
                 end
+                
+                -- Nếu không tìm thấy quái thì bay về bãi farm
                 if not foundMob then
                     _tp(mobPos)
                     task.wait(0.5)
-                    local spawnMob = ws.Enemies:FindFirstChild(questMobName)
-                    if spawnMob and spawnMob:FindFirstChild("HumanoidRootPart") then
-                        _tp(spawnMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
-                    end
                 end
             end)
         end
     end
 end)
 
--- HÀM 2: AUTO CAKE PRINCE
+-- 2. LOGIC FARM CAKES
 spawn(function()
     while task.wait(0.1) do
-        if _G.AutoFarmActive and _G.SelectFarmMode == "Cake Prince" then
+        if _G.Auto_Cake_Prince then
             pcall(function()
                 local player = game.Players.LocalPlayer
                 local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local questUI = player.PlayerGui.Main.Quest
                 local enemies = workspace.Enemies
                 local cakeIslandPos = CFrame.new(-2077, 252, -12373)
-                if not root then return end
-
-                local cakeLoaf = workspace.Map:FindFirstChild("CakeLoaf")
-                local bigMirror = cakeLoaf and cakeLoaf:FindFirstChild("BigMirror")
-
-                if not bigMirror or not bigMirror:FindFirstChild("Other") or (cakeIslandPos.Position - root.Position).Magnitude > 3000 then
-                    _tp(cakeIslandPos)
-                end
-
-                local transparency = 1
-                if bigMirror and bigMirror:FindFirstChild("Other") then
-                    transparency = bigMirror.Other.Transparency
-                end
-
-                if transparency == 0 or enemies:FindFirstChild("Cake Prince") then
-                    local v = GetConnectionEnemies("Cake Prince")
-                    if v then
-                        repeat task.wait()
-                            Attack.Kill2(v, true)
-                        until not _G.AutoFarmActive or _G.SelectFarmMode ~= "Cake Prince" or not v.Parent or v.Humanoid.Health <= 0
-                    else
-                        if transparency == 0 and (CFrame.new(-1990.67, 4533, -14973.67).Position - root.Position).Magnitude >= 2000 then
-                            _tp(CFrame.new(-2151.82, 149.32, -12404.91))
-                        end
-                    end
+                
+                -- Check Cake Prince
+                local v = GetConnectionEnemies("Cake Prince")
+                if v then
+                    repeat task.wait() Attack.Kill2(v, _G.Auto_Cake_Prince) until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0
                 else
-                    local CakePrince = {"Cookie Crafter","Cake Guard","Baking Staff","Head Baker"}
-                    for _, mobType in ipairs(CakePrince) do
-                        if not _G.AutoFarmActive or _G.SelectFarmMode ~= "Cake Prince" then break end
-                        
-                        local hasMobs = true
-                        while hasMobs and _G.AutoFarmActive and _G.SelectFarmMode == "Cake Prince" do
-                            local v = GetConnectionEnemies({mobType})
-                            if not v then
-                                local nearestMob = nil
-                                local shortestDistance = math.huge
-                                for _, enemy in pairs(enemies:GetChildren()) do
-                                    if enemy.Name == mobType and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
-                                        local distance = (root.Position - enemy.HumanoidRootPart.Position).Magnitude
-                                        if distance < shortestDistance then
-                                            shortestDistance = distance
-                                            nearestMob = enemy
-                                        end
-                                    end
-                                end
-                                v = nearestMob
-                            end
-                            
-                            if v then
-                                if _G.AcceptQuestC and not questUI.Visible then
-                                    local questPos = CFrame.new(-1927.92, 37.8, -12842.54)
-                                    _tp(questPos)
-                                    while root and (questPos.Position - root.Position).Magnitude > 15 do task.wait(0.2) end
-                                    local questData = {
-                                        {"StartQuest", "CakeQuest2", 2}, {"StartQuest", "CakeQuest2", 1},
-                                        {"StartQuest", "CakeQuest1", 1}, {"StartQuest", "CakeQuest1", 2}
-                                    }
-                                    local randomQuest = questData[math.random(1, #questData)]
-                                    local success = false
-                                    repeat
-                                        success = pcall(function() return game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest)) end)
-                                        task.wait(0.5)
-                                    until not _G.AutoFarmActive or questUI.Visible
-                                end
-
-                                repeat 
-                                    task.wait()
-                                    Attack.Kill(v, true)
-                                until not _G.AutoFarmActive or _G.SelectFarmMode ~= "Cake Prince" or not v.Parent or v.Humanoid.Health <= 0 or transparency == 0
-                                task.wait(0.5)
-                            else
-                                hasMobs = false
-                            end
+                    -- Farm quái nhỏ để gọi boss
+                    local CakePrinceMobs = {"Cookie Crafter","Cake Guard","Baking Staff","Head Baker"}
+                    for _, mobType in ipairs(CakePrinceMobs) do
+                        if not _G.Auto_Cake_Prince then break end
+                        local v = GetConnectionEnemies({mobType})
+                        if v then
+                            repeat task.wait() Attack.Kill(v, _G.Auto_Cake_Prince) until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0
                         end
-                        if _G.AutoFarmActive and _G.SelectFarmMode == "Cake Prince" then task.wait(0.5) end
                     end
-                    if _G.AutoFarmActive and _G.SelectFarmMode == "Cake Prince" and transparency ~= 0 then
-                        _tp(CFrame.new(-2077, 252, -12373))
+                    -- Nếu không có quái gần thì bay về đảo Cake
+                    if (cakeIslandPos.Position - root.Position).Magnitude > 3000 then
+                        _tp(cakeIslandPos)
                     end
                 end
             end)
@@ -1878,50 +1871,26 @@ spawn(function()
     end
 end)
 
--- HÀM 3: AUTO FARM BONES
+-- 3. LOGIC FARM BONES
 if not _G.MobIndex then _G.MobIndex = 1 end
 spawn(function()
     while task.wait() do 
-        if _G.AutoFarmActive and _G.SelectFarmMode == "Bone" then
+        if _G.AutoFarm_Bone then
             pcall(function()        
-                local player = game.Players.LocalPlayer
-                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local questUI = player.PlayerGui.Main.Quest
                 local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
-                
-                if not root then return end
                 local CurrentTargetName = BonesTable[_G.MobIndex]
                 local bone = GetConnectionEnemies({CurrentTargetName})
                 
-                if _G.AcceptQuestC and not questUI.Visible then
-                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
-                     if (questPos.Position - root.Position).Magnitude > 50 then
-                          _tp(questPos)
-                          return 
-                     else
-                          local randomQuest = math.random(1, 4)
-                          local questData = {
-                            [1] = {"StartQuest", "HauntedQuest2", 2}, [2] = {"StartQuest", "HauntedQuest2", 1},
-                            [3] = {"StartQuest", "HauntedQuest1", 1}, [4] = {"StartQuest", "HauntedQuest1", 2}
-                          }                    
-                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
-                          task.wait(0.5)
-                     end
-                end
-
                 if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
                     repeat 
                         task.wait() 
-                        if _G.AutoFarmActive and _G.SelectFarmMode == "Bone" and bone and bone.Parent and bone.Humanoid.Health > 0 then
-                            Attack.Kill(bone, true) 
-                        else
-                            break 
-                        end
-                    until not _G.AutoFarmActive or _G.SelectFarmMode ~= "Bone" or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
+                        Attack.Kill(bone, _G.AutoFarm_Bone) 
+                    until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent
                 else
                     _G.MobIndex = _G.MobIndex + 1
                     if _G.MobIndex > #BonesTable then _G.MobIndex = 1 end
-                    print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
+                    -- Nếu không có quái thì bay về chỗ lấy quest Haunted
+                    _tp(CFrame.new(-9516.99316,172.017181,6078.46533))
                     task.wait(0.5)
                 end
             end)
@@ -1929,17 +1898,16 @@ spawn(function()
     end
 end)
 
--- HÀM 4: AUTO FARM NEAREST
+-- 4. LOGIC FARM NEAREST
 spawn(function()
     while wait() do
         pcall(function()
-            if _G.AutoFarmActive and _G.SelectFarmMode == "Nearest" then
+            if _G.AutoFarmNear then
                 for i,v in pairs(workspace.Enemies:GetChildren()) do
-                    if v:FindFirstChild("Humanoid") or v:FindFirstChild("HumanoidRootPart") then
-                        if v.Humanoid.Health > 0 then
-                            repeat wait() 
-                                Attack.Kill(v, true) 
-                            until not _G.AutoFarmActive or _G.SelectFarmMode ~= "Nearest" or not v.Parent or v.Humanoid.Health <= 0
+                    if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+                        -- Chỉ đánh quái trong phạm vi 350 stud để tránh bay loạn xạ
+                        if (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - v.HumanoidRootPart.Position).Magnitude <= 350 then
+                             repeat wait() Attack.Kill(v,_G.AutoFarmNear) until not _G.AutoFarmNear or not v.Parent or v.Humanoid.Health <= 0
                         end
                     end
                 end
@@ -7648,3 +7616,4 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
+
