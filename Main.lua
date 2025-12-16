@@ -1,4 +1,4 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/Fastattack.lua"))()
+
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/noti.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
 
@@ -2082,58 +2082,7 @@ spawn(function()
         end
     end
 end)
-local FishingToggle = Tabs.Quests:AddToggle("Fishing", {
-    Title = "Auto Fishing", 
-    Description = "Tự động câu cá", 
-    Default = false
-})
 
-FishingToggle:OnChanged(function(Value)
-    _G.AutoFishing = Value -- Sửa thành AutoFishing
-end)
-
---// 3. VÒNG LẶP AUTO (Đã tối ưu)
-task.spawn(function()
-    while task.wait(0.5) do
-        -- Kiểm tra đúng biến _G.AutoFishing
-        if _G.AutoFishing then
-            pcall(function()
-                local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                local RootPart = Char:FindFirstChild("HumanoidRootPart")
-                local Tool = Char:FindFirstChildOfClass("Tool")
-                
-                -- Phải có Nhân vật + Cầm Tool + Tool có thuộc tính State
-                if not (RootPart and Tool and Tool:GetAttribute("State")) then return end
-
-                local State = Tool:GetAttribute("State")
-                local ServerState = Tool:GetAttribute("ServerState")
-
-                -- LOGIC 1: Ném câu (Nếu đang thu cần hoặc chưa ném)
-                if State == "ReeledIn" or ServerState == "ReeledIn" then
-                    -- Tính toán vị trí ném
-                    local waterHeight = GetWaterHeight(RootPart.Position)
-                    local _, hitPos = Workspace:FindPartOnRayWithIgnoreList(
-                        Ray.new(Char.Head.Position, RootPart.CFrame.LookVector * MaxDistance),
-                        {Char, Workspace:FindFirstChild("Characters"), Workspace:FindFirstChild("Enemies")}
-                    )
-                    
-                    -- Đảm bảo ném xuống nước (Y không được thấp hơn mặt nước)
-                    local pos = Vector3.new(hitPos.X, math.max(hitPos.Y, waterHeight), hitPos.Z)
-
-                    FishingRequest:InvokeServer("StartCasting")
-                    task.wait() -- Chờ nhẹ 1 nhịp
-                    FishingRequest:InvokeServer("CastLineAtLocation", pos, 100, true)
-                
-                -- LOGIC 2: Giật câu (Khi cá cắn)
-                elseif ServerState == "Biting" then
-                    FishingRequest:InvokeServer("Catching", true)
-                    task.wait(0.1)
-                    FishingRequest:InvokeServer("Catch", 1)
-                end
-            end)
-        end
-    end
-end)
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
