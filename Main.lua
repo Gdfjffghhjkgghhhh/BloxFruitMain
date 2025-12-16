@@ -1,3 +1,4 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/Fastattack.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/noti.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
 
@@ -1687,7 +1688,7 @@ if World3 then
         end
     end)
 end
-Tabs.Main:AddSection("Tab Farming")
+Tabs.Main:AddSection("Farm Level")
 local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", Description = "", Default = false})
 FarmLevel:OnChanged(function(Value)
   _G.Level = Value
@@ -1896,6 +1897,7 @@ spawn(function()
     end)
   end
 end)
+Tabs.Main:AddSection("Farm Bone,Cake")
 local MobKilled = Tabs.Main:AddParagraph({
     Title = "Cake Princes :",
     Content = ""
@@ -2075,6 +2077,58 @@ spawn(function()
                     end
                     print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
                     task.wait(0.5)
+                end
+            end)
+        end
+    end
+end)
+local FishingToggle = Tabs.Quests:AddToggle("Fishing", {
+    Title = "Auto Fishing", 
+    Description = "Tự động câu cá", 
+    Default = false
+})
+
+FishingToggle:OnChanged(function(Value)
+    _G.AutoFishing = Value -- Sửa thành AutoFishing
+end)
+
+--// 3. VÒNG LẶP AUTO (Đã tối ưu)
+task.spawn(function()
+    while task.wait(0.5) do
+        -- Kiểm tra đúng biến _G.AutoFishing
+        if _G.AutoFishing then
+            pcall(function()
+                local Char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local RootPart = Char:FindFirstChild("HumanoidRootPart")
+                local Tool = Char:FindFirstChildOfClass("Tool")
+                
+                -- Phải có Nhân vật + Cầm Tool + Tool có thuộc tính State
+                if not (RootPart and Tool and Tool:GetAttribute("State")) then return end
+
+                local State = Tool:GetAttribute("State")
+                local ServerState = Tool:GetAttribute("ServerState")
+
+                -- LOGIC 1: Ném câu (Nếu đang thu cần hoặc chưa ném)
+                if State == "ReeledIn" or ServerState == "ReeledIn" then
+                    -- Tính toán vị trí ném
+                    local waterHeight = GetWaterHeight(RootPart.Position)
+                    local _, hitPos = Workspace:FindPartOnRayWithIgnoreList(
+                        Ray.new(Char.Head.Position, RootPart.CFrame.LookVector * MaxDistance),
+                        {Char, Workspace:FindFirstChild("Characters"), Workspace:FindFirstChild("Enemies")}
+                    )
+                    
+                    -- Đảm bảo ném xuống nước (Y không được thấp hơn mặt nước)
+                    local pos = Vector3.new(hitPos.X, math.max(hitPos.Y, waterHeight), hitPos.Z)
+
+                    FishingRequest:InvokeServer("StartCasting")
+                    task.wait() -- Chờ nhẹ 1 nhịp
+                    FishingRequest:InvokeServer("CastLineAtLocation", pos, 100, true)
+                
+                -- LOGIC 2: Giật câu (Khi cá cắn)
+                elseif ServerState == "Biting" then
+                    FishingRequest:InvokeServer("Catching", true)
+                    task.wait(0.1)
+                    FishingRequest:InvokeServer("Catch", 1)
                 end
             end)
         end
@@ -3246,10 +3300,8 @@ local AttackNewToggle = Tabs.Settings:AddToggle("AttackNew", {
     Default = false
 })
 
--- Sửa lỗi Bringmob thành AttackNewToggle
 AttackNewToggle:OnChanged(function(Value)
     _G.AttackNew = Value
-    -- Nếu tắt thì dừng animation ngay lập tức cho đỡ lag
     if not Value then
         local Char = game.Players.LocalPlayer.Character
         if Char and Char:FindFirstChild("Humanoid") then
@@ -3261,25 +3313,21 @@ AttackNewToggle:OnChanged(function(Value)
     end
 end)
 
---// SERVICES
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Player = Players.LocalPlayer
--- Cập nhật Character động (để tránh lỗi khi chết hồi sinh)
 local function GetChar()
     return Player.Character or Player.CharacterAdded:Wait()
 end
 
---// CONFIG
 local Config = {
-    SwitchDelay = 0.15,        -- Tốc độ đổi vũ khí
-    Range = 60,                -- Tầm tìm quái
-    NoAnim = true              -- Bật/Tắt xóa animation
+    SwitchDelay = 0.15,        
+    Range = 100,                
+    NoAnim = false              
 }
 
---// HÀM XÓA ANIMATION (Chỉ chạy khi bật chức năng)
 task.spawn(function()
     RunService.Stepped:Connect(function()
         if _G.AttackNew and Config.NoAnim then
@@ -3296,7 +3344,6 @@ task.spawn(function()
     end)
 end)
 
--- Hàm tìm quái
 local function GetTarget()
     local Char = Player.Character
     if not Char then return nil end
@@ -3324,7 +3371,6 @@ local function GetTarget()
     return Target
 end
 
--- Hàm tìm Blox Fruit
 local function FindFruit()
     local Backpack = Player.Backpack
     local Char = Player.Character
