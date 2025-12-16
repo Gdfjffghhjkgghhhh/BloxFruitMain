@@ -2082,7 +2082,85 @@ spawn(function()
         end
     end
 end)
+--// 1. KHAI BÁO DỊCH VỤ TRƯỚC (Để tránh lỗi)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
 
+-- Check an toàn các Module
+local FishReplicated = ReplicatedStorage:WaitForChild("FishReplicated", 5)
+if not FishReplicated then 
+    warn("Lỗi: Không tìm thấy FishReplicated!") 
+    return 
+end
+
+local FishingRequest = FishReplicated:WaitForChild("FishingRequest")
+local Config = require(FishReplicated.FishingClient.Config)
+local GetWaterHeight = require(ReplicatedStorage.Util.GetWaterHeightAtLocation)
+local MaxDistance = Config.Rod.MaxLaunchDistance
+
+--// 2. BIẾN TOÀN CỤC
+_G.AutoFishing = false -- Mặc định là tắt
+
+--// 3. VÒNG LẶP LOGIC (Chạy ngầm)
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.AutoFishing then
+            pcall(function()
+                local Char = LocalPlayer.Character
+                if not Char then return end
+                
+                local Hrm = Char:FindFirstChild("HumanoidRootPart")
+                local Tool = Char:FindFirstChildOfClass("Tool")
+                
+                -- Check: Phải có Tool và Tool phải là Cần câu (có Attribute State)
+                if not (Hrm and Tool and Tool:GetAttribute("State")) then return end
+
+                -- Ignore List an toàn
+                local IgnoreList = {Char}
+                if Workspace:FindFirstChild("Characters") then table.insert(IgnoreList, Workspace.Characters) end
+                if Workspace:FindFirstChild("Enemies") then table.insert(IgnoreList, Workspace.Enemies) end
+
+                -- Tính toán vị trí
+                local waterHeight = GetWaterHeight(Hrm.Position)
+                local _, hitPos = Workspace:FindPartOnRayWithIgnoreList(
+                    Ray.new(Char.Head.Position, Hrm.CFrame.LookVector * MaxDistance),
+                    IgnoreList
+                )
+                local TargetPos = Vector3.new(hitPos.X, math.max(hitPos.Y, waterHeight), hitPos.Z)
+                
+                local State = Tool:GetAttribute("State")
+                local ServerState = Tool:GetAttribute("ServerState")
+
+                -- Hành động
+                if State == "ReeledIn" or ServerState == "ReeledIn" then
+                    FishingRequest:InvokeServer("StartCasting")
+                    task.wait()
+                    FishingRequest:InvokeServer("CastLineAtLocation", TargetPos, 100, true)
+                    
+                elseif ServerState == "Biting" then
+                    FishingRequest:InvokeServer("Catching", true)
+                    task.wait(0.1)
+                    FishingRequest:InvokeServer("Catch", 1)
+                end
+            end)
+        end
+    end
+end)
+
+--// 4. GUI TOGGLE (Đặt tên biến rõ ràng)
+-- Đảm bảo bạn đã có biến Tabs.Main từ trước
+local AutoFishToggle = Tabs.Main:AddToggle("AutoFishToggle", {
+    Title = "Auto Fishing", 
+    Description = "Tự động câu cá (Cầm cần lên)", 
+    Default = false
+})
+
+-- Kết nối nút bấm với biến toàn cục
+AutoFishToggle:OnChanged(function(Value)
+    _G.AutoFishing = Value
+end)
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
@@ -7687,3 +7765,4 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
+
