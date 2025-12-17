@@ -196,61 +196,52 @@ statsSetings = function(Num, value)
   end
 end
 local plr = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
 
-_G.Bring = true
-
-function BringEnemy(PosMon)
-    if not _G.Bring or not PosMon then return end
-
+BringEnemy = function()
+    if not _B or not PosMon then return end
+    
     pcall(function()
         sethiddenproperty(plr, "SimulationRadius", math.huge)
     end)
 
-    for _, v in pairs(workspace.Enemies:GetChildren()) do
-        local hum = v:FindFirstChild("Humanoid")
-        local hrp = v:FindFirstChild("HumanoidRootPart")
-        if hum and hrp and hum.Health > 0 then
-            if (hrp.Position - PosMon).Magnitude <= 400 then
-
-                -- anti ghost
-                for _, p in pairs(v:GetDescendants()) do
-                    if p:IsA("BasePart") then
-                        p.CanCollide = false
-                        p.Massless = true
+    task.defer(function()
+        for _, v in ipairs(workspace.Enemies:GetChildren()) do
+            local hum = v:FindFirstChild("Humanoid")
+            local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
+            
+            if hum and hrp and hum.Health > 0 then
+                local dist = (hrp.Position - PosMon).Magnitude
+                if dist <= 350 and isnetworkowner(hrp) then
+                    
+                    -- Apply anti-ghost measures
+                    for _, part in ipairs(v:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                            part.Anchored = false
+                            part.Massless = true
+                        end
+                    end
+                    
+                    hum.WalkSpeed, hum.JumpPower = 0, 0
+                    hum.PlatformStand = true
+                    
+                    local anim = hum:FindFirstChildOfClass("Animator")
+                    if anim then anim.Parent = nil end
+                    
+                    -- Smooth teleport without dropping to ground
+                    for i = 1, 3 do
+                        if isnetworkowner(hrp) then
+                            hrp.CFrame = CFrame.new(PosMon + Vector3.new(0, 0, 0))
+                            task.wait(0.05)
+                        else
+                            break
+                        end
                     end
                 end
-
-                hum:ChangeState(11) -- Physics
-                hum.WalkSpeed = 0
-                hum.JumpPower = 0
-
-                -- AlignPosition (ổn định hơn TP)
-                local ap = hrp:FindFirstChild("AP") or Instance.new("AlignPosition")
-                ap.Name = "AP"
-                ap.MaxForce = 50000
-                ap.Responsiveness = 200
-                ap.RigidityEnabled = true
-                ap.Parent = hrp
-
-                local att = hrp:FindFirstChild("ATT") or Instance.new("Attachment")
-                att.Name = "ATT"
-                att.Parent = hrp
-                ap.Attachment0 = att
-
-                ap.Position = PosMon + Vector3.new(0, 0, 0)
             end
         end
-    end
+    end)
 end
-
--- update liên tục (giữ mob)
-RunService.Heartbeat:Connect(function()
-    if _G.Bring and PosMon then
-        BringEnemy(PosMon)
-    end
-end)
-
 Useskills = function(weapon, skill)
   if weapon == "Melee" then
     weaponSc("Melee")
@@ -2041,80 +2032,61 @@ Q:OnChanged(function(Value)
 end)
 if not _G.MobIndex then _G.MobIndex = 1 end
 
-_G.MobIndex = _G.MobIndex or 1
-
-task.spawn(function()
-    while task.wait(0.3) do
-        if not _G.AutoFarm_Bone then continue end
-
-        pcall(function()
-            local player = game.Players.LocalPlayer
-            local char = player.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if not root then return end
-
-            local questUI = player.PlayerGui.Main.Quest
-            local BonesTable = {
-                "Reborn Skeleton",
-                "Living Zombie",
-                "Demonic Soul",
-                "Posessed Mummy"
-            }
-
-            if _G.MobIndex > #BonesTable or _G.MobIndex < 1 then
-                _G.MobIndex = 1
-            end
-
-            local mobName = BonesTable[_G.MobIndex]
-            local bone = GetConnectionEnemies({mobName})
-
-            if _G.AcceptQuestC and not questUI.Visible then
-                local questPos = CFrame.new(-9516.99,172.01,6078.46)
-
-                if (questPos.Position - root.Position).Magnitude > 60 then
-                    _tp(questPos)
-                    return
+spawn(function()
+    while task.wait() do 
+        if _G.AutoFarm_Bone then
+            pcall(function()        
+                local player = game.Players.LocalPlayer
+                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local questUI = player.PlayerGui.Main.Quest
+                
+                local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
+                
+                if not root then return end
+                local CurrentTargetName = BonesTable[_G.MobIndex]
+                local bone = GetConnectionEnemies({CurrentTargetName})
+                if _G.AcceptQuestC and not questUI.Visible then
+                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
+                     if (questPos.Position - root.Position).Magnitude > 50 then
+                          _tp(questPos)
+                          return 
+                     else
+                          local randomQuest = math.random(1, 4)
+                          local questData = {
+                            [1] = {"StartQuest", "HauntedQuest2", 2},
+                            [2] = {"StartQuest", "HauntedQuest2", 1},
+                            [3] = {"StartQuest", "HauntedQuest1", 1},
+                            [4] = {"StartQuest", "HauntedQuest1", 2}
+                          }                    
+                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                          task.wait(0.5)
+                     end
                 end
 
-                local questData = {
-                    {"StartQuest", "HauntedQuest2", 2},
-                    {"StartQuest", "HauntedQuest2", 1},
-                    {"StartQuest", "HauntedQuest1", 1},
-                    {"StartQuest", "HauntedQuest1", 2}
-                }
+                if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
 
-                game.ReplicatedStorage.Remotes.CommF_:InvokeServer(
-                    unpack(questData[math.random(1, #questData)])
-                )
-                task.wait(1)
-                return
-            end
-
-            if bone
-                and bone.Parent
-                and bone:FindFirstChild("Humanoid")
-                and bone.Humanoid.Health > 0 then
-
-                repeat
-                    task.wait(0.1)
-                    if not _G.AutoFarm_Bone then break end
-                    if not bone.Parent then break end
-                    if bone.Humanoid.Health <= 0 then break end
-
-                    Attack.Kill(bone, true)
-
-                until false
-
-            else
-                _G.MobIndex += 1
-                if _G.MobIndex > #BonesTable then
-                    _G.MobIndex = 1
+                    repeat 
+                        task.wait() 
+                        if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
+                            Attack.Kill(bone, _G.AutoFarm_Bone) 
+                        else
+                            break 
+                        end
+                    until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
+                else
+                    _G.MobIndex = _G.MobIndex + 1
+                    
+                    if _G.MobIndex > #BonesTable then
+                        _G.MobIndex = 1
+                    end
+                    print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
+                    task.wait(0.5)
                 end
-                task.wait(0.3)
-            end
-        end)
+            end)
+        end
     end
 end)
+
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
@@ -3279,59 +3251,54 @@ local AttackNewToggle = Tabs.Settings:AddToggle("AttackNew", {
 
 AttackNewToggle:OnChanged(function(Value)
     _G.AttackNew = Value
-    if not Value then
-        local Char = game.Players.LocalPlayer.Character
-        if Char and Char:FindFirstChild("Humanoid") then
-            local Animator = Char.Humanoid:FindFirstChild("Animator")
-            if Animator then
-                for _, t in pairs(Animator:GetPlayingAnimationTracks()) do t:Stop() end
+--// SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+--// PLAYER
+local Player = Players.LocalPlayer
+
+local function GetChar()
+    return Player.Character or Player.CharacterAdded:Wait()
+end
+
+--// CONFIG
+local Config = {
+    SwitchDelay = 0.35,     -- đừng thấp hơn
+    Range = 100,
+    NoAnim = true
+}
+
+--// ===== NO ANIMATION (AN TOÀN) =====
+task.spawn(function()
+    while task.wait(0.35) do
+        if _G.AttackNew and Config.NoAnim then
+            local Char = Player.Character
+            local Hum = Char and Char:FindFirstChild("Humanoid")
+            if Hum then
+                local Animator = Hum:FindFirstChildOfClass("Animator")
+                if Animator then
+                    for _, Track in pairs(Animator:GetPlayingAnimationTracks()) do
+                        Track:Stop(0)
+                    end
+                end
             end
         end
     end
 end)
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
-local Player = Players.LocalPlayer
-local function GetChar()
-    return Player.Character or Player.CharacterAdded:Wait()
-end
-
-local Config = {
-    SwitchDelay = 0.15,        
-    Range = 100,                
-    NoAnim = false              
-}
-
-task.spawn(function()
-    RunService.Stepped:Connect(function()
-        if _G.AttackNew and Config.NoAnim then
-            local Char = Player.Character
-            if Char and Char:FindFirstChild("Humanoid") then
-                local Animator = Char.Humanoid:FindFirstChild("Animator")
-                if Animator then
-                    for _, Track in pairs(Animator:GetPlayingAnimationTracks()) do
-                        Track:Stop()
-                    end
-                end
-            end
-        end
-    end)
-end)
-
+--// ===== GET TARGET =====
 local function GetTarget()
     local Char = Player.Character
     if not Char then return nil end
-    
+
     local Root = Char:FindFirstChild("HumanoidRootPart")
     if not Root then return nil end
-    
-    local Target = nil
-    local MinDist = Config.Range
 
+    local Target, MinDist = nil, Config.Range
     local Enemies = Workspace:FindFirstChild("Enemies") or Workspace:FindFirstChild("Mobs")
+
     if Enemies then
         for _, v in pairs(Enemies:GetChildren()) do
             local H = v:FindFirstChild("Humanoid")
@@ -3348,14 +3315,17 @@ local function GetTarget()
     return Target
 end
 
+--// ===== FIND FRUIT =====
 local function FindFruit()
     local Backpack = Player.Backpack
     local Char = Player.Character
     if not Char then return nil end
-    
+
     local CharTool = Char:FindFirstChildOfClass("Tool")
-    if CharTool and (CharTool.ToolTip == "Blox Fruit" or CharTool:FindFirstChild("LeftClickRemote")) then return CharTool end
-    
+    if CharTool and (CharTool.ToolTip == "Blox Fruit" or CharTool:FindFirstChild("LeftClickRemote")) then
+        return CharTool
+    end
+
     for _, v in pairs(Backpack:GetChildren()) do
         if v:IsA("Tool") and (v.ToolTip == "Blox Fruit" or v:FindFirstChild("LeftClickRemote")) then
             return v
@@ -3364,13 +3334,16 @@ local function FindFruit()
     return nil
 end
 
+--// ===== FIND MELEE =====
 local function FindAnyMelee()
     local Backpack = Player.Backpack
     local Char = Player.Character
     if not Char then return nil end
 
     local CharTool = Char:FindFirstChildOfClass("Tool")
-    if CharTool and CharTool.ToolTip == "Melee" then return CharTool end
+    if CharTool and CharTool.ToolTip == "Melee" then
+        return CharTool
+    end
 
     for _, v in pairs(Backpack:GetChildren()) do
         if v:IsA("Tool") and v.ToolTip == "Melee" then
@@ -3380,6 +3353,23 @@ local function FindAnyMelee()
     return nil
 end
 
+--// ===== HIT MELEE (CÓ DAME) =====
+local function HitMelee(Melee)
+    if not Melee then return end
+
+    if Melee:FindFirstChild("LeftClickRemote") then
+        pcall(function()
+            Melee.LeftClickRemote:FireServer()
+        end)
+        return
+    end
+
+    pcall(function()
+        Melee:Activate()
+    end)
+end
+
+--// ===== MAIN LOOP =====
 local LastAttack = 0
 
 RunService.Heartbeat:Connect(function()
@@ -3387,33 +3377,41 @@ RunService.Heartbeat:Connect(function()
 
     local Character = Player.Character
     if not Character or not Character.Parent then return end
-    
+
     local Humanoid = Character:FindFirstChild("Humanoid")
-    if not Humanoid or Humanoid.Health <= 0 then return end
+    local Root = Character:FindFirstChild("HumanoidRootPart")
+    if not Humanoid or not Root or Humanoid.Health <= 0 then return end
 
     if tick() - LastAttack < Config.SwitchDelay then return end
-    
+
     local Target = GetTarget()
     if not Target then return end
-    
+
     local Fruit = FindFruit()
     local Melee = FindAnyMelee()
-    
-    if Fruit and Melee then
-        LastAttack = tick()
-        
-        Humanoid:EquipTool(Fruit)
-        
-        if Fruit:FindFirstChild("LeftClickRemote") then
-            local Dir = (Target.Position - Character.HumanoidRootPart.Position).Unit
-            pcall(function()
-                Fruit.LeftClickRemote:FireServer(Dir, 1)
-            end)
-        end
-        
-        Humanoid:EquipTool(Melee)
+    if not Fruit or not Melee then return end
+
+    LastAttack = tick()
+
+    -- ===== FRUIT =====
+    Humanoid:EquipTool(Fruit)
+    task.wait(0.05)
+
+    if Fruit:FindFirstChild("LeftClickRemote") then
+        local Dir = (Target.Position - Root.Position).Unit
+        pcall(function()
+            Fruit.LeftClickRemote:FireServer(Dir, 1)
+        end)
     end
+
+    task.wait(0.12)
+
+    -- ===== MELEE =====
+    Humanoid:EquipTool(Melee)
+    task.wait(0.05)
+    HitMelee(Melee)
 end)
+
 local Bringmob = Tabs.Settings:AddToggle("Bringmob", {Title = "Bring Mobs", Description = "", Default = true})
 Bringmob:OnChanged(function(Value)
   _B = Value
