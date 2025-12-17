@@ -7309,40 +7309,203 @@ Tabs.Shop:AddButton({Title = "Buy Ken", Description = "",Callback = function()
   replicated.Remotes.CommF_:InvokeServer("KenTalk","Buy")
 end})
 
-Tabs.Shop:AddSection("Fighting - Style")
-Tabs.Shop:AddButton({Title = "Buy Black Leg", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
-end})
-Tabs.Shop:AddButton({Title = "Buy Electro", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuyElectro")
-end})
-Tabs.Shop:AddButton({Title = "Buy Fishman Karate", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
-end})
-Tabs.Shop:AddButton({Title = "Buy DragonClaw", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
-end})
-Tabs.Shop:AddButton({Title = "Buy Superhuman", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
-end})
-Tabs.Shop:AddButton({Title = "Buy Death Step", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
-end})
-Tabs.Shop:AddButton({Title = "Buy Sharkman Karate", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
-end})
-Tabs.Shop:AddButton({Title = "Buy ElectricClaw", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
-end})
-Tabs.Shop:AddButton({Title = "Buy DragonTalon", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
-end})
-Tabs.Shop:AddButton({Title = "Buy Godhuman", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
-end})
-Tabs.Shop:AddButton({Title = "Buy SanguineArt", Description = "",Callback = function()
-  replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
-end})
+Ok 👍 mình gửi **FULL CODE GỌN – COPY DÙNG NGAY**
+(✔ Dropdown chọn style + ✔ check đã học + ✔ bay tới NPC rồi mới mua)
+
+---
+
+```lua
+--// SERVICES
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local c = ReplicatedStorage
+
+--// WORLD CHECK
+local World1 = game.PlaceId == 2753915549
+local World2 = game.PlaceId == 4442272183
+local World3 = game.PlaceId == 7449423635
+
+--// BAY TỚI NPC
+local function FlyTo(cf, speed)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    local dist = (hrp.Position - cf.Position).Magnitude
+    local time = dist / (speed or 300)
+
+    local tween = TweenService:Create(
+        hrp,
+        TweenInfo.new(time, Enum.EasingStyle.Linear),
+        {CFrame = cf}
+    )
+    tween:Play()
+    tween.Completed:Wait()
+end
+
+--// CHECK ĐÃ HỌC STYLE
+local function HasStyle(toolName)
+    if player.Backpack:FindFirstChild(toolName) then return true end
+    if player.Character and player.Character:FindFirstChild(toolName) then return true end
+    return false
+end
+
+--// STYLE DATA
+local StyleData = {
+    ["Dark Step"] = {
+        tool = "Black Leg",
+        buy = function()
+            if World1 then
+                FlyTo(CFrame.new(-984.75,14.06,3987.70))
+            elseif World2 then
+                FlyTo(CFrame.new(-4996.27,42.98,-4500.17))
+            elseif World3 then
+                FlyTo(CFrame.new(-5043.21,371.62,-3182.06))
+            end
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+        end
+    },
+
+    ["Electro"] = {
+        tool = "Electro",
+        buy = function()
+            if World1 then
+                FlyTo(CFrame.new(-5382.93,14.40,-2150.54))
+            elseif World2 then
+                FlyTo(CFrame.new(-4947.47,42.54,-4439.40))
+            elseif World3 then
+                FlyTo(CFrame.new(-5024.85,371.62,-3190.57))
+            end
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuyElectro")
+        end
+    },
+
+    ["Fishman Karate"] = {
+        tool = "Fishman Karate",
+        buy = function()
+            if World1 then
+                FlyTo(CFrame.new(61581.80,18.89,987.83))
+            elseif World2 then
+                FlyTo(CFrame.new(-4992.63,43.02,-4460.21))
+            elseif World3 then
+                FlyTo(CFrame.new(-5024.85,371.62,-3190.57))
+            end
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+        end
+    },
+
+    ["Dragon Claw"] = {
+        tool = "Dragon Claw",
+        buy = function()
+            if World2 then
+                FlyTo(CFrame.new(701.62,187.27,655.77))
+            elseif World3 then
+                FlyTo(CFrame.new(-4982.60,371.62,-3209.21))
+            end
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
+        end
+    },
+
+    ["Superhuman"] = {
+        tool = "Superhuman",
+        buy = function()
+            if World2 then
+                FlyTo(CFrame.new(1375.43,247.74,-5189.08))
+            elseif World3 then
+                FlyTo(CFrame.new(-5002.43,371.62,-3197.56))
+            end
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuySuperhuman")
+        end
+    },
+
+    ["Death Step"] = {
+        tool = "Death Step",
+        buy = function()
+            FlyTo(CFrame.new(6356.86,296.94,-6761.20))
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuyDeathStep")
+        end
+    },
+
+    ["Sharkman Karate"] = {
+        tool = "Sharkman Karate",
+        buy = function()
+            FlyTo(CFrame.new(-2601.41,239.27,-10312.27))
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+        end
+    },
+
+    ["Electric Claw"] = {
+        tool = "Electric Claw",
+        buy = function()
+            FlyTo(CFrame.new(-10370.77,331.96,-10133.38))
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+        end
+    },
+
+    ["Dragon Talon"] = {
+        tool = "Dragon Talon",
+        buy = function()
+            FlyTo(CFrame.new(45662.09,1211.60,864.20))
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+        end
+    },
+
+    ["God Human"] = {
+        tool = "Godhuman",
+        buy = function()
+            FlyTo(CFrame.new(-13775.57,334.93,-9881.76))
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuyGodhuman")
+        end
+    },
+
+    ["Sanguine Art"] = {
+        tool = "Sanguine Art",
+        buy = function()
+            FlyTo(CFrame.new(-16515.34,23.45,-190.05))
+            task.wait(0.6)
+            c.Remotes.CommF_:InvokeServer("BuySanguineArt")
+        end
+    }
+}
+
+--// DROPDOWN
+getgenv().SelectedStyle = nil
+
+Tabs.Shop:AddDropdown("FightStyle", {
+    Title = "Select Fighting Style",
+    Values = table.keys(StyleData),
+    Callback = function(v)
+        getgenv().SelectedStyle = v
+    end
+})
+
+--// AUTO BUY LOOP
+spawn(function()
+    while task.wait(1) do
+        local style = getgenv().SelectedStyle
+        if style and StyleData[style] then
+            if HasStyle(StyleData[style].tool) then
+                warn("✔ Đã học " .. style)
+                getgenv().SelectedStyle = nil
+            else
+                StyleData[style].buy()
+                task.wait(2)
+            end
+        end
+    end
+end)
 
 Tabs.Shop:AddSection("Accessory")
 Tabs.Shop:AddButton({Title = "Buy Tomoe Ring", Description = "",Callback = function()
