@@ -3251,6 +3251,7 @@ local AttackNewToggle = Tabs.Settings:AddToggle("AttackNew", {
 
 AttackNewToggle:OnChanged(function(Value)
     _G.AttackNew = Value
+end)
 --// SERVICES
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -3287,7 +3288,6 @@ task.spawn(function()
         end
     end
 end)
-
 --// ===== GET TARGET =====
 local function GetTarget()
     local Char = Player.Character
@@ -3411,7 +3411,6 @@ RunService.Heartbeat:Connect(function()
     task.wait(0.05)
     HitMelee(Melee)
 end)
-
 local Bringmob = Tabs.Settings:AddToggle("Bringmob", {Title = "Bring Mobs", Description = "", Default = true})
 Bringmob:OnChanged(function(Value)
   _B = Value
