@@ -196,52 +196,61 @@ statsSetings = function(Num, value)
   end
 end
 local plr = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
-BringEnemy = function()
-    if not _B or not PosMon then return end
-    
+_G.Bring = true
+
+function BringEnemy(PosMon)
+    if not _G.Bring or not PosMon then return end
+
     pcall(function()
         sethiddenproperty(plr, "SimulationRadius", math.huge)
     end)
 
-    task.defer(function()
-        for _, v in ipairs(workspace.Enemies:GetChildren()) do
-            local hum = v:FindFirstChild("Humanoid")
-            local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
-            
-            if hum and hrp and hum.Health > 0 then
-                local dist = (hrp.Position - PosMon).Magnitude
-                if dist <= 350 and isnetworkowner(hrp) then
-                    
-                    -- Apply anti-ghost measures
-                    for _, part in ipairs(v:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                            part.Anchored = false
-                            part.Massless = true
-                        end
-                    end
-                    
-                    hum.WalkSpeed, hum.JumpPower = 0, 0
-                    hum.PlatformStand = true
-                    
-                    local anim = hum:FindFirstChildOfClass("Animator")
-                    if anim then anim.Parent = nil end
-                    
-                    -- Smooth teleport without dropping to ground
-                    for i = 1, 3 do
-                        if isnetworkowner(hrp) then
-                            hrp.CFrame = CFrame.new(PosMon + Vector3.new(0, 0, 0))
-                            task.wait(0.05)
-                        else
-                            break
-                        end
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        local hum = v:FindFirstChild("Humanoid")
+        local hrp = v:FindFirstChild("HumanoidRootPart")
+        if hum and hrp and hum.Health > 0 then
+            if (hrp.Position - PosMon).Magnitude <= 400 then
+
+                -- anti ghost
+                for _, p in pairs(v:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        p.CanCollide = false
+                        p.Massless = true
                     end
                 end
+
+                hum:ChangeState(11) -- Physics
+                hum.WalkSpeed = 0
+                hum.JumpPower = 0
+
+                -- AlignPosition (ổn định hơn TP)
+                local ap = hrp:FindFirstChild("AP") or Instance.new("AlignPosition")
+                ap.Name = "AP"
+                ap.MaxForce = 50000
+                ap.Responsiveness = 200
+                ap.RigidityEnabled = true
+                ap.Parent = hrp
+
+                local att = hrp:FindFirstChild("ATT") or Instance.new("Attachment")
+                att.Name = "ATT"
+                att.Parent = hrp
+                ap.Attachment0 = att
+
+                ap.Position = PosMon + Vector3.new(0, 0, 0)
             end
         end
-    end)
+    end
 end
+
+-- update liên tục (giữ mob)
+RunService.Heartbeat:Connect(function()
+    if _G.Bring and PosMon then
+        BringEnemy(PosMon)
+    end
+end)
+
 Useskills = function(weapon, skill)
   if weapon == "Melee" then
     weaponSc("Melee")
@@ -2032,61 +2041,80 @@ Q:OnChanged(function(Value)
 end)
 if not _G.MobIndex then _G.MobIndex = 1 end
 
-spawn(function()
-    while task.wait() do 
-        if _G.AutoFarm_Bone then
-            pcall(function()        
-                local player = game.Players.LocalPlayer
-                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local questUI = player.PlayerGui.Main.Quest
-                
-                local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
-                
-                if not root then return end
-                local CurrentTargetName = BonesTable[_G.MobIndex]
-                local bone = GetConnectionEnemies({CurrentTargetName})
-                if _G.AcceptQuestC and not questUI.Visible then
-                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
-                     if (questPos.Position - root.Position).Magnitude > 50 then
-                          _tp(questPos)
-                          return 
-                     else
-                          local randomQuest = math.random(1, 4)
-                          local questData = {
-                            [1] = {"StartQuest", "HauntedQuest2", 2},
-                            [2] = {"StartQuest", "HauntedQuest2", 1},
-                            [3] = {"StartQuest", "HauntedQuest1", 1},
-                            [4] = {"StartQuest", "HauntedQuest1", 2}
-                          }                    
-                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
-                          task.wait(0.5)
-                     end
+_G.MobIndex = _G.MobIndex or 1
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if not _G.AutoFarm_Bone then continue end
+
+        pcall(function()
+            local player = game.Players.LocalPlayer
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+
+            local questUI = player.PlayerGui.Main.Quest
+            local BonesTable = {
+                "Reborn Skeleton",
+                "Living Zombie",
+                "Demonic Soul",
+                "Posessed Mummy"
+            }
+
+            if _G.MobIndex > #BonesTable or _G.MobIndex < 1 then
+                _G.MobIndex = 1
+            end
+
+            local mobName = BonesTable[_G.MobIndex]
+            local bone = GetConnectionEnemies({mobName})
+
+            if _G.AcceptQuestC and not questUI.Visible then
+                local questPos = CFrame.new(-9516.99,172.01,6078.46)
+
+                if (questPos.Position - root.Position).Magnitude > 60 then
+                    _tp(questPos)
+                    return
                 end
 
-                if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
+                local questData = {
+                    {"StartQuest", "HauntedQuest2", 2},
+                    {"StartQuest", "HauntedQuest2", 1},
+                    {"StartQuest", "HauntedQuest1", 1},
+                    {"StartQuest", "HauntedQuest1", 2}
+                }
 
-                    repeat 
-                        task.wait() 
-                        if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
-                            Attack.Kill(bone, _G.AutoFarm_Bone) 
-                        else
-                            break 
-                        end
-                    until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
-                else
-                    _G.MobIndex = _G.MobIndex + 1
-                    
-                    if _G.MobIndex > #BonesTable then
-                        _G.MobIndex = 1
-                    end
-                    print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
-                    task.wait(0.5)
+                game.ReplicatedStorage.Remotes.CommF_:InvokeServer(
+                    unpack(questData[math.random(1, #questData)])
+                )
+                task.wait(1)
+                return
+            end
+
+            if bone
+                and bone.Parent
+                and bone:FindFirstChild("Humanoid")
+                and bone.Humanoid.Health > 0 then
+
+                repeat
+                    task.wait(0.1)
+                    if not _G.AutoFarm_Bone then break end
+                    if not bone.Parent then break end
+                    if bone.Humanoid.Health <= 0 then break end
+
+                    Attack.Kill(bone, true)
+
+                until false
+
+            else
+                _G.MobIndex += 1
+                if _G.MobIndex > #BonesTable then
+                    _G.MobIndex = 1
                 end
-            end)
-        end
+                task.wait(0.3)
+            end
+        end)
     end
 end)
-
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
@@ -7309,182 +7337,40 @@ Tabs.Shop:AddButton({Title = "Buy Ken", Description = "",Callback = function()
   replicated.Remotes.CommF_:InvokeServer("KenTalk","Buy")
 end})
 
---[[ ==========================================
-            CẤU HÌNH DATA & HÀM HỖ TRỢ
-========================================== ]]
-
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-
--- Check World
-local World1 = game.PlaceId == 2753915549
-local World2 = game.PlaceId == 4442272183
-local World3 = game.PlaceId == 7449423635
-
--- Hàm Bay Cưỡng Chế (Fix lỗi không bay)
-local function ForceFly(TargetCFrame)
-    local char = player.Character or player.CharacterAdded:Wait()
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    local Speed = 300
-    local Distance = (root.Position - TargetCFrame.Position).Magnitude
-    
-    -- Tạo vòng lặp bay
-    while _G.AutoBuyStyle and Distance > 10 do
-        local Delta = RunService.Heartbeat:Wait()
-        if root and char:FindFirstChild("Humanoid").Health > 0 then
-            -- Cập nhật lại khoảng cách
-            Distance = (root.Position - TargetCFrame.Position).Magnitude
-            
-            -- Tính toán hướng bay
-            local Direction = (TargetCFrame.Position - root.Position).Unit
-            
-            -- Dịch chuyển
-            root.CFrame = CFrame.new(root.Position + Direction * Speed * Delta)
-            root.Velocity = Vector3.new(0,0,0) -- Chống trọng lực
-            
-            -- Tắt va chạm
-            for _, v in pairs(char:GetChildren()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
-        else
-            break
-        end
-    end
-end
-
--- Danh sách Style & Logic Mua
-local StyleData = {
-    ["Dark Step"] = {
-        Cmd = "BuyBlackLeg",
-        Pos = {W1 = CFrame.new(-984.75, 14.06, 3987.7), W2 = CFrame.new(-4996.3, 43, -4500.2), W3 = CFrame.new(-5043.2, 371.6, -3182.1)}
-    },
-    ["Electro"] = {
-        Cmd = "BuyElectro",
-        Pos = {W1 = CFrame.new(-5382.9, 14.4, -2150.5), W2 = CFrame.new(-4947.5, 42.5, -4439.4), W3 = CFrame.new(-5024.9, 371.6, -3190.6)}
-    },
-    ["Fishman Karate"] = {
-        Cmd = "BuyFishmanKarate",
-        Pos = {W1 = CFrame.new(61581.8, 18.9, 987.8), W2 = CFrame.new(-4992.6, 43, -4460.2), W3 = CFrame.new(-5024.9, 371.6, -3190.6)}
-    },
-    ["Dragon Claw"] = {
-        Cmd = "DragonClaw", -- Logic riêng
-        Pos = {W2 = CFrame.new(701.6, 187.3, 655.8), W3 = CFrame.new(-4982.6, 371.6, -3209.2)}
-    },
-    ["Superhuman"] = {
-        Cmd = "BuySuperhuman",
-        Pos = {W2 = CFrame.new(1375.4, 247.7, -5189.1), W3 = CFrame.new(-5002.4, 371.6, -3197.6)}
-    },
-    ["Death Step"] = {
-        Cmd = "BuyDeathStep",
-        Pos = {W2 = CFrame.new(6356.9, 296.9, -6761.2)}
-    },
-    ["Sharkman Karate"] = {
-        Cmd = "BuySharkmanKarate",
-        Pos = {W2 = CFrame.new(-2601.4, 239.3, -10312.3)}
-    },
-    ["Electric Claw"] = {
-        Cmd = "BuyElectricClaw",
-        Pos = {W3 = CFrame.new(-10370.8, 332, -10133.4)}
-    },
-    ["Dragon Talon"] = {
-        Cmd = "BuyDragonTalon",
-        Pos = {W3 = CFrame.new(45662.1, 1211.6, 864.2)}
-    },
-    ["Godhuman"] = {
-        Cmd = "BuyGodhuman",
-        Pos = {W3 = CFrame.new(-13775.6, 334.9, -9881.8)}
-    },
-    ["Sanguine Art"] = {
-        Cmd = "BuySanguineArt",
-        Pos = {W3 = CFrame.new(-16515.3, 23.5, -190.1)}
-    }
-}
-
--- Tạo danh sách tên để đưa vào Dropdown (Fix lỗi table.keys)
-local StyleList = {
-    "Dark Step", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman", 
-    "Death Step", "Sharkman Karate", "Electric Claw", "Dragon Talon", "Godhuman", "Sanguine Art"
-}
-
---[[ ==========================================
-                PHẦN GIAO DIỆN (UI)
-========================================== ]]
-
-Tabs.Shop:AddSection("Fighting Styles")
-
--- Dropdown Chọn Style
-Tabs.Shop:AddDropdown("StyleSelect", {
-    Title = "Select Fighting Style",
-    Values = StyleList,
-    Multi = false,
-    Default = 1,
-    Callback = function(Value)
-        _G.SelectedStyle = Value
-    end
-})
-
--- Toggle Bật/Tắt Auto Buy
-Tabs.Shop:AddToggle("AutoBuyStyle", {
-    Title = "Auto Buy Selected Style",
-    Description = "Teleport & Buy",
-    Default = false,
-    Callback = function(Value)
-        _G.AutoBuyStyle = Value
-    end
-})
-
---[[ ==========================================
-                VÒNG LẶP XỬ LÝ (LOOP)
-========================================== ]]
-
-spawn(function()
-    while task.wait(1) do
-        if _G.AutoBuyStyle and _G.SelectedStyle then
-            pcall(function()
-                local sName = _G.SelectedStyle
-                local sInfo = StyleData[sName]
-                
-                -- Tìm tọa độ phù hợp với World hiện tại
-                local TargetPos = nil
-                if World1 then TargetPos = sInfo.Pos.W1
-                elseif World2 then TargetPos = sInfo.Pos.W2
-                elseif World3 then TargetPos = sInfo.Pos.W3 
-                end
-
-                if TargetPos then
-                    -- 1. Bay tới NPC
-                    ForceFly(TargetPos)
-                    
-                    -- 2. Mua (Gửi Remote)
-                    if (player.Character.HumanoidRootPart.Position - TargetPos.Position).Magnitude < 20 then
-                        if sName == "Dragon Claw" then
-                            ReplicatedStorage.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "1")
-                            ReplicatedStorage.Remotes.CommF_:InvokeServer("BlackbeardReward", "DragonClaw", "2")
-                        elseif sName == "Sharkman Karate" then
-                            ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySharkmanKarate", true)
-                            ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
-                        elseif sName == "Sanguine Art" then
-                             ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySanguineArt", true)
-                             ReplicatedStorage.Remotes.CommF_:InvokeServer("BuySanguineArt")
-                        else
-                            ReplicatedStorage.Remotes.CommF_:InvokeServer(sInfo.Cmd)
-                        end
-                        
-                        -- Nếu mua thành công thì thông báo nhẹ (Optional)
-                        -- print("Attempted to buy: " .. sName)
-                    end
-                else
-                    -- Nếu style này không bán ở World hiện tại
-                    -- print(sName .. " không bán ở Sea này!")
-                end
-            end)
-        end
-    end
-end)
+Tabs.Shop:AddSection("Fighting - Style")
+Tabs.Shop:AddButton({Title = "Buy Black Leg", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
+end})
+Tabs.Shop:AddButton({Title = "Buy Electro", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyElectro")
+end})
+Tabs.Shop:AddButton({Title = "Buy Fishman Karate", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
+end})
+Tabs.Shop:AddButton({Title = "Buy DragonClaw", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
+end})
+Tabs.Shop:AddButton({Title = "Buy Superhuman", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
+end})
+Tabs.Shop:AddButton({Title = "Buy Death Step", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
+end})
+Tabs.Shop:AddButton({Title = "Buy Sharkman Karate", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
+end})
+Tabs.Shop:AddButton({Title = "Buy ElectricClaw", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
+end})
+Tabs.Shop:AddButton({Title = "Buy DragonTalon", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
+end})
+Tabs.Shop:AddButton({Title = "Buy Godhuman", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
+end})
+Tabs.Shop:AddButton({Title = "Buy SanguineArt", Description = "",Callback = function()
+  replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
+end})
 
 Tabs.Shop:AddSection("Accessory")
 Tabs.Shop:AddButton({Title = "Buy Tomoe Ring", Description = "",Callback = function()
