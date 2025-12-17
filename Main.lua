@@ -1,3 +1,4 @@
+//dine
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/noti.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
 
@@ -7712,3 +7713,4 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
+
