@@ -1,4 +1,3 @@
-//dine
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/noti.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
 
@@ -2031,6 +2030,63 @@ local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "",
 Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
+-- // CẤU HÌNH TỐC ĐỘ BAY //
+_G.TweenSpeed = 350 -- Tốc độ bay (Càng cao càng nhanh, mặc định 300 là ổn)
+
+-- // KHAI BÁO DỊCH VỤ //
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- // HÀM NOCLIP (Giúp đi xuyên tường khi bay) //
+spawn(function()
+    RunService.Stepped:Connect(function()
+        if _G.AutoFarm_Bone then -- Chỉ bật noclip khi đang auto
+            local character = LocalPlayer.Character
+            if character then
+                for _, part in pairs(character:GetChildren()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+-- // HÀM TWEEN (Thay thế cho teleport) //
+function _tp(targetCFrame)
+    local Character = LocalPlayer.Character
+    if not Character then return end
+    local Root = Character:FindFirstChild("HumanoidRootPart")
+    if not Root then return end
+
+    -- Nếu targetCFrame là CFrame thì giữ nguyên, nếu là Vector3 thì chuyển thành CFrame
+    if typeof(targetCFrame) == "Vector3" then
+        targetCFrame = CFrame.new(targetCFrame)
+    end
+
+    local Distance = (Root.Position - targetCFrame.Position).Magnitude
+    local Time = Distance / _G.TweenSpeed 
+    
+    -- Tạo thông tin Tween
+    local TweenInfoData = TweenInfo.new(
+        Time, 
+        Enum.EasingStyle.Linear, 
+        Enum.EasingDirection.Out
+    )
+
+    local Tween = TweenService:Create(Root, TweenInfoData, {CFrame = targetCFrame})
+    Tween:Play()
+    
+    -- Nếu khoảng cách xa (> 50 studs), đợi bay gần tới nơi mới return để tránh lỗi logic
+    if Distance > 50 then
+        Tween.Completed:Wait() 
+    end
+end
+
+-- // CODE CHÍNH CỦA BẠN (ĐÃ CHỈNH SỬA) //
 if not _G.MobIndex then _G.MobIndex = 1 end
 
 spawn(function()
@@ -2044,39 +2100,51 @@ spawn(function()
                 local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
                 
                 if not root then return end
-                local CurrentTargetName = BonesTable[_G.MobIndex]
-                local bone = GetConnectionEnemies({CurrentTargetName})
+                
+                -- Logic nhận Quest
                 if _G.AcceptQuestC and not questUI.Visible then
-                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
-                     if (questPos.Position - root.Position).Magnitude > 50 then
-                          _tp(questPos)
-                          return 
-                     else
-                          local randomQuest = math.random(1, 4)
-                          local questData = {
-                            [1] = {"StartQuest", "HauntedQuest2", 2},
-                            [2] = {"StartQuest", "HauntedQuest2", 1},
-                            [3] = {"StartQuest", "HauntedQuest1", 1},
-                            [4] = {"StartQuest", "HauntedQuest1", 2}
-                          }                    
-                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
-                          task.wait(0.5)
-                     end
+                      local questPos = CFrame.new(-9516.99316, 172.017181, 6078.46533)
+                      
+                      -- Sử dụng hàm Tween (_tp) thay vì tp thường
+                      if (questPos.Position - root.Position).Magnitude > 20 then
+                           _tp(questPos)
+                           return -- Đợi bay đến nơi rồi mới làm tiếp
+                      else
+                           -- Đã đến nơi nhận Quest
+                           local randomQuest = math.random(1, 4)
+                           local questData = {
+                             [1] = {"StartQuest", "HauntedQuest2", 2},
+                             [2] = {"StartQuest", "HauntedQuest2", 1},
+                             [3] = {"StartQuest", "HauntedQuest1", 1},
+                             [4] = {"StartQuest", "HauntedQuest1", 2}
+                           }                    
+                           game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                           task.wait(0.5)
+                      end
                 end
 
-                if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
+                -- Logic Tìm Quái
+                local CurrentTargetName = BonesTable[_G.MobIndex]
+                -- Lưu ý: Hàm GetConnectionEnemies của bạn phải trả về Instance quái vật
+                local bone = GetConnectionEnemies({CurrentTargetName}) 
 
+                if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
                     repeat 
-                        task.wait() 
+                        task.wait()
+                        -- Ở ĐÂY: Nếu module Attack.Kill của bạn không có Tween, 
+                        -- bạn nên thêm _tp(bone.HumanoidRootPart.CFrame * CFrame.new(0,5,0)) vào đây để bay theo quái.
+                        
                         if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
+                            -- Nếu Attack.Kill chỉ đánh mà không bay, hãy mở dòng dưới:
+                            -- _tp(bone.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)) 
                             Attack.Kill(bone, _G.AutoFarm_Bone) 
                         else
                             break 
                         end
                     until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
                 else
+                    -- Đổi quái
                     _G.MobIndex = _G.MobIndex + 1
-                    
                     if _G.MobIndex > #BonesTable then
                         _G.MobIndex = 1
                     end
@@ -2087,7 +2155,6 @@ spawn(function()
         end
     end
 end)
-
 Tabs.Quests:AddSection("Boss Tyrant of the Skies")
 
 local TyrantStatus = Tabs.Quests:AddParagraph({
@@ -3252,54 +3319,59 @@ local AttackNewToggle = Tabs.Settings:AddToggle("AttackNew", {
 
 AttackNewToggle:OnChanged(function(Value)
     _G.AttackNew = Value
-end)
---// SERVICES
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-
---// PLAYER
-local Player = Players.LocalPlayer
-
-local function GetChar()
-    return Player.Character or Player.CharacterAdded:Wait()
-end
-
---// CONFIG
-local Config = {
-    SwitchDelay = 0.35,     -- đừng thấp hơn
-    Range = 100,
-    NoAnim = true
-}
-
---// ===== NO ANIMATION (AN TOÀN) =====
-task.spawn(function()
-    while task.wait(0.35) do
-        if _G.AttackNew and Config.NoAnim then
-            local Char = Player.Character
-            local Hum = Char and Char:FindFirstChild("Humanoid")
-            if Hum then
-                local Animator = Hum:FindFirstChildOfClass("Animator")
-                if Animator then
-                    for _, Track in pairs(Animator:GetPlayingAnimationTracks()) do
-                        Track:Stop(0)
-                    end
-                end
+    if not Value then
+        local Char = game.Players.LocalPlayer.Character
+        if Char and Char:FindFirstChild("Humanoid") then
+            local Animator = Char.Humanoid:FindFirstChild("Animator")
+            if Animator then
+                for _, t in pairs(Animator:GetPlayingAnimationTracks()) do t:Stop() end
             end
         end
     end
 end)
---// ===== GET TARGET =====
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Player = Players.LocalPlayer
+local function GetChar()
+    return Player.Character or Player.CharacterAdded:Wait()
+end
+
+local Config = {
+    SwitchDelay = 0.15,        
+    Range = 100,                
+    NoAnim = false              
+}
+
+task.spawn(function()
+    RunService.Stepped:Connect(function()
+        if _G.AttackNew and Config.NoAnim then
+            local Char = Player.Character
+            if Char and Char:FindFirstChild("Humanoid") then
+                local Animator = Char.Humanoid:FindFirstChild("Animator")
+                if Animator then
+                    for _, Track in pairs(Animator:GetPlayingAnimationTracks()) do
+                        Track:Stop()
+                    end
+                end
+            end
+        end
+    end)
+end)
+
 local function GetTarget()
     local Char = Player.Character
     if not Char then return nil end
-
+    
     local Root = Char:FindFirstChild("HumanoidRootPart")
     if not Root then return nil end
+    
+    local Target = nil
+    local MinDist = Config.Range
 
-    local Target, MinDist = nil, Config.Range
     local Enemies = Workspace:FindFirstChild("Enemies") or Workspace:FindFirstChild("Mobs")
-
     if Enemies then
         for _, v in pairs(Enemies:GetChildren()) do
             local H = v:FindFirstChild("Humanoid")
@@ -3316,17 +3388,14 @@ local function GetTarget()
     return Target
 end
 
---// ===== FIND FRUIT =====
 local function FindFruit()
     local Backpack = Player.Backpack
     local Char = Player.Character
     if not Char then return nil end
-
+    
     local CharTool = Char:FindFirstChildOfClass("Tool")
-    if CharTool and (CharTool.ToolTip == "Blox Fruit" or CharTool:FindFirstChild("LeftClickRemote")) then
-        return CharTool
-    end
-
+    if CharTool and (CharTool.ToolTip == "Blox Fruit" or CharTool:FindFirstChild("LeftClickRemote")) then return CharTool end
+    
     for _, v in pairs(Backpack:GetChildren()) do
         if v:IsA("Tool") and (v.ToolTip == "Blox Fruit" or v:FindFirstChild("LeftClickRemote")) then
             return v
@@ -3335,16 +3404,13 @@ local function FindFruit()
     return nil
 end
 
---// ===== FIND MELEE =====
 local function FindAnyMelee()
     local Backpack = Player.Backpack
     local Char = Player.Character
     if not Char then return nil end
 
     local CharTool = Char:FindFirstChildOfClass("Tool")
-    if CharTool and CharTool.ToolTip == "Melee" then
-        return CharTool
-    end
+    if CharTool and CharTool.ToolTip == "Melee" then return CharTool end
 
     for _, v in pairs(Backpack:GetChildren()) do
         if v:IsA("Tool") and v.ToolTip == "Melee" then
@@ -3354,23 +3420,6 @@ local function FindAnyMelee()
     return nil
 end
 
---// ===== HIT MELEE (CÓ DAME) =====
-local function HitMelee(Melee)
-    if not Melee then return end
-
-    if Melee:FindFirstChild("LeftClickRemote") then
-        pcall(function()
-            Melee.LeftClickRemote:FireServer()
-        end)
-        return
-    end
-
-    pcall(function()
-        Melee:Activate()
-    end)
-end
-
---// ===== MAIN LOOP =====
 local LastAttack = 0
 
 RunService.Heartbeat:Connect(function()
@@ -3378,39 +3427,32 @@ RunService.Heartbeat:Connect(function()
 
     local Character = Player.Character
     if not Character or not Character.Parent then return end
-
+    
     local Humanoid = Character:FindFirstChild("Humanoid")
-    local Root = Character:FindFirstChild("HumanoidRootPart")
-    if not Humanoid or not Root or Humanoid.Health <= 0 then return end
+    if not Humanoid or Humanoid.Health <= 0 then return end
 
     if tick() - LastAttack < Config.SwitchDelay then return end
-
+    
     local Target = GetTarget()
     if not Target then return end
-
+    
     local Fruit = FindFruit()
     local Melee = FindAnyMelee()
-    if not Fruit or not Melee then return end
-
-    LastAttack = tick()
-
-    -- ===== FRUIT =====
-    Humanoid:EquipTool(Fruit)
-    task.wait(0.05)
-
-    if Fruit:FindFirstChild("LeftClickRemote") then
-        local Dir = (Target.Position - Root.Position).Unit
-        pcall(function()
-            Fruit.LeftClickRemote:FireServer(Dir, 1)
-        end)
+    
+    if Fruit and Melee then
+        LastAttack = tick()
+        
+        Humanoid:EquipTool(Fruit)
+        
+        if Fruit:FindFirstChild("LeftClickRemote") then
+            local Dir = (Target.Position - Character.HumanoidRootPart.Position).Unit
+            pcall(function()
+                Fruit.LeftClickRemote:FireServer(Dir, 1)
+            end)
+        end
+        
+        Humanoid:EquipTool(Melee)
     end
-
-    task.wait(0.12)
-
-    -- ===== MELEE =====
-    Humanoid:EquipTool(Melee)
-    task.wait(0.05)
-    HitMelee(Melee)
 end)
 local Bringmob = Tabs.Settings:AddToggle("Bringmob", {Title = "Bring Mobs", Description = "", Default = true})
 Bringmob:OnChanged(function(Value)
@@ -7713,4 +7755,3 @@ local function GetEnemiesInRange(character, range)
     return targets
 end
 Window:SelectTab(1)
-
