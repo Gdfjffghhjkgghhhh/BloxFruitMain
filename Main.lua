@@ -1323,17 +1323,7 @@ end
 			end
 		end
 	end
-  if Mon and CFrameQuest and getgenv().AutoFarm then
-        if (CFrameQuest.Position - HRP.Position).Magnitude > 10000 then
-            -- Teleport đến chỗ tàu ngầm
-            topos(CFrame.new(-16269.7041, 25.2288494, 1373.65955, 0.997390985, 1.47309942e-09, -0.0721890926, -4.00651912e-09, 0.99999994, -2.51183763e-09, 0.0721890852, 5.75363091e-10, 0.997390926))
-            task.wait(2)
-            -- Kích hoạt remote đi tàu
-            local args = {"tpSubmarineWorker"}
-            game:GetService("ReplicatedStorage").Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak"):InvokeServer(unpack(args))
-        end
-    end
-end
+
 	MaterialMon = function()
 		local a = game.Players.LocalPlayer;
 		local b = a.Character and a.Character:FindFirstChild("HumanoidRootPart")
@@ -7697,4 +7687,81 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
+--// AUTO TRAVEL SUBMERGED WHEN LEVEL 2600
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local TweenService = game:GetService("TweenService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+    local player = Players.LocalPlayer
+    local levelValue = player:WaitForChild("Data"):WaitForChild("Level")
+
+    local Net = ReplicatedStorage.Modules.Net
+    local SpeakRemote = Net:WaitForChild("RF/SubmarineWorkerSpeak")
+
+    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+
+    local activeTween
+    local triggered = false -- CHỐNG CHẠY LẠI
+
+    local function TweenTo(cf, speed)
+        local char = player.Character or player.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart")
+
+        local dist = (root.Position - cf.Position).Magnitude
+        local time = dist / speed
+
+        if activeTween then
+            activeTween:Cancel()
+        end
+
+        activeTween = TweenService:Create(
+            root,
+            TweenInfo.new(time, Enum.EasingStyle.Linear),
+            {CFrame = cf}
+        )
+
+        activeTween:Play()
+        activeTween.Completed:Wait()
+    end
+
+    local function TeleportAndTravel()
+        if triggered then return end
+        triggered = true
+
+        local char = player.Character or player.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart")
+
+        -- Bay tới NPC
+        repeat
+            TweenTo(NPC_CF + Vector3.new(0, 5, 0), 350)
+            task.wait(0.15)
+        until (root.Position - NPC_CF.Position).Magnitude <= 8
+
+        if activeTween then
+            activeTween:Cancel()
+            activeTween = nil
+        end
+
+        task.wait(0.6)
+
+        -- NÓI CHUYỆN NPC → QUA ĐẢO
+        pcall(function()
+            SpeakRemote:InvokeServer("TravelToSubmergedIsland")
+        end)
+    end
+
+    -- Nếu load game đã >=2600
+    if levelValue.Value >= 2600 then
+        TeleportAndTravel()
+    end
+
+    -- Khi vừa ding level 2600
+    levelValue.Changed:Connect(function(lv)
+        if lv >= 2600 then
+            TeleportAndTravel()
+        end
+    end)
+end)
+
 Window:SelectTab(1)
