@@ -7687,7 +7687,7 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
---// AUTO TRAVEL SUBMERGED WHEN LEVEL 2600
+--// AUTO SUBMERGED WHEN AUTO FARM LEVEL ON
 task.spawn(function()
     local Players = game:GetService("Players")
     local TweenService = game:GetService("TweenService")
@@ -7702,7 +7702,7 @@ task.spawn(function()
     local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
 
     local activeTween
-    local triggered = false -- CHỐNG CHẠY LẠI
+    local done = false -- chống chạy lại
 
     local function TweenTo(cf, speed)
         local char = player.Character or player.CharacterAdded:Wait()
@@ -7725,14 +7725,20 @@ task.spawn(function()
         activeTween.Completed:Wait()
     end
 
-    local function TeleportAndTravel()
-        if triggered then return end
-        triggered = true
+    local function TravelSubmerged()
+        if done then return end
+        done = true
+
+        -- ⛔ TẠM DỪNG AUTO FARM
+        local oldFarm = _G.Level
+        _G.Level = false
+        shouldTween = false
+        task.wait(0.3)
 
         local char = player.Character or player.CharacterAdded:Wait()
         local root = char:WaitForChild("HumanoidRootPart")
 
-        -- Bay tới NPC
+        -- 🚀 Bay tới NPC
         repeat
             TweenTo(NPC_CF + Vector3.new(0, 5, 0), 350)
             task.wait(0.15)
@@ -7745,21 +7751,20 @@ task.spawn(function()
 
         task.wait(0.6)
 
-        -- NÓI CHUYỆN NPC → QUA ĐẢO
+        -- 🗣️ NÓI CHUYỆN NPC → QUA ĐẢO
         pcall(function()
             SpeakRemote:InvokeServer("TravelToSubmergedIsland")
         end)
+
+        -- ▶️ BẬT LẠI AUTO FARM
+        task.wait(0.5)
+        _G.Level = oldFarm
     end
 
-    -- Nếu load game đã >=2600
-    if levelValue.Value >= 2600 then
-        TeleportAndTravel()
-    end
-
-    -- Khi vừa ding level 2600
+    -- Theo dõi khi auto farm đang bật
     levelValue.Changed:Connect(function(lv)
-        if lv >= 2600 then
-            TeleportAndTravel()
+        if _G.Level and lv >= 2600 then
+            TravelSubmerged()
         end
     end)
 end)
