@@ -1,6 +1,6 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/noti.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
-
+local SubmergedDone = false
 do
   ply = game.Players
   plr = ply.LocalPlayer
@@ -1701,8 +1701,35 @@ spawn(function()
 
     while task.wait(Sec or 0.2) do
         if _G.Level then
+
+            -- 🔥 AUTO QUA SUBMERGED KHI ĐỦ LEVEL
+            if not SubmergedDone and plr.Data.Level.Value >= 2600 then
+                SubmergedDone = true
+
+                _G.Level = false
+                shouldTween = false
+                task.wait(0.5)
+
+                local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+                repeat
+                    _tp(NPC_CF + Vector3.new(0,5,0))
+                    task.wait(0.2)
+                until (Root.Position - NPC_CF.Position).Magnitude <= 8
+
+                task.wait(0.8)
+
+                pcall(function()
+                    replicated.Modules.Net["RF/SubmarineWorkerSpeak"]
+                        :InvokeServer("TravelToSubmergedIsland")
+                end)
+
+                task.wait(3)
+                _G.Level = true
+            end
+
+            -- ===== AUTO FARM LEVEL =====
             pcall(function()
-                local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
+                local questGui = plr.PlayerGui.Main.Quest
                 local q = QuestNeta()
                 if not q or not q[1] then return end
 
@@ -1710,47 +1737,37 @@ spawn(function()
                     q[1], q[2], q[3], q[4], q[5], q[6]
 
                 local questTitle = ""
-                if questGui:FindFirstChild("Container") and questGui.Container:FindFirstChild("QuestTitle") then
+                if questGui.Container and questGui.Container:FindFirstChild("QuestTitle") then
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
+
                 if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
                     task.wait(0.25)
                     _tp(questPos)
-                    repeat
-                        task.wait()
-                    until (Root.Position - questPos.Position).Magnitude <= 6
+                    repeat task.wait() until (Root.Position - questPos.Position).Magnitude <= 6
                     replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
                     return
                 end
-                local foundMob = false
+
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
-                        foundMob = true
                         local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-                        if not mobRoot then continue end
+                        if not mobRoot then break end
 
                         repeat
                             task.wait()
-                            if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
+                            if not _G.Level or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
                             if dist > 250 then
-                                _tp(mobRoot.CFrame * CFrame.new(0, 40, 0))
+                                _tp(mobRoot.CFrame * CFrame.new(0,40,0))
                             elseif dist > 30 then
-                                Root.CFrame = Root.CFrame:Lerp(mobRoot.CFrame * CFrame.new(0, 20, 0), 0.25)
+                                Root.CFrame = Root.CFrame:Lerp(mobRoot.CFrame * CFrame.new(0,20,0), 0.25)
                             end
                             Attack.Kill(mob, _G.Level)
-                        until mob.Humanoid.Health <= 0 or not mob.Parent
+                        until mob.Humanoid.Health <= 0
                         break
-                    end
-                end
-                if not foundMob then
-                    _tp(mobPos)
-                    task.wait(0.5)
-                    local spawnMob = ws.Enemies:FindFirstChild(questMobName)
-                    if spawnMob and spawnMob:FindFirstChild("HumanoidRootPart") then
-                        _tp(spawnMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
                     end
                 end
             end)
@@ -7686,87 +7703,5 @@ local function GetEnemiesInRange(character, range)
         end
     end
     return targets
-end
---// AUTO SUBMERGED WHEN AUTO FARM LEVEL ON
-task.spawn(function()
-    local Players = game:GetService("Players")
-    local TweenService = game:GetService("TweenService")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-    local player = Players.LocalPlayer
-    local levelValue = player:WaitForChild("Data"):WaitForChild("Level")
-
-    local Net = ReplicatedStorage.Modules.Net
-    local SpeakRemote = Net:WaitForChild("RF/SubmarineWorkerSpeak")
-
-    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
-
-    local activeTween
-    local done = false -- chống chạy lại
-
-    local function TweenTo(cf, speed)
-        local char = player.Character or player.CharacterAdded:Wait()
-        local root = char:WaitForChild("HumanoidRootPart")
-
-        local dist = (root.Position - cf.Position).Magnitude
-        local time = dist / speed
-
-        if activeTween then
-            activeTween:Cancel()
-        end
-
-        activeTween = TweenService:Create(
-            root,
-            TweenInfo.new(time, Enum.EasingStyle.Linear),
-            {CFrame = cf}
-        )
-
-        activeTween:Play()
-        activeTween.Completed:Wait()
-    end
-
-    local function TravelSubmerged()
-        if done then return end
-        done = true
-
-        -- ⛔ TẠM DỪNG AUTO FARM
-        local oldFarm = _G.Level
-        _G.Level = false
-        shouldTween = false
-        task.wait(0.3)
-
-        local char = player.Character or player.CharacterAdded:Wait()
-        local root = char:WaitForChild("HumanoidRootPart")
-
-        -- 🚀 Bay tới NPC
-        repeat
-            TweenTo(NPC_CF + Vector3.new(0, 5, 0), 350)
-            task.wait(0.15)
-        until (root.Position - NPC_CF.Position).Magnitude <= 8
-
-        if activeTween then
-            activeTween:Cancel()
-            activeTween = nil
-        end
-
-        task.wait(0.6)
-
-        -- 🗣️ NÓI CHUYỆN NPC → QUA ĐẢO
-        pcall(function()
-            SpeakRemote:InvokeServer("TravelToSubmergedIsland")
-        end)
-
-        -- ▶️ BẬT LẠI AUTO FARM
-        task.wait(0.5)
-        _G.Level = oldFarm
-    end
-
-    -- Theo dõi khi auto farm đang bật
-    levelValue.Changed:Connect(function(lv)
-        if _G.Level and lv >= 2600 then
-            TravelSubmerged()
-        end
-    end)
-end)
-
+  end
 Window:SelectTab(1)
