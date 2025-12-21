@@ -1277,52 +1277,103 @@ end
 				NameMon = "Skull Slayer"
 				PosQ = CFrame.new(-16759.5898, 71.2837, 1595.3399)
 				PosM = CFrame.new(-16759.5898, 71.2837, 1595.3399)
+        -- ===== AUTO TRAVEL SUBMERGED (NO FUNCTION) =====
+-- ===== AUTO TRAVEL SUBMERGED =====
+if _G.Level and a >= 2600 and not _G.__SubmergedDone then
+    _G.__SubmergedDone = true
 
-			elseif a >= 2600 and a <= 2624 then
-				Mon = "Reef Bandit"
-				Qdata = 1;
-				Qname = "SubmergedQuest1";
-				NameMon = "Reef Bandit"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226) -- NPC Submerged
-				PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
-			elseif a >= 2625 and a <= 2649 then
-				Mon = "Coral Pirate"
-				Qdata = 2;
-				Qname = "SubmergedQuest1";
-				NameMon = "Coral Pirate"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
-			elseif a >= 2650 and a <= 2674 then
-				Mon = "Sea Chanter"
-				Qdata = 1;
-				Qname = "SubmergedQuest2";
-				NameMon = "Sea Chanter"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
-			elseif a >= 2675 and a <= 2699 then
-				Mon = "Ocean Prophet"
-				Qdata = 2;
-				Qname = "SubmergedQuest2";
-				NameMon = "Ocean Prophet"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
-			elseif a >= 2700 and a <= 2724 then
-				Mon = "High Disciple"
-				Qdata = 1;
-				Qname = "SubmergedQuest3";
-				NameMon = "High Disciple"
-				PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-				PosM = CFrame.new(9828.087890625, -1940.908935546875, 9693.0634765625)
-			elseif a >= 2725 and a <= 2800 then
-				Mon = "Grand Devotee"
-				Qdata = 2;
-				Qname = "SubmergedQuest3";
-				NameMon = "Grand Devotee"
-				PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-				PosM = CFrame.new(9557.5849609375, -1928.0404052734375, 9859.1826171875)
-			end
-		end
-	end
+    -- dừng farm
+    _G.Level = false
+    shouldTween = false
+    task.wait(0.5)
+
+    local plr = game.Players.LocalPlayer
+    local replicated = game:GetService("ReplicatedStorage")
+    local SpeakRemote = replicated.Modules.Net:WaitForChild("RF/SubmarineWorkerSpeak")
+
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    local root = char:WaitForChild("HumanoidRootPart")
+    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+
+    repeat
+        _tp(NPC_CF + Vector3.new(0,5,0))
+        task.wait(0.25)
+    until (root.Position - NPC_CF.Position).Magnitude <= 8
+
+    task.wait(0.8)
+
+    -- nói chuyện NPC → qua đảo
+    pcall(function()
+        SpeakRemote:InvokeServer("TravelToSubmergedIsland")
+    end)
+
+    -- đợi đổi map
+    plr.CharacterAdded:Wait()
+    task.wait(3)
+
+    -- reset quest + bật lại farm
+    pcall(function()
+        replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
+    end)
+
+    _G.Level = true
+    shouldTween = true
+
+    -- 🔓 cho phép logic chạy tiếp ở vòng sau
+    _G.__SubmergedDone = false
+
+    return -- ⛔ QUAN TRỌNG: không cho rơi xuống elseif bên dưới
+end
+-- ===== END AUTO TRAVEL =====
+
+elseif a >= 2600 and a <= 2624 then
+    Mon = "Reef Bandit"
+    Qdata = 1
+    Qname = "SubmergedQuest1"
+    NameMon = "Reef Bandit"
+    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+    PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
+
+elseif a >= 2625 and a <= 2649 then
+    Mon = "Coral Pirate"
+    Qdata = 2
+    Qname = "SubmergedQuest1"
+    NameMon = "Coral Pirate"
+    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+    PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
+
+elseif a >= 2650 and a <= 2674 then
+    Mon = "Sea Chanter"
+    Qdata = 1
+    Qname = "SubmergedQuest2"
+    NameMon = "Sea Chanter"
+    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+    PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
+
+elseif a >= 2675 and a <= 2699 then
+    Mon = "Ocean Prophet"
+    Qdata = 2
+    Qname = "SubmergedQuest2"
+    NameMon = "Ocean Prophet"
+    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+    PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
+
+elseif a >= 2700 and a <= 2724 then
+    Mon = "High Disciple"
+    Qdata = 1
+    Qname = "SubmergedQuest3"
+    NameMon = "High Disciple"
+    PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+    PosM = CFrame.new(9828.0879, -1940.9089, 9693.0635)
+
+elseif a >= 2725 and a <= 2800 then
+    Mon = "Grand Devotee"
+    Qdata = 2
+    Qname = "SubmergedQuest3"
+    NameMon = "Grand Devotee"
+    PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+    PosM = CFrame.new(9557.5850, -1928.0404, 9859.1826)
+end
 
 	MaterialMon = function()
 		local a = game.Players.LocalPlayer;
@@ -7687,139 +7738,4 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
--- ===== AUTO SUBMERGED (FLY & TALK FIX) =====
-task.spawn(function()
-    repeat task.wait() until game:IsLoaded()
-    
-    local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local TweenService = game:GetService("TweenService")
-    local RunService = game:GetService("RunService")
-
-    local plr = Players.LocalPlayer
-    local replicated = ReplicatedStorage
-    local SpeakRemote = replicated.Modules.Net:WaitForChild("RF/SubmarineWorkerSpeak")
-    
-    -- Tọa độ NPC Submerged
-    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
-    
-    local busy = false
-    local hasTraveled = false
-    local bodyVelocity -- Giữ nhân vật không bị rơi
-
-    -- Hàm bay (Tween) mượt tới NPC
-    local function FlyToNPC(targetCF)
-        local char = plr.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-        local root = char.HumanoidRootPart
-        
-        -- Tạo BodyVelocity để nhân vật lơ lửng, không rớt
-        if not root:FindFirstChild("AntiFall_BV") then
-            bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.Name = "AntiFall_BV"
-            bodyVelocity.Velocity = Vector3.zero
-            bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            bodyVelocity.Parent = root
-        end
-
-        print("✈️ Đang bay tới NPC...")
-        
-        -- Vòng lặp bay tới
-        while (root.Position - targetCF.Position).Magnitude > 5 do
-            if not _G.Level then -- Chỉ bay khi đang tắt farm
-                local dist = (root.Position - targetCF.Position).Magnitude
-                local speed = 300 -- Tốc độ bay (chỉnh cao hơn nếu muốn nhanh)
-                
-                -- Tính toán thời gian bay cho đoạn đường ngắn
-                local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(root, info, {CFrame = targetCF})
-                tween:Play()
-                
-                -- Chờ một chút để tween chạy
-                task.wait(0.5)
-                
-                -- Nếu bị lag hoặc kẹt, force TP nhẹ
-                if (root.Position - targetCF.Position).Magnitude > 100 then
-                    root.CFrame = CFrame.new(root.Position:Lerp(targetCF.Position, 0.5))
-                end
-            else
-                break -- Nếu lỡ bật lại farm thì dừng bay
-            end
-        end
-        
-        -- Đến nơi rồi thì xóa BodyVelocity để trả lại trạng thái bình thường
-        if root:FindFirstChild("AntiFall_BV") then
-            root.AntiFall_BV:Destroy()
-        end
-    end
-
-    -- Loop chính
-    while task.wait(1) do
-        pcall(function()
-            local char = plr.Character or plr.CharacterAdded:Wait()
-            local root = char:WaitForChild("HumanoidRootPart", 10)
-            local levelValue = plr.Data:WaitForChild("Level").Value
-
-            -- Check điều kiện: Đủ level 2600 + Chưa qua đảo + Đang ở gần map cũ
-            if root and _G.Level and not busy and not hasTraveled and levelValue >= 2600 then
-                -- Nếu khoảng cách < 6000 (đang ở map cũ)
-                if (root.Position - NPC_CF.Position).Magnitude < 6000 then
-                    busy = true
-                    
-                    -- 1. TẮT FARM
-                    _G.Level = false
-                    if shouldTween ~= nil then shouldTween = false end
-                    
-                    -- 2. BAY TỚI NPC
-                    FlyToNPC(NPC_CF)
-                    
-                    -- 3. ĐỨNG YÊN & NÓI CHUYỆN
-                    print("🗣️ Đã đến nơi! Đang nói chuyện...")
-                    local startTalkTime = tick()
-                    
-                    repeat
-                        -- Khóa vị trí nhân vật trước mặt NPC để server nhận diện
-                        root.CFrame = NPC_CF
-                        root.Velocity = Vector3.zero
-                        
-                        -- Gọi Remote nói chuyện
-                        local success, err = pcall(function()
-                            SpeakRemote:InvokeServer("TravelToSubmergedIsland")
-                        end)
-                        
-                        task.wait(1) 
-                        
-                        -- Kiểm tra nếu đã qua map mới (khoảng cách nhảy vọt) thì break
-                    until (root.Position - NPC_CF.Position).Magnitude > 2000 or tick() - startTalkTime > 20
-                    
-                    -- 4. XỬ LÝ SAU KHI QUA
-                    task.wait(3)
-                    if (root.Position - NPC_CF.Position).Magnitude > 2000 then
-                        print("✅ Qua đảo thành công!")
-                        hasTraveled = true
-                        
-                        -- Reset quest
-                        pcall(function()
-                            replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
-                        end)
-                        
-                        -- Bật lại farm
-                        busy = false
-                        _G.Level = true
-                        if shouldTween then shouldTween = true end
-                    else
-                        print("❌ Thất bại, thử lại sau...")
-                        busy = false -- Để vòng lặp chạy lại từ đầu
-                    end
-                else
-                    -- Đang ở đảo mới rồi
-                    hasTraveled = true
-                end
-            end
-        end)
-    end
-end)
 Window:SelectTab(1)
-
-
-
