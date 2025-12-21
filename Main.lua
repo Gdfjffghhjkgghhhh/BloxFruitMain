@@ -1605,89 +1605,7 @@ Tabs.Main:AddButton({
             setclipboard(tostring("")) 
         end
 })
-if World3 then
-    Tabs.Main:AddSection("Submarine Worker")
 
-    local TweenService = game:GetService("TweenService")
-    local activeTween 
-    local function TweenToSpeed(cf, speed)
-        local player = game.Players.LocalPlayer
-        local char = player.Character
-        if not char then return end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        if activeTween then
-            activeTween:Cancel()
-            activeTween = nil
-        end
-
-        local dist = (root.Position - cf.Position).Magnitude
-        local time = dist / speed
-        if time <= 0 then return end
-
-        local tween = TweenService:Create(
-            root,
-            TweenInfo.new(time, Enum.EasingStyle.Linear),
-            {CFrame = cf}
-        )
-        activeTween = tween
-        tween:Play()
-        return tween
-    end
-
-    local TeleportToggle = Tabs.Main:AddToggle("tpSubmarineWorker", {
-        Title = "Teleport To Submarine Worker",
-        Description = "",
-        Default = false,
-        Callback = function(value)
-            _G.tpSubmarineWorker = value
-            if not value and activeTween then
-                activeTween:Cancel()
-                activeTween = nil
-            end
-        end
-    })
-
-    spawn(function()
-        while task.wait(0.3) do
-            if _G.tpSubmarineWorker then
-                pcall(function()
-                    local player = game.Players.LocalPlayer
-                    local level = player.Data.Level.Value
-                    local char = player.Character or player.CharacterAdded:Wait()
-                    local root = char:WaitForChild("HumanoidRootPart")
-                    local npcPosition = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
-
-                    if level < 2600 then
-                        _G.tpSubmarineWorker = false
-                        TeleportToggle:Set(false)
-                        if activeTween then
-                            activeTween:Cancel()
-                            activeTween = nil
-                        end
-                        return
-                    end
-
-                    local dist = (root.Position - npcPosition.Position).Magnitude
-                    while _G.tpSubmarineWorker and dist > 8 do
-                        TweenToSpeed(npcPosition + Vector3.new(0, 5, 0), 350)
-                        task.wait(0.1)
-                        dist = (root.Position - npcPosition.Position).Magnitude
-                    end
-
-                    if dist <= 8 then
-                        _G.tpSubmarineWorker = false
-                        TeleportToggle:Set(false)
-                        if activeTween then
-                            activeTween:Cancel()
-                            activeTween = nil
-                        end
-                    end
-                end)
-            end
-        end
-    end)
-end
 Tabs.Main:AddSection("Farm Level")
 local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", Description = "", Default = false})
 FarmLevel:OnChanged(function(Value)
@@ -7687,16 +7605,15 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
--- ===== AUTO SUBMERGED | END FILE SAFE =====
 
 task.spawn(function()
     repeat task.wait()
     until game:IsLoaded()
-    and _G
-    and _G.Level ~= nil
-    and _tp
-    and game.Players.LocalPlayer:FindFirstChild("Data")
-    and game.Players.LocalPlayer.Data:FindFirstChild("Level")
+        and _G
+        and _G.Level ~= nil
+        and _tp
+        and game.Players.LocalPlayer:FindFirstChild("Data")
+        and game.Players.LocalPlayer.Data:FindFirstChild("Level")
 
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7712,28 +7629,27 @@ task.spawn(function()
     local waitingRespawn = false
     _G.PassedSubmerged = _G.PassedSubmerged or false
 
-    -- ===== FIX FARM SAU KHI QUA ĐẢO =====
+    -- ✅ Khi respawn xong → bật lại farm
     plr.CharacterAdded:Connect(function(char)
         if not waitingRespawn then return end
         waitingRespawn = false
 
         char:WaitForChild("HumanoidRootPart", 15)
-        task.wait(5) -- đợi map load xong
+        task.wait(4)
 
-        -- reset quest cũ
         pcall(function()
             replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
         end)
 
-        -- FORCE bật farm lại
         task.wait(1)
-        _G.Level = true
-        shouldTween = true
 
+        _G.Level = true          -- ✅ BẬT LẠI AUTO FARM
+        shouldTween = true
         busy = false
+
+        print("[Submerged] Respawn xong – tiếp tục farm")
     end)
 
-    -- ===== MAIN LOOP =====
     while task.wait(0.5) do
         if _G.PassedSubmerged then continue end
         if busy then continue end
@@ -7741,8 +7657,6 @@ task.spawn(function()
         if levelValue.Value < 2600 then continue end
 
         busy = true
-
-        -- dừng farm
         _G.Level = false
         shouldTween = false
         task.wait(0.6)
@@ -7750,20 +7664,25 @@ task.spawn(function()
         local char = plr.Character or plr.CharacterAdded:Wait()
         local root = char:WaitForChild("HumanoidRootPart")
 
-        -- TP tới NPC Submarine
         repeat
-            _tp(NPC_CF + Vector3.new(0,5,0))
+            _tp(NPC_CF + Vector3.new(0, 5, 0))
             task.wait(0.25)
         until (root.Position - NPC_CF.Position).Magnitude <= 8
 
         task.wait(0.8)
 
-        -- nói chuyện NPC → qua Submerged
         waitingRespawn = true
-        _G.PassedSubmerged = true
 
         pcall(function()
             SpeakRemote:InvokeServer("TravelToSubmergedIsland")
+        end)
+
+        -- ❌ KHÔNG set PassedSubmerged ở đây
+        task.delay(8, function()
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                _G.PassedSubmerged = true
+                print("[Submerged] Đã qua đảo mới")
+            end
         end)
     end
 end)
