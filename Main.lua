@@ -1702,6 +1702,19 @@ spawn(function()
     while task.wait(Sec or 0.2) do
         if _G.Level then
 
+            task.spawn(function()
+    -- ⏳ CHỜ MAIN.LUA LOAD XONG HẾT HÀM GỐC
+    repeat task.wait()
+    until _tp and QuestNeta and Attack and Attack.Kill
+
+    local plr = game.Players.LocalPlayer
+    local replicated = game:GetService("ReplicatedStorage")
+    local ws = game:GetService("Workspace")
+    local Root = plr.Character:WaitForChild("HumanoidRootPart")
+
+    while task.wait(Sec or 0.2) do
+        if _G.Level then
+
             -- 🔥 AUTO QUA SUBMERGED KHI ĐỦ LEVEL
             if not SubmergedDone and plr.Data.Level.Value >= 2600 then
                 SubmergedDone = true
@@ -1727,7 +1740,7 @@ spawn(function()
                 _G.Level = true
             end
 
-            -- ===== AUTO FARM LEVEL =====
+            -- ===== AUTO FARM LEVEL (GIỮ NGUYÊN GỐC) =====
             pcall(function()
                 local questGui = plr.PlayerGui.Main.Quest
                 local q = QuestNeta()
@@ -1763,7 +1776,9 @@ spawn(function()
                             if dist > 250 then
                                 _tp(mobRoot.CFrame * CFrame.new(0,40,0))
                             elseif dist > 30 then
-                                Root.CFrame = Root.CFrame:Lerp(mobRoot.CFrame * CFrame.new(0,20,0), 0.25)
+                                Root.CFrame = Root.CFrame:Lerp(
+                                    mobRoot.CFrame * CFrame.new(0,20,0), 0.25
+                                )
                             end
                             Attack.Kill(mob, _G.Level)
                         until mob.Humanoid.Health <= 0
@@ -1773,6 +1788,7 @@ spawn(function()
             end)
         end
     end
+end)
 end)
 
 local TravelDress = Tabs.Quests:AddToggle("TravelDress", {Title = "Auto Travel Dressrosa", Description = "", Default = false})
