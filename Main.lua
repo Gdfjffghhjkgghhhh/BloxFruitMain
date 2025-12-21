@@ -1278,55 +1278,51 @@ end
 				PosQ = CFrame.new(-16759.5898, 71.2837, 1595.3399)
 				PosM = CFrame.new(-16759.5898, 71.2837, 1595.3399)
 
-elseif a >= 2600 and a <= 2624 then
-    Mon = "Reef Bandit"
-    Qname = "DeepSeaQuest1"
-    Qdata = 1
-    NameMon = "Reef Bandit"
-    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-    PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
-
-elseif a >= 2625 and a <= 2649 then
-    Mon = "Coral Pirate"
-    Qname = "DeepSeaQuest1"
-    Qdata = 2
-    NameMon = "Coral Pirate"
-    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-    PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
-
-elseif a >= 2650 and a <= 2674 then
-    Mon = "Sea Chanter"
-    Qname = "DeepSeaQuest2"
-    Qdata = 1
-    NameMon = "Sea Chanter"
-    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-    PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
-
-elseif a >= 2675 and a <= 2699 then
-    Mon = "Ocean Prophet"
-    Qname = "DeepSeaQuest2"
-    Qdata = 2
-    NameMon = "Ocean Prophet"
-    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-    PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
-
-elseif a >= 2700 and a <= 2724 then
-    Mon = "High Disciple"
-    Qname = "DeepSeaQuest3"
-    Qdata = 1
-    NameMon = "High Disciple"
-    PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-    PosM = CFrame.new(9828.0879, -1940.9089, 9693.0635)
-
-elseif a >= 2725 and a <= 2800 then
-    Mon = "Grand Devotee"
-    Qname = "DeepSeaQuest3"
-    Qdata = 2
-    NameMon = "Grand Devotee"
-    PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-    PosM = CFrame.new(9557.5850, -1928.0404, 9859.1826)
-end
-
+			elseif a >= 2600 and a <= 2624 then
+				Mon = "Reef Bandit"
+				Qdata = 1;
+				Qname = "SubmergedQuest1";
+				NameMon = "Reef Bandit"
+				PosQ = CFrame.new(10882.264, -2086.322, 10034.226) -- NPC Submerged
+				PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
+			elseif a >= 2625 and a <= 2649 then
+				Mon = "Coral Pirate"
+				Qdata = 2;
+				Qname = "SubmergedQuest1";
+				NameMon = "Coral Pirate"
+				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+				PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
+			elseif a >= 2650 and a <= 2674 then
+				Mon = "Sea Chanter"
+				Qdata = 1;
+				Qname = "SubmergedQuest2";
+				NameMon = "Sea Chanter"
+				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+				PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
+			elseif a >= 2675 and a <= 2699 then
+				Mon = "Ocean Prophet"
+				Qdata = 2;
+				Qname = "SubmergedQuest2";
+				NameMon = "Ocean Prophet"
+				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+				PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
+			elseif a >= 2700 and a <= 2724 then
+				Mon = "High Disciple"
+				Qdata = 1;
+				Qname = "SubmergedQuest3";
+				NameMon = "High Disciple"
+				PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+				PosM = CFrame.new(9828.087890625, -1940.908935546875, 9693.0634765625)
+			elseif a >= 2725 and a <= 2800 then
+				Mon = "Grand Devotee"
+				Qdata = 2;
+				Qname = "SubmergedQuest3";
+				NameMon = "Grand Devotee"
+				PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+				PosM = CFrame.new(9557.5849609375, -1928.0404052734375, 9859.1826171875)
+			end
+		end
+	end
 
 	MaterialMon = function()
 		local a = game.Players.LocalPlayer;
@@ -1473,17 +1469,16 @@ end
 			end
 		end
 	end
-function QuestNeta()
-    -- logic set Mon, Qname, Qdata, PosM, NameMon, PosQ
-
-    return {
-        Mon,        -- q[1] : tên mob
-        Qname,      -- q[2] : questID
-        Qdata,      -- q[3] : questIndex
-        PosM,       -- q[4] : vị trí mob
-        NameMon,    -- q[5] : tên hiển thị quest
-        PosQ        -- q[6] : vị trí NPC
-    }
+	QuestNeta = function()
+		local Neta = QuestCheck()
+		return {
+			[1] = Mon,
+			[2] = Qdata,
+			[3] = Qname,
+			[4] = PosM,
+			[5] = NameMon,
+			[6] = PosQ
+		}
 	end
 local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/WbmxHubNew/refs/heads/main/guihub.lua"))()
 local Window = Fluent:CreateWindow({
@@ -1610,7 +1605,89 @@ Tabs.Main:AddButton({
             setclipboard(tostring("")) 
         end
 })
+if World3 then
+    Tabs.Main:AddSection("Submarine Worker")
 
+    local TweenService = game:GetService("TweenService")
+    local activeTween 
+    local function TweenToSpeed(cf, speed)
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        if activeTween then
+            activeTween:Cancel()
+            activeTween = nil
+        end
+
+        local dist = (root.Position - cf.Position).Magnitude
+        local time = dist / speed
+        if time <= 0 then return end
+
+        local tween = TweenService:Create(
+            root,
+            TweenInfo.new(time, Enum.EasingStyle.Linear),
+            {CFrame = cf}
+        )
+        activeTween = tween
+        tween:Play()
+        return tween
+    end
+
+    local TeleportToggle = Tabs.Main:AddToggle("tpSubmarineWorker", {
+        Title = "Teleport To Submarine Worker",
+        Description = "",
+        Default = false,
+        Callback = function(value)
+            _G.tpSubmarineWorker = value
+            if not value and activeTween then
+                activeTween:Cancel()
+                activeTween = nil
+            end
+        end
+    })
+
+    spawn(function()
+        while task.wait(0.3) do
+            if _G.tpSubmarineWorker then
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local level = player.Data.Level.Value
+                    local char = player.Character or player.CharacterAdded:Wait()
+                    local root = char:WaitForChild("HumanoidRootPart")
+                    local npcPosition = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+
+                    if level < 2600 then
+                        _G.tpSubmarineWorker = false
+                        TeleportToggle:Set(false)
+                        if activeTween then
+                            activeTween:Cancel()
+                            activeTween = nil
+                        end
+                        return
+                    end
+
+                    local dist = (root.Position - npcPosition.Position).Magnitude
+                    while _G.tpSubmarineWorker and dist > 8 do
+                        TweenToSpeed(npcPosition + Vector3.new(0, 5, 0), 350)
+                        task.wait(0.1)
+                        dist = (root.Position - npcPosition.Position).Magnitude
+                    end
+
+                    if dist <= 8 then
+                        _G.tpSubmarineWorker = false
+                        TeleportToggle:Set(false)
+                        if activeTween then
+                            activeTween:Cancel()
+                            activeTween = nil
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+end
 Tabs.Main:AddSection("Farm Level")
 local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", Description = "", Default = false})
 FarmLevel:OnChanged(function(Value)
@@ -1621,21 +1698,23 @@ spawn(function()
     local replicated = game:GetService("ReplicatedStorage")
     local ws = game:GetService("Workspace")
     local Root = plr.Character:WaitForChild("HumanoidRootPart")
-
+    
     while task.wait(Sec or 0.2) do
         if _G.Level then
             pcall(function()
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
                 local q = QuestNeta()
                 if not q or not q[1] then return end
-
+                
                 local questMobName, questID, questIndex, mobPos, questDisplay, questPos =
                     q[1], q[2], q[3], q[4], q[5], q[6]
-
+                
                 local questTitle = ""
                 if questGui:FindFirstChild("Container") and questGui.Container:FindFirstChild("QuestTitle") then
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
+                
+                -- Nhận quest nếu chưa có
                 if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
                     task.wait(0.25)
@@ -1646,28 +1725,33 @@ spawn(function()
                     replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
                     return
                 end
+                
+                -- Tìm và đánh mob
                 local foundMob = false
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
                         foundMob = true
                         local mobRoot = mob:FindFirstChild("HumanoidRootPart")
                         if not mobRoot then continue end
-
+                        
                         repeat
                             task.wait()
                             if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
-
+                            
                             local dist = (Root.Position - mobRoot.Position).Magnitude
                             if dist > 250 then
                                 _tp(mobRoot.CFrame * CFrame.new(0, 40, 0))
                             elseif dist > 30 then
                                 Root.CFrame = Root.CFrame:Lerp(mobRoot.CFrame * CFrame.new(0, 20, 0), 0.25)
                             end
+                            
                             Attack.Kill(mob, _G.Level)
                         until mob.Humanoid.Health <= 0 or not mob.Parent
                         break
                     end
                 end
+                
+                -- Nếu không tìm thấy mob, tp đến vị trí spawn
                 if not foundMob then
                     _tp(mobPos)
                     task.wait(0.5)
@@ -7610,85 +7694,89 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
-
 task.spawn(function()
-    repeat task.wait()
-    until game:IsLoaded()
+    repeat task.wait() until game:IsLoaded()
         and _G
         and _G.Level ~= nil
         and _tp
         and game.Players.LocalPlayer:FindFirstChild("Data")
         and game.Players.LocalPlayer.Data:FindFirstChild("Level")
-
+    
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
     local plr = Players.LocalPlayer
     local levelValue = plr.Data.Level
     local replicated = ReplicatedStorage
-
     local SpeakRemote = replicated.Modules.Net:WaitForChild("RF/SubmarineWorkerSpeak")
     local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
-
+    
     local busy = false
     local waitingRespawn = false
     _G.PassedSubmerged = _G.PassedSubmerged or false
-
-    -- ✅ Khi respawn xong → bật lại farm
+    
+    -- Reset flag khi respawn để tiếp tục farm
     plr.CharacterAdded:Connect(function(char)
         if not waitingRespawn then return end
         waitingRespawn = false
-
+        
         char:WaitForChild("HumanoidRootPart", 15)
-        task.wait(4)
-
+        task.wait(5)
+        
         pcall(function()
             replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
         end)
-
+        
         task.wait(1)
-
-        _G.Level = true          -- ✅ BẬT LẠI AUTO FARM
-        shouldTween = true
+        
+        -- Reset flag để script có thể chạy lại trong tương lai nếu cần
         busy = false
-
-        print("[Submerged] Respawn xong – tiếp tục farm")
+        
+        -- BẬT LẠI FARM LEVEL
+        _G.Level = true
+        shouldTween = true
     end)
-
+    
     while task.wait(0.5) do
+        -- Chỉ chạy 1 lần khi đủ điều kiện
         if _G.PassedSubmerged then continue end
         if busy then continue end
         if not _G.Level then continue end
         if levelValue.Value < 2600 then continue end
-
+        
         busy = true
-        _G.Level = false
+        _G.Level = true
         shouldTween = false
         task.wait(0.6)
-
+        
         local char = plr.Character or plr.CharacterAdded:Wait()
         local root = char:WaitForChild("HumanoidRootPart")
-
+        
+        -- Teleport đến NPC
         repeat
             _tp(NPC_CF + Vector3.new(0, 5, 0))
             task.wait(0.25)
         until (root.Position - NPC_CF.Position).Magnitude <= 8
-
+        
         task.wait(0.8)
-
         waitingRespawn = true
-
-        pcall(function()
+        
+        -- Gọi remote để travel
+        local success = pcall(function()
             SpeakRemote:InvokeServer("TravelToSubmergedIsland")
         end)
-
-        -- ❌ KHÔNG set PassedSubmerged ở đây
-        task.delay(8, function()
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                _G.PassedSubmerged = true
-                print("[Submerged] Đã qua đảo mới")
-            end
-        end)
+        
+        -- Chỉ set flag thành công nếu remote call thành công
+        if success then
+            _G.PassedSubmerged = true
+            print("Successfully traveled to Submerged Island!")
+        else
+            -- Nếu thất bại, reset để thử lại
+            busy = false
+            waitingRespawn = false
+            _G.Level = true
+            shouldTween = true
+            print("Failed to travel, retrying...")
+        end
     end
 end)
 
