@@ -1277,103 +1277,98 @@ end
 				NameMon = "Skull Slayer"
 				PosQ = CFrame.new(-16759.5898, 71.2837, 1595.3399)
 				PosM = CFrame.new(-16759.5898, 71.2837, 1595.3399)
-        -- ===== AUTO TRAVEL SUBMERGED (NO FUNCTION) =====
--- ===== AUTO TRAVEL SUBMERGED =====
-if _G.Level and a >= 2600 and not _G.__SubmergedDone then
-    _G.__SubmergedDone = true
+-- ===== LEVEL 2600+ (AUTO SUBMERGED + QUEST) =====
+elseif a >= 2600 then
 
-    -- dừng farm
-    _G.Level = false
-    shouldTween = false
-    task.wait(0.5)
+    -- AUTO QUA SUBMERGED (CHỈ 1 LẦN)
+    if _G.Level and not _G.__SubmergedDone then
+        _G.__SubmergedDone = true
 
-    local plr = game.Players.LocalPlayer
-    local replicated = game:GetService("ReplicatedStorage")
-    local SpeakRemote = replicated.Modules.Net:WaitForChild("RF/SubmarineWorkerSpeak")
+        _G.Level = false
+        shouldTween = false
+        task.wait(0.5)
 
-    local char = plr.Character or plr.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart")
-    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+        local plr = game.Players.LocalPlayer
+        local replicated = game:GetService("ReplicatedStorage")
+        local SpeakRemote = replicated.Modules.Net:WaitForChild("RF/SubmarineWorkerSpeak")
 
-    repeat
-        _tp(NPC_CF + Vector3.new(0,5,0))
-        task.wait(0.25)
-    until (root.Position - NPC_CF.Position).Magnitude <= 8
+        local char = plr.Character or plr.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart")
+        local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
 
-    task.wait(0.8)
+        repeat
+            _tp(NPC_CF + Vector3.new(0,5,0))
+            task.wait(0.25)
+        until (root.Position - NPC_CF.Position).Magnitude <= 8
 
-    -- nói chuyện NPC → qua đảo
-    pcall(function()
-        SpeakRemote:InvokeServer("TravelToSubmergedIsland")
-    end)
+        task.wait(0.8)
 
-    -- đợi đổi map
-    plr.CharacterAdded:Wait()
-    task.wait(3)
+        pcall(function()
+            SpeakRemote:InvokeServer("TravelToSubmergedIsland")
+        end)
 
-    -- reset quest + bật lại farm
-    pcall(function()
-        replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
-    end)
+        plr.CharacterAdded:Wait()
+        task.wait(3)
 
-    _G.Level = true
-    shouldTween = true
+        pcall(function()
+            replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
+        end)
 
-    -- 🔓 cho phép logic chạy tiếp ở vòng sau
-    _G.__SubmergedDone = false
+        _G.Level = true
+        shouldTween = true
 
-    return -- ⛔ QUAN TRỌNG: không cho rơi xuống elseif bên dưới
-end
--- ===== END AUTO TRAVEL =====
+        return -- ⛔ DỪNG TẠI ĐÂY, CHỜ VÒNG SAU
+    end
 
-elseif a >= 2600 and a <= 2624 then
-    Mon = "Reef Bandit"
-    Qdata = 1
-    Qname = "SubmergedQuest1"
-    NameMon = "Reef Bandit"
-    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-    PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
+    -- ===== QUEST SUBMERGED =====
+    if a <= 2624 then
+        Mon = "Reef Bandit"
+        Qdata = 1
+        Qname = "SubmergedQuest1"
+        NameMon = "Reef Bandit"
+        PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+        PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
 
-elseif a >= 2625 and a <= 2649 then
-    Mon = "Coral Pirate"
-    Qdata = 2
-    Qname = "SubmergedQuest1"
-    NameMon = "Coral Pirate"
-    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-    PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
+    elseif a <= 2649 then
+        Mon = "Coral Pirate"
+        Qdata = 2
+        Qname = "SubmergedQuest1"
+        NameMon = "Coral Pirate"
+        PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+        PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
 
-elseif a >= 2650 and a <= 2674 then
-    Mon = "Sea Chanter"
-    Qdata = 1
-    Qname = "SubmergedQuest2"
-    NameMon = "Sea Chanter"
-    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-    PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
+    elseif a <= 2674 then
+        Mon = "Sea Chanter"
+        Qdata = 1
+        Qname = "SubmergedQuest2"
+        NameMon = "Sea Chanter"
+        PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+        PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
 
-elseif a >= 2675 and a <= 2699 then
-    Mon = "Ocean Prophet"
-    Qdata = 2
-    Qname = "SubmergedQuest2"
-    NameMon = "Ocean Prophet"
-    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-    PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
+    elseif a <= 2699 then
+        Mon = "Ocean Prophet"
+        Qdata = 2
+        Qname = "SubmergedQuest2"
+        NameMon = "Ocean Prophet"
+        PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+        PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
 
-elseif a >= 2700 and a <= 2724 then
-    Mon = "High Disciple"
-    Qdata = 1
-    Qname = "SubmergedQuest3"
-    NameMon = "High Disciple"
-    PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-    PosM = CFrame.new(9828.0879, -1940.9089, 9693.0635)
+    elseif a <= 2724 then
+        Mon = "High Disciple"
+        Qdata = 1
+        Qname = "SubmergedQuest3"
+        NameMon = "High Disciple"
+        PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+        PosM = CFrame.new(9828.0879, -1940.9089, 9693.0635)
 
-elseif a >= 2725 and a <= 2800 then
-    Mon = "Grand Devotee"
-    Qdata = 2
-    Qname = "SubmergedQuest3"
-    NameMon = "Grand Devotee"
-    PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-    PosM = CFrame.new(9557.5850, -1928.0404, 9859.1826)
-end
+    else
+        Mon = "Grand Devotee"
+        Qdata = 2
+        Qname = "SubmergedQuest3"
+        NameMon = "Grand Devotee"
+        PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+        PosM = CFrame.new(9557.5850, -1928.0404, 9859.1826)
+    end
 
 	MaterialMon = function()
 		local a = game.Players.LocalPlayer;
