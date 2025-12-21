@@ -1693,15 +1693,20 @@ local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", D
 FarmLevel:OnChanged(function(Value)
   _G.Level = Value
 end)
+-- Auto Farm Level
 spawn(function()
     local plr = game.Players.LocalPlayer
     local replicated = game:GetService("ReplicatedStorage")
     local ws = game:GetService("Workspace")
-    local Root = plr.Character:WaitForChild("HumanoidRootPart")
     
     while task.wait(Sec or 0.2) do
         if _G.Level then
             pcall(function()
+                local char = plr.Character
+                if not char then return end
+                local Root = char:FindFirstChild("HumanoidRootPart")
+                if not Root then return end
+                
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
                 local q = QuestNeta()
                 if not q or not q[1] then return end
@@ -7711,30 +7716,7 @@ task.spawn(function()
     local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
     
     local busy = false
-    local waitingRespawn = false
     _G.PassedSubmerged = _G.PassedSubmerged or false
-    
-    -- Reset flag khi respawn để tiếp tục farm
-    plr.CharacterAdded:Connect(function(char)
-        if not waitingRespawn then return end
-        waitingRespawn = false
-        
-        char:WaitForChild("HumanoidRootPart", 15)
-        task.wait(5)
-        
-        pcall(function()
-            replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
-        end)
-        
-        task.wait(1)
-        
-        -- Reset flag để script có thể chạy lại trong tương lai nếu cần
-        busy = false
-        
-        -- BẬT LẠI FARM LEVEL
-        _G.Level = true
-        shouldTween = true
-    end)
     
     while task.wait(0.5) do
         -- Chỉ chạy 1 lần khi đủ điều kiện
@@ -7744,7 +7726,8 @@ task.spawn(function()
         if levelValue.Value < 2600 then continue end
         
         busy = true
-        _G.Level = true
+        local oldLevelState = _G.Level
+        _G.Level = false
         shouldTween = false
         task.wait(0.6)
         
@@ -7758,26 +7741,32 @@ task.spawn(function()
         until (root.Position - NPC_CF.Position).Magnitude <= 8
         
         task.wait(0.8)
-        waitingRespawn = true
         
         -- Gọi remote để travel
-        local success = pcall(function()
+        local success, err = pcall(function()
             SpeakRemote:InvokeServer("TravelToSubmergedIsland")
         end)
         
-        -- Chỉ set flag thành công nếu remote call thành công
         if success then
+            print("✓ Đã gọi travel đến Submerged Island")
             _G.PassedSubmerged = true
-            print("Successfully traveled to Submerged Island!")
-        else
-            -- Nếu thất bại, reset để thử lại
-            busy = false
-            waitingRespawn = false
+            
+            -- Chờ 8 giây cho quá trình teleport
+            task.wait(8)
+            
+            -- Bật lại farm ngay lập tức
             _G.Level = true
             shouldTween = true
-            print("Failed to travel, retrying...")
+            busy = false
+            
+            print("✓ Đã bật lại farm level tại đảo mới!")
+        else
+            print("✗ Lỗi khi travel:", err)
+            -- Reset nếu thất bại
+            _G.Level = oldLevelState
+            shouldTween = true
+            busy = false
         end
     end
 end)
-
 Window:SelectTab(1)
