@@ -1278,51 +1278,55 @@ end
 				PosQ = CFrame.new(-16759.5898, 71.2837, 1595.3399)
 				PosM = CFrame.new(-16759.5898, 71.2837, 1595.3399)
 
-			elseif a >= 2600 and a <= 2624 then
-				Mon = "Reef Bandit"
-				Qdata = 1;
-				Qname = "SubmergedQuest1";
-				NameMon = "Reef Bandit"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226) -- NPC Submerged
-				PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
-			elseif a >= 2625 and a <= 2649 then
-				Mon = "Coral Pirate"
-				Qdata = 2;
-				Qname = "SubmergedQuest1";
-				NameMon = "Coral Pirate"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
-			elseif a >= 2650 and a <= 2674 then
-				Mon = "Sea Chanter"
-				Qdata = 1;
-				Qname = "SubmergedQuest2";
-				NameMon = "Sea Chanter"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
-			elseif a >= 2675 and a <= 2699 then
-				Mon = "Ocean Prophet"
-				Qdata = 2;
-				Qname = "SubmergedQuest2";
-				NameMon = "Ocean Prophet"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
-			elseif a >= 2700 and a <= 2724 then
-				Mon = "High Disciple"
-				Qdata = 1;
-				Qname = "SubmergedQuest3";
-				NameMon = "High Disciple"
-				PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-				PosM = CFrame.new(9828.087890625, -1940.908935546875, 9693.0634765625)
-			elseif a >= 2725 and a <= 2800 then
-				Mon = "Grand Devotee"
-				Qdata = 2;
-				Qname = "SubmergedQuest3";
-				NameMon = "Grand Devotee"
-				PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-				PosM = CFrame.new(9557.5849609375, -1928.0404052734375, 9859.1826171875)
-			end
-		end
-	end
+elseif a >= 2600 and a <= 2624 then
+    Mon = "Reef Bandit"
+    Qname = "DeepSeaQuest1"
+    Qdata = 1
+    NameMon = "Reef Bandit"
+    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+    PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
+
+elseif a >= 2625 and a <= 2649 then
+    Mon = "Coral Pirate"
+    Qname = "DeepSeaQuest1"
+    Qdata = 2
+    NameMon = "Coral Pirate"
+    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+    PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
+
+elseif a >= 2650 and a <= 2674 then
+    Mon = "Sea Chanter"
+    Qname = "DeepSeaQuest2"
+    Qdata = 1
+    NameMon = "Sea Chanter"
+    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+    PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
+
+elseif a >= 2675 and a <= 2699 then
+    Mon = "Ocean Prophet"
+    Qname = "DeepSeaQuest2"
+    Qdata = 2
+    NameMon = "Ocean Prophet"
+    PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+    PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
+
+elseif a >= 2700 and a <= 2724 then
+    Mon = "High Disciple"
+    Qname = "DeepSeaQuest3"
+    Qdata = 1
+    NameMon = "High Disciple"
+    PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+    PosM = CFrame.new(9828.0879, -1940.9089, 9693.0635)
+
+elseif a >= 2725 and a <= 2800 then
+    Mon = "Grand Devotee"
+    Qname = "DeepSeaQuest3"
+    Qdata = 2
+    NameMon = "Grand Devotee"
+    PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+    PosM = CFrame.new(9557.5850, -1928.0404, 9859.1826)
+end
+
 
 	MaterialMon = function()
 		local a = game.Players.LocalPlayer;
@@ -1469,16 +1473,17 @@ end
 			end
 		end
 	end
-	QuestNeta = function()
-		local Neta = QuestCheck()
-		return {
-			[1] = Mon,
-			[2] = Qdata,
-			[3] = Qname,
-			[4] = PosM,
-			[5] = NameMon,
-			[6] = PosQ
-		}
+function QuestNeta()
+    -- logic set Mon, Qname, Qdata, PosM, NameMon, PosQ
+
+    return {
+        Mon,        -- q[1] : tên mob
+        Qname,      -- q[2] : questID
+        Qdata,      -- q[3] : questIndex
+        PosM,       -- q[4] : vị trí mob
+        NameMon,    -- q[5] : tên hiển thị quest
+        PosQ        -- q[6] : vị trí NPC
+    }
 	end
 local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/WbmxHubNew/refs/heads/main/guihub.lua"))()
 local Window = Fluent:CreateWindow({
