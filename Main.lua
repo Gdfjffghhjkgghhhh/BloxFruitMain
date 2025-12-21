@@ -7687,30 +7687,51 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
--- ===== AUTO SUBMERGED (END FILE SAFE) =====
+-- ===== AUTO SUBMERGED (END FILE SAFE - UNLIMITED) =====
 task.spawn(function()
-    -- chờ main.lua load xong các hàm gốc
     repeat task.wait()
-    until _G and _G.Level ~= nil
-       and _tp
+    until _G and _G.Level ~= nil and _tp
        and game.Players.LocalPlayer:FindFirstChild("Data")
 
-    local plr = game.Players.LocalPlayer
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+    local plr = Players.LocalPlayer
     local levelValue = plr.Data:WaitForChild("Level")
-    local replicated = game:GetService("ReplicatedStorage")
+    local replicated = ReplicatedStorage
 
     local SpeakRemote = replicated.Modules.Net:WaitForChild("RF/SubmarineWorkerSpeak")
     local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
 
-    local done = false
+    local busy = false      -- đang teleport
+    local waitingRespawn = false
+
+    -- 🔁 SAU KHI QUA ĐẢO → RESET ĐỂ DÙNG LẠI
+    plr.CharacterAdded:Connect(function(char)
+        if not waitingRespawn then return end
+        waitingRespawn = false
+
+        char:WaitForChild("HumanoidRootPart", 10)
+        task.wait(3)
+
+        -- reset quest cho map mới
+        pcall(function()
+            replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
+        end)
+
+        -- bật lại farm
+        _G.Level = true
+        shouldTween = true
+
+        -- 🔓 CHO PHÉP CHẠY LẠI LẦN SAU
+        busy = false
+    end)
 
     while task.wait(0.5) do
-        -- chỉ chạy khi bật auto farm level
-        if _G.Level and not done and levelValue.Value >= 2600 then
-            done = true
+        if _G.Level and not busy and levelValue.Value >= 2600 then
+            busy = true
 
-            -- dừng farm tạm
-            local old = _G.Level
+            -- ⛔ dừng farm
             _G.Level = false
             shouldTween = false
             task.wait(0.6)
@@ -7718,7 +7739,7 @@ task.spawn(function()
             local char = plr.Character or plr.CharacterAdded:Wait()
             local root = char:WaitForChild("HumanoidRootPart")
 
-            -- TP tới NPC Submarine
+            -- 🚀 TP tới NPC
             repeat
                 _tp(NPC_CF + Vector3.new(0,5,0))
                 task.wait(0.25)
@@ -7726,15 +7747,15 @@ task.spawn(function()
 
             task.wait(0.8)
 
-            -- nói chuyện NPC → qua đảo
+            -- 🗣️ nói chuyện NPC → qua đảo
+            waitingRespawn = true
             pcall(function()
                 SpeakRemote:InvokeServer("TravelToSubmergedIsland")
             end)
-
-            task.wait(3)
-            _G.Level = old
         end
     end
 end)
+-- ===== END AUTO SUBMERGED =====
 
 Window:SelectTab(1)
+
