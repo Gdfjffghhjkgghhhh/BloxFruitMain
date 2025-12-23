@@ -88,11 +88,13 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "" }),
-    Shop = Window:AddTab({ Title = "Shop", Icon = "" }),
-    Upgrade = Window:AddTab({ Title = "Upgrade", Icon = "" }),
-    Use = Window:AddTab({ Title = "Use & Claim", Icon = "" }),
-    Misc = Window:AddTab({ Title = "Misc", Icon = "" })
+    Main = Window:AddTab({ Title = "Main", Icon = "home" }),
+    Shop = Window:AddTab({ Title = "Shop", Icon = "shopping-bag" }),
+    Upgrade = Window:AddTab({ Title = "Upgrade", Icon = "flag" }),
+    Use = Window:AddTab({ Title = "Use & Claim", Icon = "apple" }),
+    Misc = Window:AddTab({ Title = "Misc", Icon = "menu" })
+    Tabs.Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+
 }
 
 Window:SelectTab(1)
@@ -550,3 +552,14 @@ task.spawn(function()
         end)
     end
 end)
+
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+
+SaveManager:IgnoreThemeSettings() 
+
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+Window:SelectTab(1)
+SaveManager:LoadAutoloadConfig()
