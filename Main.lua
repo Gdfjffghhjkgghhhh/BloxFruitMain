@@ -34,7 +34,7 @@ Icon.Position = UDim2.new(0.5, 0, 0.5, 0)
 Icon.Size = UDim2.new(0, 40, 0, 40)
 Icon.BackgroundColor3 = Color3.fromRGB(163, 162, 165)
 Icon.BackgroundTransparency = 1
-Icon.Image = "http://www.roblox.com/asset/?id=78936816738382"
+Icon.Image = "http://www.roblox.com/asset/?id=122440227529764"
 
 UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = MainFrame
