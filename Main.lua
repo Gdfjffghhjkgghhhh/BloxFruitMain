@@ -1598,9 +1598,6 @@ local Tabs = {
   Shop = Window:AddTab({Title = "Tab Shop", Icon = "shopping-bag"}),
   Misc = Window:AddTab({Title = "Tab Misc", Icon = "menu"})
 }
-Tabs.Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-
-Window:SelectTab(1)
 
 Tabs.Main:AddButton({
         Title="Script Notification",
@@ -7770,14 +7767,4 @@ task.spawn(function()
         end)
     end
 end)
-SaveManager:SetLibrary(Fluent)
-InterfaceManager:SetLibrary(Fluent)
 
-SaveManager:IgnoreThemeSettings() 
-SaveManager:SetFolder("NeonXHub") -- Thư mục lưu config
-
-InterfaceManager:BuildInterfaceSection(Tabs.Settings)
-SaveManager:BuildConfigSection(Tabs.Settings)
-
-Window:SelectTab(1)
-SaveManager:LoadAutoloadConfig() -- Tự động tải cài đặt cũ nếu có
