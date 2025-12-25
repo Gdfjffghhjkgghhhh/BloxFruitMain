@@ -1278,50 +1278,51 @@ end
 				PosQ = CFrame.new(-16759.5898, 71.2837, 1595.3399)
 				PosM = CFrame.new(-16759.5898, 71.2837, 1595.3399)
 
-			elseif a >= 2600 and a <= 2624 then
-				Mon = "Reef Bandit"
-				Qdata = 1;
-				Qname = "SubmergedQuest1";
-				NameMon = "Reef Bandit"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226) -- NPC Submerged
-				PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
-			elseif a >= 2625 and a <= 2649 then
-				Mon = "Coral Pirate"
-				Qdata = 2;
-				Qname = "SubmergedQuest1";
-				NameMon = "Coral Pirate"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
-			elseif a >= 2650 and a <= 2674 then
-				Mon = "Sea Chanter"
-				Qdata = 1;
-				Qname = "SubmergedQuest2";
-				NameMon = "Sea Chanter"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
-			elseif a >= 2675 and a <= 2699 then
-				Mon = "Ocean Prophet"
-				Qdata = 2;
-				Qname = "SubmergedQuest2";
-				NameMon = "Ocean Prophet"
-				PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
-				PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
-			elseif a >= 2700 and a <= 2724 then
-				Mon = "High Disciple"
-				Qdata = 1;
-				Qname = "SubmergedQuest3";
-				NameMon = "High Disciple"
-				PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-				PosM = CFrame.new(9828.087890625, -1940.908935546875, 9693.0634765625)
-			elseif a >= 2725 and a <= 2800 then
-				Mon = "Grand Devotee"
-				Qdata = 2;
-				Qname = "SubmergedQuest3";
-				NameMon = "Grand Devotee"
-				PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
-				PosM = CFrame.new(9557.5849609375, -1928.0404052734375, 9859.1826171875)
-			end
-		end
+    elseif a >= 2600 then
+        if a >= 2600 and a <= 2624 then
+            Mon = "Reef Bandit"
+            Qdata = 1
+            Qname = "SubmergedQuest1"
+            NameMon = "Reef Bandit"
+            PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+            PosM = CFrame.new(10736.6191, -2087.8439, 9338.4882)
+        elseif a >= 2625 and a <= 2649 then
+            Mon = "Coral Pirate"
+            Qdata = 2
+            Qname = "SubmergedQuest1"
+            NameMon = "Coral Pirate"
+            PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+            PosM = CFrame.new(10965.1025, -2158.8842, 9177.2597)
+        elseif a >= 2650 and a <= 2674 then
+            Mon = "Sea Chanter"
+            Qdata = 1
+            Qname = "SubmergedQuest2"
+            NameMon = "Sea Chanter"
+            PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+            PosM = CFrame.new(10621.0342, -2087.8440, 10102.0332)
+        elseif a >= 2675 and a <= 2699 then
+            Mon = "Ocean Prophet"
+            Qdata = 2
+            Qname = "SubmergedQuest2"
+            NameMon = "Ocean Prophet"
+            PosQ = CFrame.new(10882.264, -2086.322, 10034.226)
+            PosM = CFrame.new(11056.1445, -2001.6717, 10117.4493)
+        elseif a >= 2700 and a <= 2724 then
+            Mon = "High Disciple"
+            Qdata = 1
+            Qname = "SubmergedQuest3"
+            NameMon = "High Disciple"
+            PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+            PosM = CFrame.new(9828.087890625, -1940.908935546875, 9693.0634765625)
+        elseif a >= 2725 then
+            Mon = "Grand Devotee"
+            Qdata = 2
+            Qname = "SubmergedQuest3"
+            NameMon = "Grand Devotee"
+            PosQ = CFrame.new(9636.52441, -1992.19507, 9609.52832)
+            PosM = CFrame.new(9557.5849609375, -1928.0404052734375, 9859.1826171875)
+        end
+    end
 	end
 
 	MaterialMon = function()
@@ -1597,6 +1598,9 @@ local Tabs = {
   Shop = Window:AddTab({Title = "Tab Shop", Icon = "shopping-bag"}),
   Misc = Window:AddTab({Title = "Tab Misc", Icon = "menu"})
 }
+Tabs.Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+
+Window:SelectTab(1)
 
 Tabs.Main:AddButton({
         Title="Script Notification",
@@ -7687,14 +7691,12 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
-
+-- [[ AUTO SUBMERGED ISLAND - FINAL VERSION ]] --
 task.spawn(function()
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local RunService = game:GetService("RunService")
-    
     local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
-    local doingQuest = false -- Biến để chặn spam lệnh
+    local doingQuest = false 
 
     while task.wait(1) do
         pcall(function()
@@ -7704,69 +7706,63 @@ task.spawn(function()
             local root = plr.Character:FindFirstChild("HumanoidRootPart")
             local level = plr.Data.Level.Value
 
-            
+            -- Kích hoạt khi đủ cấp 2600 + Đang ở Map Cũ (Gần NPC)
             if _G.Level and level >= 2600 and root and not doingQuest then
                 if (root.Position - NPC_CF.Position).Magnitude < 5000 then
                     
-                    doingQuest = true -- Đánh dấu đang bận xử lý
-                    print("🚀 Đủ cấp 2600! Tạm dừng farm để qua Submerged Island...")
+                    doingQuest = true 
 
-                    -- BƯỚC 1: TẠM TẮT AUTO FARM
-                    -- Phải tắt để script farm không kéo nhân vật đi chỗ khác
+                    -- 1. Tắt farm
                     _G.Level = false 
-                    if _G.StopTween then _G.StopTween = true end -- Nếu có hàm stop tween
+                    if _G.StopTween then _G.StopTween = true end 
                     task.wait(0.5)
 
-                    -- BƯỚC 2: BAY TỚI NPC
-                    -- Dùng vòng lặp bay tới
+                    -- 2. Bay tới NPC
                     local startTime = tick()
                     repeat
                         if not root then break end
-                        -- Dùng hàm _tp có sẵn hoặc set CFrame thủ công
                         if _tp then
                             _tp(NPC_CF + Vector3.new(0, 5, 0))
                         else
                             root.CFrame = NPC_CF + Vector3.new(0, 5, 0)
                         end
-                        
-                        -- Giữ vận tốc bằng 0 để không bị trôi
                         root.Velocity = Vector3.new(0,0,0)
                         task.wait(0.1)
                     until (root.Position - NPC_CF.Position).Magnitude <= 8 or tick() - startTime > 15
 
-                    -- BƯỚC 3: NEO NGƯỜI LẠI (QUAN TRỌNG)
-                    -- Để không bị rớt xuống biển khi đang nói chuyện
+                    -- 3. Neo người
                     if root then
                         root.CFrame = NPC_CF
                         root.Anchored = true
                     end
                     task.wait(1)
 
-                    -- BƯỚC 4: GỌI LỆNH QUA ĐẢO
+                    -- 4. Gọi lệnh qua đảo
                     local args = "TravelToSubmergedIsland"
                     local remote = ReplicatedStorage.Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak")
                     if remote then
                         remote:InvokeServer(args)
-                        print("✅ Đã gọi lệnh qua đảo!")
                     end
 
-                    -- Chờ game xử lý teleport (khoảng 5-8 giây)
-                    task.wait(8)
+                    task.wait(8) -- Chờ load map
 
-                    -- BƯỚC 5: KẾT THÚC VÀ BẬT LẠI FARM
+                    -- 5. Xả neo & Reset
                     if root then root.Anchored = false end
                     
-                    -- Kiểm tra xem đã qua đảo chưa (xa NPC cũ)
+                    -- Check nếu đã qua đảo (xa NPC cũ)
                     if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                          local newPos = plr.Character.HumanoidRootPart.Position
                          if (newPos - NPC_CF.Position).Magnitude > 5000 then
-                             print("🌊 Đã qua đảo mới thành công!")
-                             -- Reset Quest cũ cho sạch
-                             pcall(function() ReplicatedStorage.Remotes.CommF_:InvokeServer("AbandonQuest") end)
+                             print("🌊 Đã đến đảo mới! Reset quest và farm tiếp.")
+                             -- Bắt buộc: Hủy quest cũ để nhận quest mới
+                             pcall(function() 
+                                ReplicatedStorage.Remotes.CommF_:InvokeServer("AbandonQuest") 
+                             end)
+                             task.wait(1)
                          end
                     end
 
-                    -- Bật lại Auto Farm để nó tự farm tiếp ở map mới
+                    -- Bật lại farm
                     _G.Level = true
                     doingQuest = false
                 end
@@ -7774,4 +7770,14 @@ task.spawn(function()
         end)
     end
 end)
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+
+SaveManager:IgnoreThemeSettings() 
+SaveManager:SetFolder("NeonXHub") -- Thư mục lưu config
+
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
 Window:SelectTab(1)
+SaveManager:LoadAutoloadConfig() -- Tự động tải cài đặt cũ nếu có
