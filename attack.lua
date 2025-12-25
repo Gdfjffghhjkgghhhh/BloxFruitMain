@@ -13,16 +13,17 @@ local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
 
--- Config (Super Fast)
+-- Config (Super Fast / God Mode)
 local Config = {
-    AttackDistance = 65,
+    AttackDistance = 70,       -- Tăng nhẹ khoảng cách để bắt mục tiêu sớm hơn
     AttackMobs = true,
     AttackPlayers = true,
-    AttackCooldown = 0.0001,        -- giảm nhỏ hơn để attack cực nhanh
-    ComboResetTime = 0.0001,        -- combo reset tức thì
-    MaxCombo = math.huge,           -- combo vô hạn
+    AttackCooldown = 0,        -- 0 delay
+    ComboResetTime = 0,        -- Reset combo ngay lập tức
+    MaxCombo = math.huge,
     HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
-    AutoClickEnabled = true
+    AutoClickEnabled = true,
+    FruitBurst = 3             -- Số lần gửi tín hiệu Fruit M1 trong 1 khung hình (Tăng tốc độ Fruit)
 }
 
 --// FastAttack Class
@@ -62,6 +63,9 @@ end
 function FastAttack:CheckStun(Character, Humanoid, ToolTip)
     local Stun = Character:FindFirstChild("Stun")
     local Busy = Character:FindFirstChild("Busy")
+    
+    -- Bỏ qua check stun nếu muốn đánh bất chấp (rủi ro kick nhưng nhanh hơn)
+    -- Nếu muốn an toàn thì giữ nguyên logic cũ bên dưới:
     if Humanoid.Sit and (ToolTip == "Sword" or ToolTip == "Melee" or ToolTip == "Blox Fruit") then
         return false
     elseif Stun and Stun.Value > 0 or Busy and Busy.Value then
@@ -70,7 +74,6 @@ function FastAttack:CheckStun(Character, Humanoid, ToolTip)
     return true
 end
 
--- GetBladeHits tối ưu, chọn HumanoidRootPart luôn
 function FastAttack:GetBladeHits(Character, Distance)
     local Position = Character:GetPivot().Position
     local BladeHits = {}
@@ -96,18 +99,31 @@ function FastAttack:GetBladeHits(Character, Distance)
     return BladeHits
 end
 
-function FastAttack:GetClosestEnemy(Character, Distance)
-    local BladeHits = self:GetBladeHits(Character, Distance)
-    local Closest, MinDistance = nil, math.huge
+-- Hàm lấy mục tiêu gần nhất tối ưu cho Fruit M1
+function FastAttack:GetClosestTargetForFruit(Character)
+    local Position = Character:GetPivot().Position
+    local ClosestPart = nil
+    local MinDist = Config.AttackDistance
 
-    for _, Hit in ipairs(BladeHits) do
-        local Magnitude = (Character:GetPivot().Position - Hit[2].Position).Magnitude
-        if Magnitude < MinDistance then
-            MinDistance = Magnitude
-            Closest = Hit[2]
+    local function Check(Folder)
+        for _, v in pairs(Folder:GetChildren()) do
+            if v ~= Character and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                local Root = v:FindFirstChild("HumanoidRootPart")
+                if Root then
+                    local Dist = (Root.Position - Position).Magnitude
+                    if Dist < MinDist then
+                        MinDist = Dist
+                        ClosestPart = Root
+                    end
+                end
+            end
         end
     end
-    return Closest
+    
+    if Config.AttackMobs then Check(Workspace.Enemies) end
+    if Config.AttackPlayers then Check(Workspace.Characters) end
+    
+    return ClosestPart
 end
 
 function FastAttack:GetCombo()
@@ -118,7 +134,6 @@ function FastAttack:GetCombo()
     return Combo
 end
 
--- Shoot tối ưu, gần như liên tục
 function FastAttack:ShootInTarget(TargetPosition)
     local Character = Player.Character
     if not self:IsEntityAlive(Character) then return end
@@ -126,9 +141,7 @@ function FastAttack:ShootInTarget(TargetPosition)
     local Equipped = Character:FindFirstChildOfClass("Tool")
     if not Equipped or Equipped.ToolTip ~= "Gun" then return end
 
-    local Cooldown = 0.0001  -- bỏ cooldown gun, nhanh hơn
-    if (tick() - self.ShootDebounce) < Cooldown then return end
-
+    -- Spam Gun cực nhanh (No cooldown)
     local ShootType = self.SpecialShoots[Equipped.Name] or "Normal"
     if ShootType == "Position" or (ShootType == "TAP" and Equipped:FindFirstChild("RemoteEvent")) then
         Equipped:SetAttribute("LocalTotalShots", (Equipped:GetAttribute("LocalTotalShots") or 0) + 1)
@@ -139,12 +152,12 @@ function FastAttack:ShootInTarget(TargetPosition)
         else
             ShootGunEvent:FireServer(TargetPosition)
         end
-        self.ShootDebounce = tick()
     else
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-        task.wait(0.0001)
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-        self.ShootDebounce = tick()
+        -- Virtual Click spam
+        task.spawn(function()
+            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+        end)
     end
 end
 
@@ -175,29 +188,40 @@ function FastAttack:GetValidator2()
     return math.floor(v9 / v4 * 16777215), v7
 end
 
--- UseNormalClick: loop qua tất cả target để không bỏ ai
-function FastAttack:UseNormalClick(Character, Humanoid, Cooldown)
+function FastAttack:UseNormalClick(Character, Humanoid)
     local BladeHits = self:GetBladeHits(Character)
-    for _, Hit in ipairs(BladeHits) do
-        local TargetRoot = Hit[2]
-        RegisterAttack:FireServer(Cooldown)
-        if self.CombatFlags and self.HitFunction then
-            self.HitFunction(TargetRoot, BladeHits)
-        else
-            RegisterHit:FireServer(TargetRoot, BladeHits)
+    -- Dùng spawn để không bị wait
+    task.spawn(function()
+        for _, Hit in ipairs(BladeHits) do
+            local TargetRoot = Hit[2]
+            RegisterAttack:FireServer(Config.AttackCooldown)
+            if self.CombatFlags and self.HitFunction then
+                self.HitFunction(TargetRoot, BladeHits)
+            else
+                RegisterHit:FireServer(TargetRoot, BladeHits)
+            end
         end
-    end
+    end)
 end
 
+--// NÂNG CẤP: Fruit M1 Super Fast
 function FastAttack:UseFruitM1(Character, Equipped, Combo)
-    local Targets = self:GetBladeHits(Character)
-    if not Targets[1] then return end
+    -- Dùng hàm tìm mục tiêu riêng để nhanh hơn, không load cả list
+    local TargetRoot = self:GetClosestTargetForFruit(Character)
+    if not TargetRoot then return end
 
-    local Direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
-    Equipped.LeftClickRemote:FireServer(Direction, Combo)
+    local Direction = (TargetRoot.Position - Character:GetPivot().Position).Unit
+    
+    -- Sử dụng task.spawn để spam tín hiệu (Burst Mode)
+    task.spawn(function()
+        for i = 1, Config.FruitBurst do
+            if Equipped.Parent == Character then
+                Equipped.LeftClickRemote:FireServer(Direction, Combo)
+            end
+        end
+    end)
 end
 
--- Attack Super Fast, loop qua tất cả target nếu là Gun
 function FastAttack:Attack()
     if not Config.AutoClickEnabled then return end
     local Character = Player.Character
@@ -212,8 +236,8 @@ function FastAttack:Attack()
     if not self:CheckStun(Character, Humanoid, ToolTip) then return end
 
     local Combo = self:GetCombo()
-    self.Debounce = tick()
-
+    
+    -- Logic chia luồng để tối ưu tốc độ
     if ToolTip == "Blox Fruit" and Equipped:FindFirstChild("LeftClickRemote") then
         self:UseFruitM1(Character, Equipped, Combo)
     elseif ToolTip == "Gun" then
@@ -222,14 +246,25 @@ function FastAttack:Attack()
             self:ShootInTarget(t[2].Position)
         end
     else
-        self:UseNormalClick(Character, Humanoid, 0.0001)
+        self:UseNormalClick(Character, Humanoid)
     end
 end
 
 -- Instance
 local AttackInstance = FastAttack.new()
-table.insert(AttackInstance.Connections, RunService.Heartbeat:Connect(function()
-    AttackInstance:Attack()
-end))
+
+-- Chạy vòng lặp tấn công
+-- Sử dụng task.spawn wrap vòng lặp để đảm bảo ưu tiên luồng
+task.spawn(function()
+    while true do
+        local success, err = pcall(function()
+            AttackInstance:Attack()
+        end)
+        if not success then warn("Attack Error:", err) end
+        
+        -- Tốc độ loop siêu nhanh (nhanh hơn Heartbeat nếu máy mạnh)
+        task.wait() 
+    end
+end)
 
 return FastAttack
