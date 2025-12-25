@@ -7688,49 +7688,74 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
--- [[ AUTO SUBMERGED ISLAND - FINAL VERSION ]] --
+-- [[ AUTO SUBMERGED ISLAND - DEBUG VERSION ]] --
 task.spawn(function()
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    
+    -- Tọa độ NPC Submerged
     local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
     local doingQuest = false 
 
+    print("✅ Đã khởi động luồng Auto Submerged Island")
+
     while task.wait(1) do
-        pcall(function()
+        -- Dùng pcall có biến err để xem lỗi nếu có
+        local success, err = pcall(function()
             local plr = Players.LocalPlayer
             if not plr or not plr.Character then return end
             
             local root = plr.Character:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            
             local level = plr.Data.Level.Value
 
-            -- Kích hoạt khi đủ cấp 2600 + Đang ở Map Cũ (Gần NPC)
-            if _G.Level and level >= 2600 and root and not doingQuest then
-                if (root.Position - NPC_CF.Position).Magnitude < 5000 then
-                    
+            -- --- PHẦN KIỂM TRA ĐIỀU KIỆN (DEBUG) ---
+            -- Nếu bạn muốn test, hãy mở F9 xem nó báo gì
+            -- print("Debug: Level="..level..", G.Level="..tostring(_G.Level)..", Dist="..math.floor((root.Position - NPC_CF.Position).Magnitude))
+            
+            -- LOGIC CHÍNH
+            if _G.Level and level >= 2600 and not doingQuest then
+                local dist = (root.Position - NPC_CF.Position).Magnitude
+                
+                -- Điều kiện: Ở gần NPC (Map cũ) dưới 6000 stud
+                if dist < 6000 then 
                     doingQuest = true 
+                    warn("🚀 KÍCH HOẠT: Đủ cấp 2600 -> Bắt đầu qua đảo!")
 
-                    -- 1. Tắt farm
+                    -- 1. Tắt farm & Stop Tween
                     _G.Level = false 
                     if _G.StopTween then _G.StopTween = true end 
+                    
+                    -- Hủy Tween hiện tại nếu có (để tránh xung đột)
+                    local TweenService = game:GetService("TweenService")
+                    for _, v in pairs(TweenService:GetTagged("Tween")) do v:Cancel() end
+                    
                     task.wait(0.5)
 
                     -- 2. Bay tới NPC
+                    warn("✈️ Đang bay tới NPC...")
                     local startTime = tick()
                     repeat
                         if not root then break end
+                        
+                        -- Ưu tiên dùng hàm _tp nếu có, không thì set CFrame
                         if _tp then
                             _tp(NPC_CF + Vector3.new(0, 5, 0))
                         else
                             root.CFrame = NPC_CF + Vector3.new(0, 5, 0)
                         end
-                        root.Velocity = Vector3.new(0,0,0)
+                        
+                        root.Velocity = Vector3.zero
                         task.wait(0.1)
-                    until (root.Position - NPC_CF.Position).Magnitude <= 8 or tick() - startTime > 15
+                    until (root.Position - NPC_CF.Position).Magnitude <= 10 or tick() - startTime > 20
 
-                    -- 3. Neo người
+                    -- 3. Neo người (Tránh rớt)
                     if root then
                         root.CFrame = NPC_CF
                         root.Anchored = true
+                        warn("⚓ Đã đến nơi & Neo người")
                     end
                     task.wait(1)
 
@@ -7739,32 +7764,46 @@ task.spawn(function()
                     local remote = ReplicatedStorage.Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak")
                     if remote then
                         remote:InvokeServer(args)
+                        warn("✅ Đã gửi lệnh TravelToSubmergedIsland")
+                    else
+                        warn("❌ LỖI: Không tìm thấy Remote nói chuyện!")
                     end
 
-                    task.wait(8) -- Chờ load map
+                    task.wait(8) -- Chờ game load map
 
                     -- 5. Xả neo & Reset
                     if root then root.Anchored = false end
                     
-                    -- Check nếu đã qua đảo (xa NPC cũ)
+                    -- Check xem đã qua đảo chưa (Check khoảng cách NPC cũ > 6000)
                     if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                          local newPos = plr.Character.HumanoidRootPart.Position
-                         if (newPos - NPC_CF.Position).Magnitude > 5000 then
-                             print("🌊 Đã đến đảo mới! Reset quest và farm tiếp.")
-                             -- Bắt buộc: Hủy quest cũ để nhận quest mới
+                         if (newPos - NPC_CF.Position).Magnitude > 6000 then
+                             warn("🌊 QUA ĐẢO THÀNH CÔNG! Reset Quest...")
                              pcall(function() 
                                 ReplicatedStorage.Remotes.CommF_:InvokeServer("AbandonQuest") 
                              end)
-                             task.wait(1)
+                             task.wait(2)
+                         else
+                             warn("⚠️ Vẫn ở Map cũ, có thể bị lỗi mạng hoặc delay.")
                          end
                     end
 
                     -- Bật lại farm
+                    warn("🔄 Bật lại Auto Farm")
                     _G.Level = true
                     doingQuest = false
+                elseif dist > 6000 and level >= 2600 then
+                    -- Nếu đã ở xa (đảo mới) thì không làm gì, để tránh spam
+                    -- warn("Đã ở đảo mới, không cần qua nữa.")
                 end
             end
         end)
+
+        -- Nếu code bị lỗi, nó sẽ in ra màu đỏ ở F9
+        if not success then
+            warn("⚠️ LỖI AUTO SUBMERGED: " .. tostring(err))
+        end
     end
 end)
+
 
