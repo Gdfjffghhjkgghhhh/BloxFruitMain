@@ -13,17 +13,18 @@ local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
 
--- Config (Super Fast / God Mode)
+-- Config (INSANE MODE)
 local Config = {
-    AttackDistance = 70,       -- Tăng nhẹ khoảng cách để bắt mục tiêu sớm hơn
+    AttackDistance = 80,
     AttackMobs = true,
     AttackPlayers = true,
-    AttackCooldown = 0,        -- 0 delay
-    ComboResetTime = 0,        -- Reset combo ngay lập tức
+    AttackCooldown = 0,
+    ComboResetTime = 0,
     MaxCombo = math.huge,
     HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
     AutoClickEnabled = true,
-    FruitBurst = 3             -- Số lần gửi tín hiệu Fruit M1 trong 1 khung hình (Tăng tốc độ Fruit)
+    FruitBurst = 20,           -- Tăng lên 20 lần spam mỗi nhịp (Cực nhanh)
+    ThreadCount = 3            -- Số luồng chạy song song (Tăng tốc độ xử lý)
 }
 
 --// FastAttack Class
@@ -38,7 +39,6 @@ function FastAttack.new()
         M1Combo = 0,
         EnemyRootPart = nil,
         Connections = {},
-        Overheat = {Dragonstorm = {MaxOverheat = 3, Cooldown = 0, TotalOverheat = 0, Distance = 350, Shooting = false}},
         ShootsPerTarget = {["Dual Flintlock"] = 2},
         SpecialShoots = {["Skull Guitar"] = "TAP", ["Bazooka"] = "Position", ["Cannon"] = "Position", ["Dragonstorm"] = "Overheat"}
     }, FastAttack)
@@ -51,7 +51,6 @@ function FastAttack.new()
             self.HitFunction = getsenv(LocalScript)._G.SendHitsToServer
         end
     end)
-
     return self
 end
 
@@ -60,105 +59,48 @@ function FastAttack:IsEntityAlive(entity)
     return humanoid and humanoid.Health > 0
 end
 
+-- Tắt check stun để đánh xuyên hiệu ứng (Nhanh hơn nhưng dễ lỗi animation)
 function FastAttack:CheckStun(Character, Humanoid, ToolTip)
-    local Stun = Character:FindFirstChild("Stun")
-    local Busy = Character:FindFirstChild("Busy")
-    
-    -- Bỏ qua check stun nếu muốn đánh bất chấp (rủi ro kick nhưng nhanh hơn)
-    -- Nếu muốn an toàn thì giữ nguyên logic cũ bên dưới:
-    if Humanoid.Sit and (ToolTip == "Sword" or ToolTip == "Melee" or ToolTip == "Blox Fruit") then
-        return false
-    elseif Stun and Stun.Value > 0 or Busy and Busy.Value then
-        return false
-    end
-    return true
+    return true 
 end
 
-function FastAttack:GetBladeHits(Character, Distance)
-    local Position = Character:GetPivot().Position
-    local BladeHits = {}
-    Distance = Distance or Config.AttackDistance
-
-    local function ProcessTargets(Folder)
-        for _, Enemy in ipairs(Folder:GetChildren()) do
-            if Enemy ~= Character and self:IsEntityAlive(Enemy) then
-                local BasePart = Enemy:FindFirstChild("HumanoidRootPart")
-                if BasePart and (Position - BasePart.Position).Magnitude <= Distance then
-                    table.insert(BladeHits, {Enemy, BasePart})
-                    if not self.EnemyRootPart then
-                        self.EnemyRootPart = BasePart
-                    end
-                end
-            end
-        end
-    end
-
-    if Config.AttackMobs then ProcessTargets(Workspace.Enemies) end
-    if Config.AttackPlayers then ProcessTargets(Workspace.Characters) end
-
-    return BladeHits
-end
-
--- Hàm lấy mục tiêu gần nhất tối ưu cho Fruit M1
 function FastAttack:GetClosestTargetForFruit(Character)
     local Position = Character:GetPivot().Position
     local ClosestPart = nil
     local MinDist = Config.AttackDistance
 
-    local function Check(Folder)
-        for _, v in pairs(Folder:GetChildren()) do
+    -- Quét nhanh mob
+    if Config.AttackMobs then
+        for _, v in pairs(Workspace.Enemies:GetChildren()) do
+            if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                local Root = v:FindFirstChild("HumanoidRootPart")
+                if Root and (Root.Position - Position).Magnitude < MinDist then
+                    MinDist = (Root.Position - Position).Magnitude
+                    ClosestPart = Root
+                end
+            end
+        end
+    end
+    -- Quét nhanh player
+    if Config.AttackPlayers then
+        for _, v in pairs(Workspace.Characters:GetChildren()) do
             if v ~= Character and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
                 local Root = v:FindFirstChild("HumanoidRootPart")
-                if Root then
-                    local Dist = (Root.Position - Position).Magnitude
-                    if Dist < MinDist then
-                        MinDist = Dist
-                        ClosestPart = Root
-                    end
+                if Root and (Root.Position - Position).Magnitude < MinDist then
+                    MinDist = (Root.Position - Position).Magnitude
+                    ClosestPart = Root
                 end
             end
         end
     end
     
-    if Config.AttackMobs then Check(Workspace.Enemies) end
-    if Config.AttackPlayers then Check(Workspace.Characters) end
-    
     return ClosestPart
 end
 
 function FastAttack:GetCombo()
-    local Combo = (tick() - self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0
-    Combo = Combo + 1
-    self.ComboDebounce = tick()
-    self.M1Combo = Combo
+    local Combo = self.M1Combo
+    self.M1Combo = self.M1Combo + 1
     return Combo
-end
-
-function FastAttack:ShootInTarget(TargetPosition)
-    local Character = Player.Character
-    if not self:IsEntityAlive(Character) then return end
-
-    local Equipped = Character:FindFirstChildOfClass("Tool")
-    if not Equipped or Equipped.ToolTip ~= "Gun" then return end
-
-    -- Spam Gun cực nhanh (No cooldown)
-    local ShootType = self.SpecialShoots[Equipped.Name] or "Normal"
-    if ShootType == "Position" or (ShootType == "TAP" and Equipped:FindFirstChild("RemoteEvent")) then
-        Equipped:SetAttribute("LocalTotalShots", (Equipped:GetAttribute("LocalTotalShots") or 0) + 1)
-        GunValidator:FireServer(self:GetValidator2())
-
-        if ShootType == "TAP" then
-            Equipped.RemoteEvent:FireServer("TAP", TargetPosition)
-        else
-            ShootGunEvent:FireServer(TargetPosition)
-        end
-    else
-        -- Virtual Click spam
-        task.spawn(function()
-            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-        end)
-    end
 end
 
 function FastAttack:GetValidator2()
@@ -189,81 +131,76 @@ function FastAttack:GetValidator2()
 end
 
 function FastAttack:UseNormalClick(Character, Humanoid)
-    local BladeHits = self:GetBladeHits(Character)
-    -- Dùng spawn để không bị wait
-    task.spawn(function()
-        for _, Hit in ipairs(BladeHits) do
-            local TargetRoot = Hit[2]
-            RegisterAttack:FireServer(Config.AttackCooldown)
-            if self.CombatFlags and self.HitFunction then
-                self.HitFunction(TargetRoot, BladeHits)
-            else
-                RegisterHit:FireServer(TargetRoot, BladeHits)
-            end
+    local BladeHits = {} 
+    -- Logic get targets tối giản cho Melee/Sword để giảm lag khi spam
+    local P = Character:GetPivot().Position
+    for _, v in pairs(Workspace.Enemies:GetChildren()) do
+         if v:FindFirstChild("HumanoidRootPart") and (v.HumanoidRootPart.Position - P).Magnitude < Config.AttackDistance then
+             table.insert(BladeHits, {v, v.HumanoidRootPart})
+         end
+    end
+
+    if #BladeHits > 0 then
+        RegisterAttack:FireServer(Config.AttackCooldown)
+        if self.CombatFlags and self.HitFunction then
+            self.HitFunction(BladeHits[1][2], BladeHits)
+        else
+            RegisterHit:FireServer(BladeHits[1][2], BladeHits)
         end
-    end)
+    end
 end
 
---// NÂNG CẤP: Fruit M1 Super Fast
+--// INSANE FRUIT SPAM
 function FastAttack:UseFruitM1(Character, Equipped, Combo)
-    -- Dùng hàm tìm mục tiêu riêng để nhanh hơn, không load cả list
     local TargetRoot = self:GetClosestTargetForFruit(Character)
     if not TargetRoot then return end
 
     local Direction = (TargetRoot.Position - Character:GetPivot().Position).Unit
     
-    -- Sử dụng task.spawn để spam tín hiệu (Burst Mode)
-    task.spawn(function()
-        for i = 1, Config.FruitBurst do
-            if Equipped.Parent == Character then
-                Equipped.LeftClickRemote:FireServer(Direction, Combo)
-            end
-        end
-    end)
+    -- Spam thẳng không qua task.spawn để ép thực thi ngay lập tức
+    for i = 1, Config.FruitBurst do
+        Equipped.LeftClickRemote:FireServer(Direction, Combo)
+    end
 end
 
 function FastAttack:Attack()
     if not Config.AutoClickEnabled then return end
     local Character = Player.Character
-    if not Character or not self:IsEntityAlive(Character) then return end
+    if not Character or not Character:FindFirstChild("Humanoid") then return end
 
-    local Humanoid = Character.Humanoid
     local Equipped = Character:FindFirstChildOfClass("Tool")
     if not Equipped then return end
 
     local ToolTip = Equipped.ToolTip
-    if not table.find({"Melee", "Blox Fruit", "Sword", "Gun"}, ToolTip) then return end
-    if not self:CheckStun(Character, Humanoid, ToolTip) then return end
-
     local Combo = self:GetCombo()
     
-    -- Logic chia luồng để tối ưu tốc độ
     if ToolTip == "Blox Fruit" and Equipped:FindFirstChild("LeftClickRemote") then
         self:UseFruitM1(Character, Equipped, Combo)
-    elseif ToolTip == "Gun" then
-        local Targets = self:GetBladeHits(Character, 120)
-        for _, t in ipairs(Targets) do
-            self:ShootInTarget(t[2].Position)
-        end
-    else
-        self:UseNormalClick(Character, Humanoid)
+    elseif ToolTip == "Melee" or ToolTip == "Sword" then
+        self:UseNormalClick(Character, Character.Humanoid)
     end
 end
 
 -- Instance
 local AttackInstance = FastAttack.new()
 
--- Chạy vòng lặp tấn công
--- Sử dụng task.spawn wrap vòng lặp để đảm bảo ưu tiên luồng
+--// MULTI-THREAD EXECUTION (Chạy 3 luồng cùng lúc)
+
+-- Luồng 1: RenderStepped (Siêu nhanh, theo FPS)
+RunService.RenderStepped:Connect(function()
+    pcall(function() AttackInstance:Attack() end)
+end)
+
+-- Luồng 2: Heartbeat (Theo Physics engine)
+RunService.Heartbeat:Connect(function()
+    pcall(function() AttackInstance:Attack() end)
+end)
+
+-- Luồng 3: Vòng lặp Spam cưỡng bức
 task.spawn(function()
     while true do
-        local success, err = pcall(function()
-            AttackInstance:Attack()
-        end)
-        if not success then warn("Attack Error:", err) end
-        
-        -- Tốc độ loop siêu nhanh (nhanh hơn Heartbeat nếu máy mạnh)
-        task.wait() 
+        pcall(function() AttackInstance:Attack() end)
+        task.wait() -- Không delay, chạy hết công suất CPU cho phép
     end
 end)
 
