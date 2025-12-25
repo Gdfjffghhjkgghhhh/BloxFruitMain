@@ -7688,21 +7688,49 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
--- [[ AUTO SUBMERGED ISLAND - DEBUG VERSION ]] --
+-- [[ AUTO SUBMERGED ISLAND - FIX ERROR (SELF CONTAINED) ]] --
+-- Copy đoạn này dán xuống dòng cuối cùng của script
 task.spawn(function()
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local RunService = game:GetService("RunService")
+    local TweenService = game:GetService("TweenService")
     
     -- Tọa độ NPC Submerged
     local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
     local doingQuest = false 
 
-    print("✅ Đã khởi động luồng Auto Submerged Island")
+    -- HÀM BAY RIÊNG (Không phụ thuộc vào script chính)
+    local function SafeFly(targetCF)
+        local plr = Players.LocalPlayer
+        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+        local root = plr.Character.HumanoidRootPart
+        
+        -- Tạo tween bay tới
+        local dist = (root.Position - targetCF.Position).Magnitude
+        local speed = 300 -- Tốc độ bay
+        local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
+        
+        local tween = TweenService:Create(root, info, {CFrame = targetCF})
+        tween:Play()
+        
+        -- Giữ cho nhân vật không bị trọng lực kéo xuống (Anti-Fall)
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.zero
+        bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bv.Parent = root
+        
+        -- Chờ bay xong
+        task.wait(dist / speed)
+        
+        -- Xóa BodyVelocity
+        if bv then bv:Destroy() end
+        if tween then tween:Cancel() end
+    end
+
+    print("✅ Đã nạp Auto Submerged Fix")
 
     while task.wait(1) do
-        -- Dùng pcall có biến err để xem lỗi nếu có
-        local success, err = pcall(function()
+        pcall(function()
             local plr = Players.LocalPlayer
             if not plr or not plr.Character then return end
             
@@ -7711,98 +7739,72 @@ task.spawn(function()
             
             local level = plr.Data.Level.Value
 
-            -- --- PHẦN KIỂM TRA ĐIỀU KIỆN (DEBUG) ---
-            -- Nếu bạn muốn test, hãy mở F9 xem nó báo gì
-            -- print("Debug: Level="..level..", G.Level="..tostring(_G.Level)..", Dist="..math.floor((root.Position - NPC_CF.Position).Magnitude))
-            
-            -- LOGIC CHÍNH
+            -- ĐIỀU KIỆN: Đã bật Farm + Đủ Level 2600 + Chưa làm quest
             if _G.Level and level >= 2600 and not doingQuest then
                 local dist = (root.Position - NPC_CF.Position).Magnitude
                 
-                -- Điều kiện: Ở gần NPC (Map cũ) dưới 6000 stud
+                -- Nếu đang ở gần Map Cũ (< 5000 stud)
                 if dist < 6000 then 
                     doingQuest = true 
-                    warn("🚀 KÍCH HOẠT: Đủ cấp 2600 -> Bắt đầu qua đảo!")
-
-                    -- 1. Tắt farm & Stop Tween
+                    
+                    -- 1. Tắt Farm để không bị xung đột
                     _G.Level = false 
                     if _G.StopTween then _G.StopTween = true end 
                     
-                    -- Hủy Tween hiện tại nếu có (để tránh xung đột)
-                    local TweenService = game:GetService("TweenService")
+                    -- Hủy các tween cũ nếu có
                     for _, v in pairs(TweenService:GetTagged("Tween")) do v:Cancel() end
+                    task.wait(0.2)
                     
-                    task.wait(0.5)
+                    print("🚀 Đủ cấp 2600! Đang bay tới NPC...")
 
-                    -- 2. Bay tới NPC
-                    warn("✈️ Đang bay tới NPC...")
+                    -- 2. Bay tới NPC bằng hàm SafeFly tự tạo
                     local startTime = tick()
                     repeat
                         if not root then break end
-                        
-                        -- Ưu tiên dùng hàm _tp nếu có, không thì set CFrame
-                        if _tp then
-                            _tp(NPC_CF + Vector3.new(0, 5, 0))
-                        else
-                            root.CFrame = NPC_CF + Vector3.new(0, 5, 0)
-                        end
-                        
+                        SafeFly(NPC_CF + Vector3.new(0, 5, 0)) -- Bay cao hơn đầu NPC chút
                         root.Velocity = Vector3.zero
                         task.wait(0.1)
                     until (root.Position - NPC_CF.Position).Magnitude <= 10 or tick() - startTime > 20
 
-                    -- 3. Neo người (Tránh rớt)
+                    -- 3. Đáp xuống & Neo người
                     if root then
                         root.CFrame = NPC_CF
                         root.Anchored = true
-                        warn("⚓ Đã đến nơi & Neo người")
                     end
-                    task.wait(1)
+                    task.wait(0.5)
 
                     -- 4. Gọi lệnh qua đảo
                     local args = "TravelToSubmergedIsland"
                     local remote = ReplicatedStorage.Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak")
+                    
                     if remote then
                         remote:InvokeServer(args)
-                        warn("✅ Đã gửi lệnh TravelToSubmergedIsland")
-                    else
-                        warn("❌ LỖI: Không tìm thấy Remote nói chuyện!")
+                        print("✅ Đã gọi lệnh qua đảo!")
                     end
 
-                    task.wait(8) -- Chờ game load map
+                    task.wait(8) -- Chờ game load map mới
 
-                    -- 5. Xả neo & Reset
+                    -- 5. Xả neo
                     if root then root.Anchored = false end
                     
-                    -- Check xem đã qua đảo chưa (Check khoảng cách NPC cũ > 6000)
+                    -- Check xem qua đảo chưa
                     if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                          local newPos = plr.Character.HumanoidRootPart.Position
                          if (newPos - NPC_CF.Position).Magnitude > 6000 then
-                             warn("🌊 QUA ĐẢO THÀNH CÔNG! Reset Quest...")
+                             print("🌊 Đã qua đảo thành công!")
+                             -- Hủy quest cũ
                              pcall(function() 
                                 ReplicatedStorage.Remotes.CommF_:InvokeServer("AbandonQuest") 
                              end)
-                             task.wait(2)
-                         else
-                             warn("⚠️ Vẫn ở Map cũ, có thể bị lỗi mạng hoặc delay.")
                          end
                     end
 
-                    -- Bật lại farm
-                    warn("🔄 Bật lại Auto Farm")
+                    -- Bật lại Auto Farm
                     _G.Level = true
                     doingQuest = false
-                elseif dist > 6000 and level >= 2600 then
-                    -- Nếu đã ở xa (đảo mới) thì không làm gì, để tránh spam
-                    -- warn("Đã ở đảo mới, không cần qua nữa.")
                 end
             end
         end)
-
-        -- Nếu code bị lỗi, nó sẽ in ra màu đỏ ở F9
-        if not success then
-            warn("⚠️ LỖI AUTO SUBMERGED: " .. tostring(err))
-        end
     end
 end)
 
