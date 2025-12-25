@@ -1706,8 +1706,10 @@ spawn(function()
                         speakRemote:InvokeServer("TravelToSubmergedIsland")
                     end)
 
+                    print("✅ Đã gọi lệnh qua đảo!")
                     task.wait(2) -- Chờ game xử lý
 
+                    -- 4. Xả Neo và tắt Tool
                     if root then root.Anchored = false end
                     _G.tpSubmarineWorker = false
                     if TeleportToggle then TeleportToggle:Set(false) end
@@ -1725,53 +1727,11 @@ spawn(function()
     local plr = game.Players.LocalPlayer
     local replicated = game:GetService("ReplicatedStorage")
     local ws = game:GetService("Workspace")
-    local TweenService = game:GetService("TweenService") -- Thêm Tween để bay mượt đoạn cuối
-
-    -- Tọa độ NPC Submerged
-    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+    local Root = plr.Character:WaitForChild("HumanoidRootPart")
 
     while task.wait(Sec or 0.2) do
         if _G.Level then
             pcall(function()
-                local Root = plr.Character:WaitForChild("HumanoidRootPart")
-                local currentLevel = plr.Data.Level.Value -- Lấy cấp hiện tại
-
-                if currentLevel >= 2600 then
-                    -- Kiểm tra khoảng cách: Nếu < 5000 nghĩa là đang ở map cũ (gần NPC)
-                    local distToNPC = (Root.Position - NPC_CF.Position).Magnitude
-                    
-                    if distToNPC < 5000 then
-                        print("🚀 Đủ cấp 2600! Đang di chuyển tới Submerged Island...")
-
-                        -- 1. Bay tới NPC (Dùng vòng lặp _tp của bạn)
-                        repeat
-                            task.wait()
-                            -- Bay tới vị trí trên đầu NPC một chút
-                            if _tp then
-                                _tp(NPC_CF + Vector3.new(0, 5, 0)) 
-                            else
-                                Root.CFrame = NPC_CF + Vector3.new(0, 5, 0)
-                            end
-                            Root.Velocity = Vector3.zero -- Giảm tốc tránh trôi
-                        until (Root.Position - NPC_CF.Position).Magnitude <= 8
-
-                        -- 2. Đã đến nơi -> Neo lại để không rớt xuống biển
-                        Root.CFrame = NPC_CF
-                        Root.Anchored = true 
-                        task.wait(0.5) -- Chờ server load vị trí
-
-                        -- 3. Nói chuyện qua đảo
-                        local args = "TravelToSubmergedIsland"
-                        replicated.Modules.Net["RF/SubmarineWorkerSpeak"]:InvokeServer(args)
-                        
-                        task.wait(5) -- Chờ game teleport
-
-                        -- 4. Xả neo để farm tiếp ở map mới
-                        Root.Anchored = false
-                        return -- Dừng vòng lặp hiện tại để load lại từ đầu
-                    end
-                end
-
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
                 local q = QuestNeta()
                 if not q or not q[1] then return end
@@ -7757,5 +7717,97 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
+-- [[ AUTO SUBMERGED ISLAND - INDEPENDENT THREAD ]] --
+-- Dán đoạn này xuống CUỐI CÙNG của file script
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    
+    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+    local doingQuest = false -- Biến để chặn spam lệnh
 
+    while task.wait(1) do
+        pcall(function()
+            local plr = Players.LocalPlayer
+            if not plr or not plr.Character then return end
+            
+            local root = plr.Character:FindFirstChild("HumanoidRootPart")
+            local level = plr.Data.Level.Value
+
+            -- ĐIỀU KIỆN KÍCH HOẠT:
+            -- 1. Đang bật Auto Farm (_G.Level = true)
+            -- 2. Đã đủ cấp 2600
+            -- 3. Đang ở map cũ (Khoảng cách tới NPC < 5000)
+            -- 4. Chưa đang làm quest (doingQuest = false)
+            
+            if _G.Level and level >= 2600 and root and not doingQuest then
+                if (root.Position - NPC_CF.Position).Magnitude < 5000 then
+                    
+                    doingQuest = true -- Đánh dấu đang bận xử lý
+                    print("🚀 Đủ cấp 2600! Tạm dừng farm để qua Submerged Island...")
+
+                    -- BƯỚC 1: TẠM TẮT AUTO FARM
+                    -- Phải tắt để script farm không kéo nhân vật đi chỗ khác
+                    _G.Level = false 
+                    if _G.StopTween then _G.StopTween = true end -- Nếu có hàm stop tween
+                    task.wait(0.5)
+
+                    -- BƯỚC 2: BAY TỚI NPC
+                    -- Dùng vòng lặp bay tới
+                    local startTime = tick()
+                    repeat
+                        if not root then break end
+                        -- Dùng hàm _tp có sẵn hoặc set CFrame thủ công
+                        if _tp then
+                            _tp(NPC_CF + Vector3.new(0, 5, 0))
+                        else
+                            root.CFrame = NPC_CF + Vector3.new(0, 5, 0)
+                        end
+                        
+                        -- Giữ vận tốc bằng 0 để không bị trôi
+                        root.Velocity = Vector3.new(0,0,0)
+                        task.wait(0.1)
+                    until (root.Position - NPC_CF.Position).Magnitude <= 8 or tick() - startTime > 15
+
+                    -- BƯỚC 3: NEO NGƯỜI LẠI (QUAN TRỌNG)
+                    -- Để không bị rớt xuống biển khi đang nói chuyện
+                    if root then
+                        root.CFrame = NPC_CF
+                        root.Anchored = true
+                    end
+                    task.wait(1)
+
+                    -- BƯỚC 4: GỌI LỆNH QUA ĐẢO
+                    local args = "TravelToSubmergedIsland"
+                    local remote = ReplicatedStorage.Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak")
+                    if remote then
+                        remote:InvokeServer(args)
+                        print("✅ Đã gọi lệnh qua đảo!")
+                    end
+
+                    -- Chờ game xử lý teleport (khoảng 5-8 giây)
+                    task.wait(8)
+
+                    -- BƯỚC 5: KẾT THÚC VÀ BẬT LẠI FARM
+                    if root then root.Anchored = false end
+                    
+                    -- Kiểm tra xem đã qua đảo chưa (xa NPC cũ)
+                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                         local newPos = plr.Character.HumanoidRootPart.Position
+                         if (newPos - NPC_CF.Position).Magnitude > 5000 then
+                             print("🌊 Đã qua đảo mới thành công!")
+                             -- Reset Quest cũ cho sạch
+                             pcall(function() ReplicatedStorage.Remotes.CommF_:InvokeServer("AbandonQuest") end)
+                         end
+                    end
+
+                    -- Bật lại Auto Farm để nó tự farm tiếp ở map mới
+                    _G.Level = true
+                    doingQuest = false
+                end
+            end
+        end)
+    end
+end)
 Window:SelectTab(1)
