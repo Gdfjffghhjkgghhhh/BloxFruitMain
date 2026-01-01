@@ -2081,7 +2081,7 @@ spawn(function()
                                 -- Nếu khoảng cách nhỏ hơn 350 (Đang ở trên đảo Haunted) -> TP thẳng tới đầu quái
                                 if dist < 350 then
                                     -- CFrame thẳng tới vị trí quái (cách lên trên 5 stud để đánh từ trên xuống)
-                                    root.CFrame = enemyRoot.CFrame * CFrame.new(0, 5, 0)
+                                    root.CFrame = enemyRoot.CFrame * CFrame.new(0, 15, 0)
                                     
                                     -- Vẫn gọi hàm Attack.Kill để đánh, nhưng vị trí đã được set cứng ở trên
                                     Attack.Kill(bone, _G.AutoFarm_Bone) 
@@ -7709,5 +7709,6 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
 
 
