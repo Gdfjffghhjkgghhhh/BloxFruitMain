@@ -1,88 +1,92 @@
---// SERVICES
-local Players = game:GetService("Players")
-local LP = Players.LocalPlayer
+--// INIT VAR
+_G.AutoFarm_Bone = false
+_G.AcceptQuestC = true
+_G.MobIndex = 1
+
+local BonesTable = {
+    "Reborn Skeleton",
+    "Living Zombie",
+    "Demonic Soul",
+    "Posessed Mummy"
+}
 
 --// GUI
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "PlayerFruitGUI"
+local plr = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui", plr.PlayerGui)
+gui.Name = "BoneFarmGUI"
+gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromScale(0.25, 0.45)
-main.Position = UDim2.fromScale(0.02, 0.25)
-main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+main.Size = UDim2.fromScale(0, 0)
+main.Position = UDim2.fromScale(0.5, 0.5)
+main.AnchorPoint = Vector2.new(0.5, 0.5)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
 
-local corner = Instance.new("UICorner", main)
-corner.CornerRadius = UDim.new(0,12)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 
+-- Tween mở GUI
+game:GetService("TweenService"):Create(
+    main,
+    TweenInfo.new(0.35, Enum.EasingStyle.Quart),
+    {Size = UDim2.fromOffset(300, 220)}
+):Play()
+
+--// TITLE
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1,0,0.12,0)
-title.Text = "🍎 PLAYER FRUIT SCANNER"
+title.Size = UDim2.new(1,0,0,40)
 title.BackgroundTransparency = 1
-title.TextColor3 = Color3.fromRGB(255,100,100)
+title.Text = "💀 Auto Farm Bone"
+title.TextColor3 = Color3.fromRGB(255, 80, 80)
 title.Font = Enum.Font.GothamBold
-title.TextScaled = true
+title.TextSize = 18
 
---// SCROLL
-local scroll = Instance.new("ScrollingFrame", main)
-scroll.Position = UDim2.new(0,0,0.13,0)
-scroll.Size = UDim2.new(1,0,0.87,0)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarImageTransparency = 0.4
-scroll.BackgroundTransparency = 1
-
-local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0,6)
-
---// GET FRUIT
-local function GetFruit(plr)
-    local data = plr:FindFirstChild("Data")
-    if data and data:FindFirstChild("DevilFruit") then
-        return data.DevilFruit.Value ~= "" and data.DevilFruit.Value or "No Fruit"
-    end
-    return "Unknown"
+--// CREATE BUTTON FUNC
+local function CreateButton(text, y)
+    local btn = Instance.new("TextButton", main)
+    btn.Size = UDim2.new(1,-20,0,40)
+    btn.Position = UDim2.fromOffset(10, y)
+    btn.BackgroundColor3 = Color3.fromRGB(35,35,45)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.Text = text
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
+    return btn
 end
 
---// REFRESH LIST
-local function Refresh()
-    for _,v in pairs(scroll:GetChildren()) do
-        if v:IsA("Frame") then v:Destroy() end
-    end
-
-    for _,plr in pairs(Players:GetPlayers()) do
-        local fruit = GetFruit(plr)
-
-        local item = Instance.new("Frame", scroll)
-        item.Size = UDim2.new(1,-10,0,45)
-        item.BackgroundColor3 = Color3.fromRGB(35,35,35)
-        item.BorderSizePixel = 0
-
-        Instance.new("UICorner", item).CornerRadius = UDim.new(0,8)
-
-        local txt = Instance.new("TextLabel", item)
-        txt.Size = UDim2.new(1,-10,1,0)
-        txt.Position = UDim2.new(0,5,0,0)
-        txt.BackgroundTransparency = 1
-        txt.TextXAlignment = Left
-        txt.Text = "👤 "..plr.Name.." | 🍎 "..fruit
-        txt.TextColor3 = Color3.fromRGB(230,230,230)
-        txt.Font = Enum.Font.Gotham
-        txt.TextScaled = true
-    end
-
-    task.wait()
-    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
-end
-
---// AUTO UPDATE
-Refresh()
-Players.PlayerAdded:Connect(Refresh)
-Players.PlayerRemoving:Connect(Refresh)
-
-task.spawn(function()
-    while task.wait(10) do
-        Refresh()
-    end
+--// TOGGLE AUTO FARM
+local farmBtn = CreateButton("Auto Farm Bone: OFF", 50)
+farmBtn.MouseButton1Click:Connect(function()
+    _G.AutoFarm_Bone = not _G.AutoFarm_Bone
+    farmBtn.Text = "Auto Farm Bone: " .. (_G.AutoFarm_Bone and "ON" or "OFF")
 end)
+
+--// TOGGLE QUEST
+local questBtn = CreateButton("Auto Quest: ON", 95)
+questBtn.MouseButton1Click:Connect(function()
+    _G.AcceptQuestC = not _G.AcceptQuestC
+    questBtn.Text = "Auto Quest: " .. (_G.AcceptQuestC and "ON" or "OFF")
+end)
+
+--// DROPDOWN MOB
+local mobBtn = CreateButton("Mob: "..BonesTable[_G.MobIndex], 140)
+mobBtn.MouseButton1Click:Connect(function()
+    _G.MobIndex += 1
+    if _G.MobIndex > #BonesTable then
+        _G.MobIndex = 1
+    end
+    mobBtn.Text = "Mob: "..BonesTable[_G.MobIndex]
+end)
+
+--// NOTE
+local note = Instance.new("TextLabel", main)
+note.Size = UDim2.new(1,0,0,30)
+note.Position = UDim2.fromOffset(0,185)
+note.BackgroundTransparency = 1
+note.Text = "Drag GUI • Safe Tween"
+note.TextColor3 = Color3.fromRGB(140,140,140)
+note.Font = Enum.Font.Gotham
+note.TextSize = 12
