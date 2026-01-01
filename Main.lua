@@ -2031,6 +2031,7 @@ local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "",
 Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
+-- [SỬA LỖI 1] Khởi tạo MobIndex nếu chưa có để tránh lỗi script dừng đột ngột
 if not _G.MobIndex then _G.MobIndex = 1 end
 
 spawn(function()
@@ -2039,23 +2040,46 @@ spawn(function()
             pcall(function()        
                 local player = game.Players.LocalPlayer
                 local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local questUI = player.PlayerGui.Main.Quest
+                
+                -- Kiểm tra xem UI có tồn tại không để tránh lỗi
+                local mainGui = player.PlayerGui:FindFirstChild("Main")
+                local questUI = mainGui and mainGui:FindFirstChild("Quest")
                 
                 local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
                 
                 if not root then return end
+
+                -- Đảm bảo index không vượt quá số lượng quái
+                if _G.MobIndex > #BonesTable or _G.MobIndex < 1 then _G.MobIndex = 1 end
+                
                 local CurrentTargetName = BonesTable[_G.MobIndex]
+                
+                -- Kiểm tra hàm lấy quái có tồn tại không
+                if not GetConnectionEnemies then warn("Thiếu hàm GetConnectionEnemies") return end
+                
                 local bone = GetConnectionEnemies({CurrentTargetName})
 
-                -- Phần nhận nhiệm vụ
-                if _G.AcceptQuestC and not questUI.Visible then
+                ------------------------------------------------------------
+                -- PHẦN 1: NHẬN NHIỆM VỤ (Tốc độ thường/an toàn)
+                ------------------------------------------------------------
+                if _G.AcceptQuestC and questUI and not questUI.Visible then
                      local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
                      if (questPos.Position - root.Position).Magnitude > 50 then
-                          -- Bạn có thể chỉnh tốc độ bay tới NPC an toàn ở đây nếu muốn (ví dụ 300)
-                          _G.TweenSpeed = 300 
-                          _tp(questPos)
+                          
+                          -- Set tốc độ về mức an toàn khi đi nhận Q (ví dụ 300 hoặc 350)
+                          -- Thử set cả 2 loại biến phổ biến
+                          _G.TweenSpeed = 350
+                          if getgenv() then getgenv().TweenSpeed = 350 end
+                          
+                          if _tp then 
+                              _tp(questPos)
+                          else
+                              -- Fallback nếu không có hàm _tp
+                              root.CFrame = questPos 
+                          end
                           return 
                      else
+                          -- Logic nhận Q
                           local randomQuest = math.random(1, 4)
                           local questData = {
                             [1] = {"StartQuest", "HauntedQuest2", 2},
@@ -2068,27 +2092,37 @@ spawn(function()
                      end
                 end
 
-                -- Phần đánh quái
+                ------------------------------------------------------------
+                -- PHẦN 2: ĐÁNH QUÁI (Tăng tốc lên 400)
+                ------------------------------------------------------------
                 if bone and bone:FindFirstChild("Humanoid") and bone.Humanoid.Health > 0 then
-                    
-                    -- [THÊM MỚI] Set tốc độ lên 400 khi bắt đầu bay tới quái
-                    _G.TweenSpeed = 400 
+
+                    -- [FIX] Tăng tốc độ lên 400 tại đây
+                    _G.TweenSpeed = 400
+                    if getgenv() then getgenv().TweenSpeed = 400 end -- Set cả trong getgenv cho chắc
 
                     repeat 
                         task.wait() 
+                        -- Liên tục set lại tốc độ trong khi đánh để chắc chắn không bị reset
+                        _G.TweenSpeed = 400 
+                        
                         if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
-                            Attack.Kill(bone, _G.AutoFarm_Bone) 
+                            if Attack and Attack.Kill then
+                                Attack.Kill(bone, _G.AutoFarm_Bone)
+                            else
+                                -- Fallback nếu thiếu module Attack
+                                root.CFrame = bone.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                                game:GetService("VirtualUser"):CaptureController()
+                                game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+                            end
                         else
                             break 
                         end
-                    until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
+                    until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and questUI and not questUI.Visible)
                 else
+                    -- Chuyển mục tiêu
                     _G.MobIndex = _G.MobIndex + 1
-                    
-                    if _G.MobIndex > #BonesTable then
-                        _G.MobIndex = 1
-                    end
-                    print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex])
+                    print("Đang chuyển sang farm: " .. tostring(BonesTable[_G.MobIndex]))
                     task.wait(0.5)
                 end
             end)
@@ -7696,3 +7730,4 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
