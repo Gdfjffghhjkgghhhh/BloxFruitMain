@@ -1813,8 +1813,7 @@ spawn(function()
             end)
         end
     end
-end)
-local TravelDress = Tabs.Quests:AddToggle("TravelDress", {Title = "Auto Travel Dressrosa", Description = "", Default = false})
+end)elDress = Tabs.Quests:AddToggle("TravelDress", {Title = "Auto Travel Dressrosa", Description = "", Default = false})
 TravelDress:OnChanged(function(Value)
   _G.TravelDres = Value
 end)
@@ -1978,7 +1977,23 @@ Q:OnChanged(function(Value)
 _G.Auto_Cake_Prince = Value
 end)
 spawn(function()
-    while task.wait(0.1) do
+    local RunService = game:GetService("RunService")
+    
+    -- 1. Noclip: Chạy liên tục để không bị quái đẩy hoặc kẹt tường
+    RunService.Stepped:Connect(function()
+        if _G.Auto_Cake_Prince then
+            pcall(function()
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    for _, v in pairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") and v.CanCollide then v.CanCollide = false end
+                    end
+                end
+            end)
+        end
+    end)
+
+    while task.wait() do -- Dùng wait mặc định cho mượt
         if _G.Auto_Cake_Prince then
             pcall(function()
                 local player = game.Players.LocalPlayer
@@ -1994,9 +2009,18 @@ spawn(function()
                 local cakeLoaf = workspace.Map:FindFirstChild("CakeLoaf")
                 local bigMirror = cakeLoaf and cakeLoaf:FindFirstChild("BigMirror")
 
+                -- Helper: Hàm xóa Velocity để TP cho mượt
+                local function ClearVelocity()
+                    if root:FindFirstChild("AyueVelocity") then 
+                        root.AyueVelocity:Destroy() 
+                    end
+                end
+
                 -- Logic di chuyển đến đảo nếu quá xa
                 if not bigMirror or not bigMirror:FindFirstChild("Other") or (cakeIslandPos.Position - root.Position).Magnitude > 3000 then
+                    ClearVelocity()
                     _tp(cakeIslandPos)
+                    return -- Đợi TP xong
                 end
 
                 local transparency = 1
@@ -2008,6 +2032,15 @@ spawn(function()
                 if transparency == 0 or enemies:FindFirstChild("Cake Prince") then
                     local v = GetConnectionEnemies("Cake Prince")
                     if v then
+                        -- Tạo BodyVelocity nếu chưa có
+                        if not root:FindFirstChild("AyueVelocity") then
+                            local bv = Instance.new("BodyVelocity")
+                            bv.Name = "AyueVelocity"
+                            bv.Parent = root
+                            bv.MaxForce = Vector3.new(100000, 100000, 100000)
+                            bv.Velocity = Vector3.new(0, 0, 0)
+                        end
+
                         repeat 
                             task.wait()
                             if v and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
@@ -2017,20 +2050,31 @@ spawn(function()
                                 if dist < 350 then
                                     -- TP trên đầu boss 25 stud, nhìn xuống
                                     root.CFrame = enemyRoot.CFrame * CFrame.new(0, 25, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-                                    root.Velocity = Vector3.new(0,0,0)
+                                    
+                                    -- Giữ đứng yên tuyệt đối
+                                    if root:FindFirstChild("AyueVelocity") then
+                                        root.AyueVelocity.Velocity = Vector3.new(0, 0, 0)
+                                    end
+
                                     Attack.Kill2(v, _G.Auto_Cake_Prince)
                                 else
-                                    -- Xa quá thì bay tới
+                                    -- Xa quá thì bay tới (Xóa Velocity tạm thời để bay nhanh hơn nếu dùng tween)
+                                    ClearVelocity() 
                                     Attack.Kill2(v, _G.Auto_Cake_Prince)
                                 end
                             end
                         until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0
+                        
+                        ClearVelocity() -- Đánh xong boss thì xóa neo
                     else
+                        -- Đứng đợi boss spawn trong phòng
+                        ClearVelocity()
                         if transparency == 0 and (CFrame.new(-1990.67, 4533, -14973.67).Position - root.Position).Magnitude >= 2000 then
                             _tp(CFrame.new(-2151.82, 149.32, -12404.91))
                         end
                     end
-
+                
+                -- /// PHẦN 2: FARM 500 QUÁI ///
                 else
                     local CakePrince = {"Cookie Crafter","Cake Guard","Baking Staff","Head Baker"}
                     for _, mobType in ipairs(CakePrince) do
@@ -2038,6 +2082,12 @@ spawn(function()
                         
                         local hasMobs = true
                         while hasMobs and _G.Auto_Cake_Prince do
+                            -- Check lại xem cổng boss mở chưa, nếu mở rồi thì break ngay để đi đánh boss
+                            if bigMirror and bigMirror:FindFirstChild("Other") and bigMirror.Other.Transparency == 0 then
+                                hasMobs = false
+                                break
+                            end
+
                             local v = GetConnectionEnemies({mobType})
                             
                             -- Tìm quái gần nhất nếu không bắt được target
@@ -2058,13 +2108,19 @@ spawn(function()
                             end
                             
                             if v then
+                                -- Nhận Quest
                                 if _G.AcceptQuestC and not questUI.Visible then
                                     local questPos = CFrame.new(-1927.92, 37.8, -12842.54)
+                                    
+                                    -- Xóa Velocity trước khi đi nhận quest
+                                    ClearVelocity()
+
+                                    -- Kiểm tra khoảng cách Quest
                                     if (questPos.Position - root.Position).Magnitude > 350 then
                                         _tp(questPos)
+                                        return -- Đợi TP
                                     else
                                         root.CFrame = questPos
-                                        
                                         local questData = {
                                             {"StartQuest", "CakeQuest2", 2},
                                             {"StartQuest", "CakeQuest2", 1},
@@ -2072,45 +2128,62 @@ spawn(function()
                                             {"StartQuest", "CakeQuest1", 2}
                                         }
                                         local randomQuest = questData[math.random(1, #questData)]
-
-                                        local success = false
-                                        repeat
-                                            success = pcall(function()
-                                                return game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
-                                            end)
-                                            task.wait(0.5)
-                                        until not _G.Auto_Cake_Prince or questUI.Visible
+                                        game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
+                                        task.wait(0.5)
                                     end
                                 end
 
                                 -- Đánh Quái
+                                -- Tạo BodyVelocity để treo nhân vật
+                                if not root:FindFirstChild("AyueVelocity") then
+                                    local bv = Instance.new("BodyVelocity")
+                                    bv.Name = "AyueVelocity"
+                                    bv.Parent = root
+                                    bv.MaxForce = Vector3.new(100000, 100000, 100000)
+                                    bv.Velocity = Vector3.new(0, 0, 0)
+                                end
+
                                 repeat 
                                     task.wait()
+                                    -- Check lại Boss spawn trong lúc farm
+                                    if bigMirror and bigMirror:FindFirstChild("Other") and bigMirror.Other.Transparency == 0 then break end
+
                                     if v and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
                                         local enemyRoot = v.HumanoidRootPart
                                         local dist = (root.Position - enemyRoot.Position).Magnitude
                                         
                                         if dist < 350 then
+                                            -- TP trên đầu quái 20 stud, nhìn xuống
                                             root.CFrame = enemyRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-                                            root.Velocity = Vector3.new(0,0,0)
+                                            
+                                            if root:FindFirstChild("AyueVelocity") then
+                                                root.AyueVelocity.Velocity = Vector3.new(0, 0, 0)
+                                            end
+                                            
                                             Attack.Kill(v, _G.Auto_Cake_Prince)
                                         else
+                                            -- Xa quá thì xóa velocity để bay lại gần cho lẹ
+                                            ClearVelocity()
                                             Attack.Kill(v, _G.Auto_Cake_Prince)
                                         end
                                     else
                                         break
                                     end
-                                until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0 or transparency == 0
-                                task.wait(0.5)
+                                until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0
+                                
+                                ClearVelocity() -- Xong 1 con thì xóa để di chuyển con khác
                             else
                                 hasMobs = false
                             end
                         end
                         if _G.Auto_Cake_Prince then
-                            task.wait(0.5)
+                            task.wait(0.1)
                         end
                     end
+                    
+                    -- Nếu không có boss và không farm quái, quay về vị trí chờ
                     if _G.Auto_Cake_Prince and transparency ~= 0 then
+                        ClearVelocity()
                         _tp(CFrame.new(-2077, 252, -12373))
                     end
                 end
@@ -2123,91 +2196,119 @@ Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
 if not _G.MobIndex then _G.MobIndex = 1 end
+
 spawn(function()
+    local RunService = game:GetService("RunService")
+    -- Noclip để không bị vướng tường/quái
+    RunService.Stepped:Connect(function()
+        if _G.AutoFarm_Bone then
+            pcall(function()
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    for _, v in pairs(char:GetDescendants()) do
+                        if v:IsA("BasePart") and v.CanCollide then v.CanCollide = false end
+                    end
+                end
+            end)
+        end
+    end)
+
     while task.wait() do 
         if _G.AutoFarm_Bone then
             pcall(function()        
                 local player = game.Players.LocalPlayer
                 local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local questUI = player.PlayerGui.Main.Quest
-                local enemies = game.Workspace.Enemies
                 
+                -- Danh sách quái xương
                 local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
                 
                 if not root then return end
-                local CurrentTargetName = BonesTable[_G.MobIndex]
-                local bone = GetConnectionEnemies({CurrentTargetName})
                 
-                -- /// LOGIC NHẬN QUEST ///
+                -- Khởi tạo MobIndex nếu chưa có
+                if not _G.MobIndex then _G.MobIndex = 1 end
+
+                local CurrentTargetName = BonesTable[_G.MobIndex]
+                local bone = GetConnectionEnemies({CurrentTargetName}) -- Đảm bảo hàm này lấy đúng mob
+                
+                -- /// LOGIC NHẬN QUEST (Giữ nguyên của bạn) ///
                 if _G.AcceptQuestC and not questUI.Visible then
-                     local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
-                     if (questPos.Position - root.Position).Magnitude > 350 then
-                          _tp(questPos)
-                          return 
-                     else
-                          -- Gần NPC thì TP thẳng vào mặt để nhận cho lẹ
-                          root.CFrame = questPos
-                          task.wait(0.1)
-                          
-                          local randomQuest = math.random(1, 4)
-                          local questData = {
-                            [1] = {"StartQuest", "HauntedQuest2", 2},
-                            [2] = {"StartQuest", "HauntedQuest2", 1},
-                            [3] = {"StartQuest", "HauntedQuest1", 1},
-                            [4] = {"StartQuest", "HauntedQuest1", 2}
-                          }                    
-                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
-                          task.wait(0.5)
-                     end
+                      local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
+                      
+                      -- Xóa Velocity khi đi nhận quest để không bị kẹt
+                      if root:FindFirstChild("AyueVelocity") then root.AyueVelocity:Destroy() end
+
+                      if (questPos.Position - root.Position).Magnitude > 50 then
+                           _tp(questPos)
+                           return 
+                      else
+                           local randomQuest = math.random(1, 4)
+                           local questData = {
+                             [1] = {"StartQuest", "HauntedQuest2", 2},
+                             [2] = {"StartQuest", "HauntedQuest2", 1},
+                             [3] = {"StartQuest", "HauntedQuest1", 1},
+                             [4] = {"StartQuest", "HauntedQuest1", 2}
+                           }                    
+                           game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                           task.wait(0.5)
+                      end
                 end
 
-                -- /// LOGIC FARM QUÁI & GOM QUÁI ///
+                -- /// LOGIC ĐÁNH QUÁI ///
                 if bone and bone:FindFirstChild("Humanoid") and bone:FindFirstChild("HumanoidRootPart") and bone.Humanoid.Health > 0 then
                     
-                    local targetRoot = bone.HumanoidRootPart
-                    
+                    -- Tạo BodyVelocity để giữ nhân vật bay
+                    if not root:FindFirstChild("AyueVelocity") then
+                        local bv = Instance.new("BodyVelocity")
+                        bv.Name = "AyueVelocity"
+                        bv.Parent = root
+                        bv.MaxForce = Vector3.new(100000, 100000, 100000)
+                        bv.Velocity = Vector3.new(0, 0, 0)
+                    end
+
                     repeat 
                         task.wait() 
                         if _G.AutoFarm_Bone and bone and bone.Parent and bone.Humanoid.Health > 0 then
+                            local enemyRoot = bone:FindFirstChild("HumanoidRootPart")
                             
-                            local dist = (root.Position - targetRoot.Position).Magnitude
-                            
-                            -- 1. Nếu đã ở trên đảo (Gần < 350)
-                            if dist < 350 then
-                                -- TP lên đầu quái 25 stud, nhìn xuống
-                                root.CFrame = targetRoot.CFrame * CFrame.new(0, 25, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-                                root.Velocity = Vector3.new(0, 0, 0)
+                            if enemyRoot then
+                                local dist = (root.Position - enemyRoot.Position).Magnitude
                                 
-                                -- 2. GOM QUÁI (BRING MOB)
-                                for _, otherMob in pairs(enemies:GetChildren()) do
-                                    if otherMob ~= bone and otherMob:FindFirstChild("HumanoidRootPart") and otherMob:FindFirstChild("Humanoid") and otherMob.Humanoid.Health > 0 then
-                                        -- Chỉ gom những con ở gần con quái chính (trong phạm vi 300 stud)
-                                        if (otherMob.HumanoidRootPart.Position - targetRoot.Position).Magnitude < 300 then
-                                            otherMob.HumanoidRootPart.CFrame = targetRoot.CFrame -- Kéo nó về chỗ con đang đánh
-                                            otherMob.HumanoidRootPart.CanCollide = false -- Tắt va chạm
-                                            otherMob.HumanoidRootPart.Velocity = Vector3.new(0,0,0) -- Chống trôi
-                                        end
+                                if dist < 350 then
+                                    -- Cập nhật vị trí treo trên đầu quái + Úp mặt xuống
+                                    root.CFrame = CFrame.new(enemyRoot.Position) * CFrame.new(0, 20, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                    
+                                    -- Giữ đứng yên
+                                    if root:FindFirstChild("AyueVelocity") then
+                                        root.AyueVelocity.Velocity = Vector3.new(0, 0, 0)
                                     end
+                                    
+                                    Attack.Kill(bone, _G.AutoFarm_Bone) 
+                                else
+                                    -- Nếu xa quá thì để Attack.Kill tự xử lý hoặc TP lại gần
+                                    -- Tạm thời xóa Velocity để di chuyển nhanh hơn
+                                    if root:FindFirstChild("AyueVelocity") then root.AyueVelocity:Destroy() end
+                                    
+                                    Attack.Kill(bone, _G.AutoFarm_Bone) 
                                 end
-                                
-                                Attack.Kill(bone, _G.AutoFarm_Bone) 
-                            else
-                                -- 3. Nếu ở xa (Đảo khác bay tới) -> Dùng bay thường
-                                Attack.Kill(bone, _G.AutoFarm_Bone) 
                             end
                         else
                             break 
                         end
                     until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
-                else
-                    -- Đổi mục tiêu nếu không tìm thấy quái hiện tại
-                    _G.MobIndex = _G.MobIndex + 1
                     
+                    -- Quái chết xong thì xóa Velocity ngay
+                    if root:FindFirstChild("AyueVelocity") then root.AyueVelocity:Destroy() end
+                else
+                    -- Không tìm thấy quái -> Đổi sang loại quái tiếp theo trong danh sách
+                    if root:FindFirstChild("AyueVelocity") then root.AyueVelocity:Destroy() end
+
+                    _G.MobIndex = _G.MobIndex + 1
                     if _G.MobIndex > #BonesTable then
                         _G.MobIndex = 1
                     end
-                    -- print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex]) -- Bỏ cmt nếu muốn xem log
-                    task.wait(0.5)
+                    -- print("Đang chuyển sang farm: " .. BonesTable[_G.MobIndex]) -- Bỏ comment nếu muốn xem log
+                    task.wait(0.1)
                 end
             end)
         end
