@@ -1703,7 +1703,7 @@ spawn(function()
         if _G.Level then
             pcall(function()
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
-                local q = QuestNeta() -- Đảm bảo hàm này đã được định nghĩa trong script gốc của bạn
+                local q = QuestNeta() -- Đảm bảo hàm QuestNeta hoạt động đúng
                 if not q or not q[1] then return end
 
                 local questMobName, questID, questIndex, mobPos, questDisplay, questPos =
@@ -1714,26 +1714,33 @@ spawn(function()
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
                 
-                -- /// LOGIC NHẬN QUEST ///
+                -- /// 1. LOGIC NHẬN QUEST (ĐÃ FIX) ///
                 if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
+                    -- Hủy quest cũ nếu bị lỗi
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
-                    task.wait(0.25)
                     
-                    -- Nếu xa NPC Quest quá thì TP, gần thì nhận luôn
-                    if (Root.Position - questPos.Position).Magnitude > 50 then
+                    local distToNPC = (Root.Position - questPos.Position).Magnitude
+                    
+                    -- Nếu xa NPC quá (> 350) thì bay tới
+                    if distToNPC > 350 then
                          _tp(questPos)
-                         return -- Đợi TP tới nơi
-                    end
-                    
-                    -- Đoạn này xử lý lại một chút để không bị kẹt vòng lặp
-                    if (Root.Position - questPos.Position).Magnitude <= 50 then
+                         return -- Đợi bay tới nơi vòng lặp sau sẽ xử lý tiếp
+                    else
+                         -- Nếu đã ở gần (< 350) hoặc cùng đảo: TP THẲNG VÀO MẶT NPC
+                         -- Sea 1 cần đứng rất gần mới nhận được
+                         Root.CFrame = questPos
+                         Root.Velocity = Vector3.new(0,0,0)
+                         task.wait(0.1) -- Đợi server update vị trí
+                         
+                         -- Spam nhận quest (thử cả option 1 và 2 cho chắc)
                          replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                         replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, 1) 
                          task.wait(0.5)
                     end
                     return
                 end
 
-                -- /// LOGIC TÌM VÀ ĐÁNH QUÁI ///
+                -- /// 2. LOGIC TÌM VÀ ĐÁNH QUÁI ///
                 local foundMob = false
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
@@ -1746,13 +1753,15 @@ spawn(function()
                             if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
-
+                            
+                            -- Logic TP Farm (Như bạn yêu cầu)
                             if dist < 350 then
-
-                                Root.CFrame = mobRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-                                Root.Velocity = Vector3.new(0, 0, 0) -- Chống trôi
+                                -- Đã ở gần: TP cứng lên đầu quái 25 stud, nhìn xuống đất
+                                Root.CFrame = mobRoot.CFrame * CFrame.new(0, 25, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                Root.Velocity = Vector3.new(0, 0, 0)
                                 Attack.Kill(mob, _G.Level)
                             else
+                                -- Đang ở xa: Dùng hàm đánh mặc định để bay tới
                                 Attack.Kill(mob, _G.Level)
                             end
                             
@@ -1761,19 +1770,19 @@ spawn(function()
                     end
                 end
 
+                -- /// 3. LOGIC KHI KHÔNG TÌM THẤY QUÁI ///
                 if not foundMob then
-
+                    -- Check khoảng cách tới bãi quái
                     if (Root.Position - mobPos.Position).Magnitude > 350 then
                         _tp(mobPos) -- Bay tới bãi quái
                     else
+                         -- Nếu đã ở bãi mà chưa thấy quái, treo trên cao chờ spawn
+                         -- Tránh việc đứng dưới đất bị quái đánh lén khi vừa spawn
                          Root.CFrame = mobPos * CFrame.new(0, 50, 0)
                          Root.Velocity = Vector3.new(0, 0, 0)
                     end
                     
                     task.wait(0.5)
-                    local spawnMob = ws.Enemies:FindFirstChild(questMobName)
-                    if spawnMob and spawnMob:FindFirstChild("HumanoidRootPart") then
-                    end
                 end
             end)
         end
@@ -7760,3 +7769,4 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
