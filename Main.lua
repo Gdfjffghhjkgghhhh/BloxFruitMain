@@ -1605,7 +1605,89 @@ Tabs.Main:AddButton({
             setclipboard(tostring("")) 
         end
 })
+if World3 then
+    Tabs.Main:AddSection("Submarine Worker")
 
+    local TweenService = game:GetService("TweenService")
+    local activeTween 
+    local function TweenToSpeed(cf, speed)
+        local player = game.Players.LocalPlayer
+        local char = player.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        if activeTween then
+            activeTween:Cancel()
+            activeTween = nil
+        end
+
+        local dist = (root.Position - cf.Position).Magnitude
+        local time = dist / speed
+        if time <= 0 then return end
+
+        local tween = TweenService:Create(
+            root,
+            TweenInfo.new(time, Enum.EasingStyle.Linear),
+            {CFrame = cf}
+        )
+        activeTween = tween
+        tween:Play()
+        return tween
+    end
+
+    local TeleportToggle = Tabs.Main:AddToggle("tpSubmarineWorker", {
+        Title = "Teleport To Submarine Worker",
+        Description = "",
+        Default = false,
+        Callback = function(value)
+            _G.tpSubmarineWorker = value
+            if not value and activeTween then
+                activeTween:Cancel()
+                activeTween = nil
+            end
+        end
+    })
+
+    spawn(function()
+        while task.wait(0.3) do
+            if _G.tpSubmarineWorker then
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    local level = player.Data.Level.Value
+                    local char = player.Character or player.CharacterAdded:Wait()
+                    local root = char:WaitForChild("HumanoidRootPart")
+                    local npcPosition = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+
+                    if level < 2600 then
+                        _G.tpSubmarineWorker = false
+                        TeleportToggle:Set(false)
+                        if activeTween then
+                            activeTween:Cancel()
+                            activeTween = nil
+                        end
+                        return
+                    end
+
+                    local dist = (root.Position - npcPosition.Position).Magnitude
+                    while _G.tpSubmarineWorker and dist > 8 do
+                        TweenToSpeed(npcPosition + Vector3.new(0, 5, 0), 350)
+                        task.wait(0.1)
+                        dist = (root.Position - npcPosition.Position).Magnitude
+                    end
+
+                    if dist <= 8 then
+                        _G.tpSubmarineWorker = false
+                        TeleportToggle:Set(false)
+                        if activeTween then
+                            activeTween:Cancel()
+                            activeTween = nil
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+end
 Tabs.Main:AddSection("Farm Level")
 local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", Description = "", Default = false})
 FarmLevel:OnChanged(function(Value)
@@ -1637,18 +1719,21 @@ spawn(function()
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
                     task.wait(0.25)
                     
+                    -- Nếu xa NPC Quest quá thì TP, gần thì nhận luôn
                     if (Root.Position - questPos.Position).Magnitude > 50 then
                          _tp(questPos)
                          return -- Đợi TP tới nơi
                     end
                     
+                    -- Đoạn này xử lý lại một chút để không bị kẹt vòng lặp
                     if (Root.Position - questPos.Position).Magnitude <= 50 then
                          replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
                          task.wait(0.5)
                     end
                     return
-                  end
+                end
 
+                -- /// LOGIC TÌM VÀ ĐÁNH QUÁI ///
                 local foundMob = false
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
@@ -1661,10 +1746,9 @@ spawn(function()
                             if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
-                            
-                            -- /// LOGIC TP MỚI ///
+
                             if dist < 350 then
-                                -- Đã ở gần: TP cứng lên đầu quái 25 stud, nhìn xuống đất
+
                                 Root.CFrame = mobRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
                                 Root.Velocity = Vector3.new(0, 0, 0) -- Chống trôi
                                 Attack.Kill(mob, _G.Level)
@@ -1678,6 +1762,7 @@ spawn(function()
                 end
 
                 if not foundMob then
+
                     if (Root.Position - mobPos.Position).Magnitude > 350 then
                         _tp(mobPos) -- Bay tới bãi quái
                     else
@@ -1906,13 +1991,11 @@ spawn(function()
                             end
                         until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0
                     else
-                        -- Đứng đợi boss spawn trong phòng
                         if transparency == 0 and (CFrame.new(-1990.67, 4533, -14973.67).Position - root.Position).Magnitude >= 2000 then
                             _tp(CFrame.new(-2151.82, 149.32, -12404.91))
                         end
                     end
-                
-                -- /// PHẦN 2: FARM 500 QUÁI ///
+
                 else
                     local CakePrince = {"Cookie Crafter","Cake Guard","Baking Staff","Head Baker"}
                     for _, mobType in ipairs(CakePrince) do
@@ -1940,14 +2023,11 @@ spawn(function()
                             end
                             
                             if v then
-                                -- Nhận Quest
                                 if _G.AcceptQuestC and not questUI.Visible then
                                     local questPos = CFrame.new(-1927.92, 37.8, -12842.54)
-                                    -- Kiểm tra khoảng cách Quest
                                     if (questPos.Position - root.Position).Magnitude > 350 then
                                         _tp(questPos)
                                     else
-                                        -- Nếu gần NPC Quest (< 350) thì TP thẳng tới NPC để nhận cho lẹ
                                         root.CFrame = questPos
                                         
                                         local questData = {
@@ -1976,12 +2056,10 @@ spawn(function()
                                         local dist = (root.Position - enemyRoot.Position).Magnitude
                                         
                                         if dist < 350 then
-                                            -- TP trên đầu quái 25 stud, nhìn xuống
                                             root.CFrame = enemyRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
                                             root.Velocity = Vector3.new(0,0,0)
                                             Attack.Kill(v, _G.Auto_Cake_Prince)
                                         else
-                                            -- Xa quá thì bay tới
                                             Attack.Kill(v, _G.Auto_Cake_Prince)
                                         end
                                     else
@@ -1997,7 +2075,6 @@ spawn(function()
                             task.wait(0.5)
                         end
                     end
-                    -- Nếu không có boss và không farm quái, quay về vị trí chờ
                     if _G.Auto_Cake_Prince and transparency ~= 0 then
                         _tp(CFrame.new(-2077, 252, -12373))
                     end
@@ -2010,8 +2087,8 @@ local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "",
 Q:OnChanged(function(Value)
   _G.AutoFarm_Bone = Value
 end)
--- [SỬA LỖI 1] Khởi tạo MobIndex nếu chưa có để tránh lỗi script dừng đột ngột
 if not _G.MobIndex then _G.MobIndex = 1 end
+
 spawn(function()
     while task.wait() do 
         if _G.AutoFarm_Bone then
@@ -2045,7 +2122,6 @@ spawn(function()
                      end
                 end
 
-                -- /// LOGIC FARM QUÁI ///
                 if bone and bone:FindFirstChild("Humanoid") and bone:FindFirstChild("HumanoidRootPart") and bone.Humanoid.Health > 0 then
                     
                     repeat 
@@ -2061,11 +2137,7 @@ spawn(function()
                                 if dist < 350 then
                                     -- CFrame thẳng tới vị trí quái (cách lên trên 5 stud để đánh từ trên xuống)
                                     root.CFrame = enemyRoot.CFrame * CFrame.new(0, 15, 0)
-                                    
-                                    -- Vẫn gọi hàm Attack.Kill để đánh, nhưng vị trí đã được set cứng ở trên
-                                    Attack.Kill(bone, _G.AutoFarm_Bone) 
                                 else
-                                    -- Nếu khoảng cách xa (Đang ở đảo khác bay về) -> Dùng cơ chế bay/tween mặc định của Attack.Kill
                                     Attack.Kill(bone, _G.AutoFarm_Bone) 
                                 end
                             end
@@ -2074,7 +2146,7 @@ spawn(function()
                         end
                     until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
                 else
-                    -- /// LOGIC ĐỔI QUÁI ///
+
                     _G.MobIndex = _G.MobIndex + 1
                     
                     if _G.MobIndex > #BonesTable then
@@ -7686,135 +7758,5 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
--- [[ AUTO SUBMERGED ISLAND - FIX TOÀN DIỆN ]] --
-task.spawn(function()
-    local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local TweenService = game:GetService("TweenService")
-    
-    -- Tọa độ NPC
-    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
-    local isTraveling = false 
 
-    -- HÀM BAY RIÊNG (Không phụ thuộc script cũ)
-    local function BayToi(targetCF)
-        local plr = Players.LocalPlayer
-        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
-        local root = plr.Character.HumanoidRootPart
-        
-        -- Tạo BodyVelocity để không rớt xuống biển
-        local bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.zero
-        bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        bv.Parent = root
-        
-        -- Tính toán tween
-        local dist = (root.Position - targetCF.Position).Magnitude
-        local speed = 300 -- Tốc độ bay
-        local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
-        
-        local tween = TweenService:Create(root, info, {CFrame = targetCF})
-        tween:Play()
-        
-        -- Chờ bay xong
-        local reached = false
-        local conn
-        conn = tween.Completed:Connect(function()
-            reached = true
-            conn:Disconnect()
-        end)
-        
-        -- Vòng lặp chờ (có timeout để không kẹt)
-        local start = tick()
-        while not reached and tick() - start < 30 do
-            -- Nếu tắt farm hoặc đổi ý thì hủy
-            if not _G.Level then tween:Cancel() break end
-            task.wait()
-        end
-        
-        if bv then bv:Destroy() end
-    end
-
-    print("✅ Đã nạp Auto Submerged Fix - Chờ Level 2600...")
-
-    while task.wait(1) do
-        pcall(function()
-            local plr = Players.LocalPlayer
-            if not plr or not plr.Character then return end
-            
-            local root = plr.Character:FindFirstChild("HumanoidRootPart")
-            if not root then return end
-            
-            local level = plr.Data.Level.Value
-
-            -- ĐIỀU KIỆN CHẠY:
-            -- 1. Đang bật Auto Farm (_G.Level = true)
-            -- 2. Level >= 2600
-            -- 3. Đang ở map cũ (Cách NPC < 5000 stud)
-            if _G.Level and level >= 2600 and not isTraveling then
-                if (root.Position - NPC_CF.Position).Magnitude < 5000 then
-                    
-                    isTraveling = true 
-                    print("🚀 Đủ cấp 2600! Tắt farm để đi qua đảo...")
-
-                    -- 1. TẮT FARM (Để không xung đột)
-                    _G.Level = false 
-                    if _G.StopTween then _G.StopTween = true end 
-                    
-                    -- Hủy các tween cũ
-                    for _, v in pairs(TweenService:GetTagged("Tween")) do v:Cancel() end
-                    task.wait(0.5)
-
-                    -- 2. BAY TỚI NPC
-                    local startTime = tick()
-                    repeat
-                        if not root then break end
-                        -- Bay tới vị trí trên đầu NPC 5 mét
-                        BayToi(NPC_CF + Vector3.new(0, 5, 0))
-                        task.wait(0.1)
-                    until (root.Position - NPC_CF.Position).Magnitude <= 10 or tick() - startTime > 25
-
-                    -- 3. NEO NGƯỜI LẠI
-                    if root then
-                        root.CFrame = NPC_CF
-                        root.Anchored = true
-                        root.Velocity = Vector3.zero
-                    end
-                    task.wait(1)
-
-                    -- 4. NÓI CHUYỆN QUA ĐẢO
-                    local args = "TravelToSubmergedIsland"
-                    local remote = ReplicatedStorage.Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak")
-                    
-                    if remote then
-                        remote:InvokeServer(args)
-                        print("✅ Đã gọi lệnh qua đảo!")
-                    else
-                        warn("❌ Không tìm thấy Remote nói chuyện!")
-                    end
-
-                    task.wait(8) -- Chờ game load
-
-                    -- 5. XẢ NEO & RESET
-                    if root then root.Anchored = false end
-                    
-                    -- Kiểm tra xem đã qua chưa
-                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                         local newPos = plr.Character.HumanoidRootPart.Position
-                         if (newPos - NPC_CF.Position).Magnitude > 5000 then
-                             print("🌊 Đã qua đảo thành công! Reset Quest...")
-                             pcall(function() 
-                                ReplicatedStorage.Remotes.CommF_:InvokeServer("AbandonQuest") 
-                             end)
-                         end
-                    end
-
-                    -- Bật lại farm
-                    _G.Level = true
-                    isTraveling = false
-                end
-            end
-        end)
-    end
-end)
 Window:SelectTab(1)
