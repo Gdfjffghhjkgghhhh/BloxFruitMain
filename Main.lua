@@ -1703,36 +1703,61 @@ spawn(function()
         if _G.Level then
             pcall(function()
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
-                local q = QuestNeta() -- Đảm bảo hàm QuestNeta hoạt động đúng
+                local q = QuestNeta() 
                 if not q or not q[1] then return end
 
                 local questMobName, questID, questIndex, mobPos, questDisplay, questPos =
                     q[1], q[2], q[3], q[4], q[5], q[6]
 
+                -- Lấy tên Quest hiện tại trên bảng
                 local questTitle = ""
                 if questGui:FindFirstChild("Container") and questGui.Container:FindFirstChild("QuestTitle") then
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
                 
-                -- /// 1. LOGIC NHẬN QUEST (ĐÃ FIX) ///
-                if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
-                    -- Hủy quest cũ nếu bị lỗi
-                    replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
+                -- /// FIX LỖI NHẬN RỒI TẮT ///
+                -- 1. Kiểm tra xem Quest hiển thị đúng chưa
+                local isQuestValid = false
+                
+                -- Nếu đang hiện bảng Quest
+                if questGui.Visible then
+                    -- Nếu bảng hiện nhưng chưa load chữ (trống hoặc chỉ hiện chữ "Quest") -> Coi như là ĐÚNG (đợi nó load)
+                    if questTitle == "Quest" or questTitle == "Loading..." or questTitle == "" then
+                        isQuestValid = true
+                    else
+                        -- So sánh tên (Chuyển về chữ thường để so sánh cho chuẩn)
+                        local titleLower = string.lower(questTitle)
+                        local displayLower = string.lower(questDisplay or "")
+                        local mobNameLower = string.lower(questMobName or "")
+
+                        -- Nếu tiêu đề chứa tên hiển thị HOẶC chứa tên con quái -> Đúng quest
+                        if string.find(titleLower, displayLower) or string.find(titleLower, mobNameLower) then
+                            isQuestValid = true
+                        end
+                    end
+                end
+
+                -- 2. Nếu không có quest hoặc quest sai thì mới đi nhận lại
+                if not isQuestValid then
+                    -- Chỉ bỏ quest khi bảng đang hiện (nghĩa là đang nhận sai quest)
+                    if questGui.Visible then
+                        replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
+                        task.wait(0.5) -- Đợi chút cho server xử lý
+                    end
                     
                     local distToNPC = (Root.Position - questPos.Position).Magnitude
                     
                     -- Nếu xa NPC quá (> 350) thì bay tới
                     if distToNPC > 350 then
                          _tp(questPos)
-                         return -- Đợi bay tới nơi vòng lặp sau sẽ xử lý tiếp
+                         return 
                     else
-                         -- Nếu đã ở gần (< 350) hoặc cùng đảo: TP THẲNG VÀO MẶT NPC
-                         -- Sea 1 cần đứng rất gần mới nhận được
+                         -- Nếu đã ở gần: TP THẲNG VÀO MẶT NPC để server nhận diện
                          Root.CFrame = questPos
                          Root.Velocity = Vector3.new(0,0,0)
-                         task.wait(0.1) -- Đợi server update vị trí
+                         task.wait(0.1) 
                          
-                         -- Spam nhận quest (thử cả option 1 và 2 cho chắc)
+                         -- Spam nhận quest
                          replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
                          replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, 1) 
                          task.wait(0.5)
@@ -1740,7 +1765,7 @@ spawn(function()
                     return
                 end
 
-                -- /// 2. LOGIC TÌM VÀ ĐÁNH QUÁI ///
+                -- /// LOGIC TÌM VÀ ĐÁNH QUÁI (ĐÃ UPDATE) ///
                 local foundMob = false
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
@@ -1754,7 +1779,7 @@ spawn(function()
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
                             
-                            -- Logic TP Farm (Như bạn yêu cầu)
+                            -- Logic TP Farm
                             if dist < 350 then
                                 -- Đã ở gần: TP cứng lên đầu quái 25 stud, nhìn xuống đất
                                 Root.CFrame = mobRoot.CFrame * CFrame.new(0, 25, 0) * CFrame.Angles(math.rad(-90), 0, 0)
@@ -1770,18 +1795,15 @@ spawn(function()
                     end
                 end
 
-                -- /// 3. LOGIC KHI KHÔNG TÌM THẤY QUÁI ///
+                -- /// LOGIC KHI KHÔNG TÌM THẤY QUÁI ///
                 if not foundMob then
-                    -- Check khoảng cách tới bãi quái
                     if (Root.Position - mobPos.Position).Magnitude > 350 then
                         _tp(mobPos) -- Bay tới bãi quái
                     else
-                         -- Nếu đã ở bãi mà chưa thấy quái, treo trên cao chờ spawn
-                         -- Tránh việc đứng dưới đất bị quái đánh lén khi vừa spawn
+                         -- Treo trên cao chờ spawn
                          Root.CFrame = mobPos * CFrame.new(0, 50, 0)
                          Root.Velocity = Vector3.new(0, 0, 0)
                     end
-                    
                     task.wait(0.5)
                 end
             end)
@@ -7769,4 +7791,5 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
 
