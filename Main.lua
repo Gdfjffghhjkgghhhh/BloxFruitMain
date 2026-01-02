@@ -1605,121 +1605,7 @@ Tabs.Main:AddButton({
             setclipboard(tostring("")) 
         end
 })
-if World3 then
-    Tabs.Main:AddSection("Submarine Worker")
 
-    local TweenService = game:GetService("TweenService")
-    local activeTween 
-    local function TweenToSpeed(cf, speed)
-        local player = game.Players.LocalPlayer
-        local char = player.Character
-        if not char then return end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        if activeTween then
-            activeTween:Cancel()
-            activeTween = nil
-        end
-
-        local dist = (root.Position - cf.Position).Magnitude
-        local time = dist / speed
-        if time <= 0 then return end
-
-        local tween = TweenService:Create(
-            root,
-            TweenInfo.new(time, Enum.EasingStyle.Linear),
-            {CFrame = cf}
-        )
-        activeTween = tween
-        tween:Play()
-        return tween
-    end
-
-    local TeleportToggle = Tabs.Main:AddToggle("tpSubmarineWorker", {
-        Title = "Teleport To Submarine Worker",
-        Description = "",
-        Default = false,
-        Callback = function(value)
-            _G.tpSubmarineWorker = value
-            if not value and activeTween then
-                activeTween:Cancel()
-                activeTween = nil
-            end
-        end
-    })
-
-    spawn(function()
-    while task.wait(0.3) do
-        if _G.tpSubmarineWorker then
-            pcall(function()
-                local player = game.Players.LocalPlayer
-                local level = player.Data.Level.Value
-                local char = player.Character or player.CharacterAdded:Wait()
-                local root = char:WaitForChild("HumanoidRootPart")
-                
-                -- Tọa độ NPC
-                local npcPosition = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
-
-                -- Check level, nếu thấp hơn 2600 thì tắt
-                if level < 2600 then
-                    _G.tpSubmarineWorker = false
-                    if TeleportToggle then TeleportToggle:Set(false) end
-                    if activeTween then
-                        activeTween:Cancel()
-                        activeTween = nil
-                    end
-                    return
-                end
-
-                local dist = (root.Position - npcPosition.Position).Magnitude
-                
-                -- Vòng lặp bay tới NPC
-                while _G.tpSubmarineWorker and dist > 8 do
-                    -- Bay cao hơn đầu NPC 1 chút (Y+5) để không bị kẹt dưới đất
-                    TweenToSpeed(npcPosition + Vector3.new(0, 5, 0), 350)
-                    task.wait(0.1)
-                    if root then
-                        dist = (root.Position - npcPosition.Position).Magnitude
-                    else
-                        break
-                    end
-                end
-
-                if dist <= 8 then
-                    -- 1. Dừng bay ngay lập tức
-                    if activeTween then
-                        activeTween:Cancel()
-                        activeTween = nil
-                    end
-                    
-                    root.Velocity = Vector3.new(0,0,0)
-                    root.CFrame = npcPosition -- Dịch chuyển chính xác vào vị trí NPC
-                    root.Anchored = true      -- Neo lại
-                    
-                    task.wait(0.5) -- Chờ server nhận diện vị trí
-
-                    -- 3. Gọi Remote nói chuyện qua đảo
-                    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                    -- Tìm remote nói chuyện (cần check đúng tên remote trong game của bạn)
-                    local speakRemote = ReplicatedStorage.Modules.Net:WaitForChild("RF/SubmarineWorkerSpeak")
-                    
-                    if speakRemote then
-                        pcall(function()
-                            speakRemote:InvokeServer("TravelToSubmergedIsland")
-                        end)
-                    end
-
-                    task.wait(3) -- Chờ game xử lý teleport
-
-                    if root then root.Anchored = false end
-                    
-                    _G.tpSubmarineWorker = false
-                    if TeleportToggle then TeleportToggle:Set(false) end
-                end
-            end)
-        end
-    end
-end)
 Tabs.Main:AddSection("Farm Level")
 local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", Description = "", Default = false})
 FarmLevel:OnChanged(function(Value)
@@ -7800,5 +7686,135 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
+-- [[ AUTO SUBMERGED ISLAND - FIX TOÀN DIỆN ]] --
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local TweenService = game:GetService("TweenService")
+    
+    -- Tọa độ NPC
+    local NPC_CF = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
+    local isTraveling = false 
 
+    -- HÀM BAY RIÊNG (Không phụ thuộc script cũ)
+    local function BayToi(targetCF)
+        local plr = Players.LocalPlayer
+        if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+        local root = plr.Character.HumanoidRootPart
+        
+        -- Tạo BodyVelocity để không rớt xuống biển
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.zero
+        bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bv.Parent = root
+        
+        -- Tính toán tween
+        local dist = (root.Position - targetCF.Position).Magnitude
+        local speed = 300 -- Tốc độ bay
+        local info = TweenInfo.new(dist / speed, Enum.EasingStyle.Linear)
+        
+        local tween = TweenService:Create(root, info, {CFrame = targetCF})
+        tween:Play()
+        
+        -- Chờ bay xong
+        local reached = false
+        local conn
+        conn = tween.Completed:Connect(function()
+            reached = true
+            conn:Disconnect()
+        end)
+        
+        -- Vòng lặp chờ (có timeout để không kẹt)
+        local start = tick()
+        while not reached and tick() - start < 30 do
+            -- Nếu tắt farm hoặc đổi ý thì hủy
+            if not _G.Level then tween:Cancel() break end
+            task.wait()
+        end
+        
+        if bv then bv:Destroy() end
+    end
+
+    print("✅ Đã nạp Auto Submerged Fix - Chờ Level 2600...")
+
+    while task.wait(1) do
+        pcall(function()
+            local plr = Players.LocalPlayer
+            if not plr or not plr.Character then return end
+            
+            local root = plr.Character:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+            
+            local level = plr.Data.Level.Value
+
+            -- ĐIỀU KIỆN CHẠY:
+            -- 1. Đang bật Auto Farm (_G.Level = true)
+            -- 2. Level >= 2600
+            -- 3. Đang ở map cũ (Cách NPC < 5000 stud)
+            if _G.Level and level >= 2600 and not isTraveling then
+                if (root.Position - NPC_CF.Position).Magnitude < 5000 then
+                    
+                    isTraveling = true 
+                    print("🚀 Đủ cấp 2600! Tắt farm để đi qua đảo...")
+
+                    -- 1. TẮT FARM (Để không xung đột)
+                    _G.Level = false 
+                    if _G.StopTween then _G.StopTween = true end 
+                    
+                    -- Hủy các tween cũ
+                    for _, v in pairs(TweenService:GetTagged("Tween")) do v:Cancel() end
+                    task.wait(0.5)
+
+                    -- 2. BAY TỚI NPC
+                    local startTime = tick()
+                    repeat
+                        if not root then break end
+                        -- Bay tới vị trí trên đầu NPC 5 mét
+                        BayToi(NPC_CF + Vector3.new(0, 5, 0))
+                        task.wait(0.1)
+                    until (root.Position - NPC_CF.Position).Magnitude <= 10 or tick() - startTime > 25
+
+                    -- 3. NEO NGƯỜI LẠI
+                    if root then
+                        root.CFrame = NPC_CF
+                        root.Anchored = true
+                        root.Velocity = Vector3.zero
+                    end
+                    task.wait(1)
+
+                    -- 4. NÓI CHUYỆN QUA ĐẢO
+                    local args = "TravelToSubmergedIsland"
+                    local remote = ReplicatedStorage.Modules.Net:FindFirstChild("RF/SubmarineWorkerSpeak")
+                    
+                    if remote then
+                        remote:InvokeServer(args)
+                        print("✅ Đã gọi lệnh qua đảo!")
+                    else
+                        warn("❌ Không tìm thấy Remote nói chuyện!")
+                    end
+
+                    task.wait(8) -- Chờ game load
+
+                    -- 5. XẢ NEO & RESET
+                    if root then root.Anchored = false end
+                    
+                    -- Kiểm tra xem đã qua chưa
+                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                         local newPos = plr.Character.HumanoidRootPart.Position
+                         if (newPos - NPC_CF.Position).Magnitude > 5000 then
+                             print("🌊 Đã qua đảo thành công! Reset Quest...")
+                             pcall(function() 
+                                ReplicatedStorage.Remotes.CommF_:InvokeServer("AbandonQuest") 
+                             end)
+                         end
+                    end
+
+                    -- Bật lại farm
+                    _G.Level = true
+                    isTraveling = false
+                end
+            end
+        end)
+    end
+end)
 Window:SelectTab(1)
