@@ -1703,7 +1703,7 @@ spawn(function()
         if _G.Level then
             pcall(function()
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
-                local q = QuestNeta()
+                local q = QuestNeta() -- Đảm bảo hàm này đã được định nghĩa trong script gốc của bạn
                 if not q or not q[1] then return end
 
                 local questMobName, questID, questIndex, mobPos, questDisplay, questPos =
@@ -1713,16 +1713,27 @@ spawn(function()
                 if questGui:FindFirstChild("Container") and questGui.Container:FindFirstChild("QuestTitle") then
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
+                
+                -- /// LOGIC NHẬN QUEST ///
                 if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
                     task.wait(0.25)
-                    _tp(questPos)
-                    repeat
-                        task.wait()
-                    until (Root.Position - questPos.Position).Magnitude <= 6
-                    replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                    
+                    -- Nếu xa NPC Quest quá thì TP, gần thì nhận luôn
+                    if (Root.Position - questPos.Position).Magnitude > 50 then
+                         _tp(questPos)
+                         return -- Đợi TP tới nơi
+                    end
+                    
+                    -- Đoạn này xử lý lại một chút để không bị kẹt vòng lặp
+                    if (Root.Position - questPos.Position).Magnitude <= 50 then
+                         replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                         task.wait(0.5)
+                    end
                     return
                 end
+
+                -- /// LOGIC TÌM VÀ ĐÁNH QUÁI ///
                 local foundMob = false
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
@@ -1735,29 +1746,45 @@ spawn(function()
                             if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
-                            if dist > 250 then
-                                _tp(mobRoot.CFrame * CFrame.new(0, 40, 0))
-                            elseif dist > 30 then
-                                Root.CFrame = Root.CFrame:Lerp(mobRoot.CFrame * CFrame.new(0, 20, 0), 0.25)
+                            
+                            -- /// LOGIC TP MỚI ///
+                            if dist < 350 then
+                                -- Đã ở gần: TP cứng lên đầu quái 25 stud, nhìn xuống đất
+                                Root.CFrame = mobRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                Root.Velocity = Vector3.new(0, 0, 0) -- Chống trôi
+                                Attack.Kill(mob, _G.Level)
+                            else
+                                -- Đang ở xa: Dùng hàm đánh mặc định để bay tới
+                                Attack.Kill(mob, _G.Level)
                             end
-                            Attack.Kill(mob, _G.Level)
+                            
                         until mob.Humanoid.Health <= 0 or not mob.Parent
                         break
                     end
                 end
+
+                -- /// LOGIC KHI KHÔNG TÌM THẤY QUÁI ///
                 if not foundMob then
-                    _tp(mobPos)
+                    -- Nếu không thấy quái, TP đến bãi quái chờ spawn
+                    if (Root.Position - mobPos.Position).Magnitude > 350 then
+                        _tp(mobPos) -- Bay tới bãi quái
+                    else
+                         -- Nếu đã ở bãi mà chưa thấy quái, treo trên cao chờ
+                         Root.CFrame = mobPos * CFrame.new(0, 50, 0)
+                         Root.Velocity = Vector3.new(0, 0, 0)
+                    end
+                    
                     task.wait(0.5)
+                    -- Tìm lại lần nữa xem có con nào mới spawn không để focus ngay
                     local spawnMob = ws.Enemies:FindFirstChild(questMobName)
                     if spawnMob and spawnMob:FindFirstChild("HumanoidRootPart") then
-                        _tp(spawnMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                        -- Không TP ngay để tránh lỗi, để vòng lặp sau xử lý
                     end
                 end
             end)
         end
     end
 end)
-
 local TravelDress = Tabs.Quests:AddToggle("TravelDress", {Title = "Auto Travel Dressrosa", Description = "", Default = false})
 TravelDress:OnChanged(function(Value)
   _G.TravelDres = Value
@@ -1922,110 +1949,153 @@ Q:OnChanged(function(Value)
 _G.Auto_Cake_Prince = Value
 end)
 spawn(function()
-  while task.wait(0.1) do
-    if _G.Auto_Cake_Prince then
-      pcall(function()
-        local player = game.Players.LocalPlayer
-        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        local questUI = player.PlayerGui.Main.Quest
-        local enemies = workspace.Enemies
-        local cakeIslandPos = CFrame.new(-2077, 252, -12373)
-        if not root then return end
-
-        local cakeLoaf = workspace.Map:FindFirstChild("CakeLoaf")
-        local bigMirror = cakeLoaf and cakeLoaf:FindFirstChild("BigMirror")
-
-        if not bigMirror or not bigMirror:FindFirstChild("Other") or (cakeIslandPos.Position - root.Position).Magnitude > 3000 then
-          _tp(cakeIslandPos)
-        end
-
-        local transparency = 1
-        if bigMirror and bigMirror:FindFirstChild("Other") then
-          transparency = bigMirror.Other.Transparency
-        end
-
-        if transparency == 0 or enemies:FindFirstChild("Cake Prince") then
-          local v = GetConnectionEnemies("Cake Prince")
-          if v then
-            repeat task.wait()
-              Attack.Kill2(v, _G.Auto_Cake_Prince)
-            until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0
-          else
-            if transparency == 0 and (CFrame.new(-1990.67, 4533, -14973.67).Position - root.Position).Magnitude >= 2000 then
-              _tp(CFrame.new(-2151.82, 149.32, -12404.91))
-            end
-          end
-        else
-          local CakePrince = {"Cookie Crafter","Cake Guard","Baking Staff","Head Baker"}
-          for _, mobType in ipairs(CakePrince) do
-            if not _G.Auto_Cake_Prince then break end
-            
-            local hasMobs = true
-            while hasMobs and _G.Auto_Cake_Prince do
-              local v = GetConnectionEnemies({mobType})
-              
-              if not v then
-                local nearestMob = nil
-                local shortestDistance = math.huge
+    while task.wait(0.1) do
+        if _G.Auto_Cake_Prince then
+            pcall(function()
+                local player = game.Players.LocalPlayer
+                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local questUI = player.PlayerGui.Main.Quest
+                local enemies = workspace.Enemies
                 
-                for _, enemy in pairs(enemies:GetChildren()) do
-                  if enemy.Name == mobType and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
-                    local distance = (root.Position - enemy.HumanoidRootPart.Position).Magnitude
-                    if distance < shortestDistance then
-                      shortestDistance = distance
-                      nearestMob = enemy
+                -- Vị trí đảo Cake
+                local cakeIslandPos = CFrame.new(-2077, 252, -12373)
+                
+                if not root then return end
+
+                local cakeLoaf = workspace.Map:FindFirstChild("CakeLoaf")
+                local bigMirror = cakeLoaf and cakeLoaf:FindFirstChild("BigMirror")
+
+                -- Logic di chuyển đến đảo nếu quá xa
+                if not bigMirror or not bigMirror:FindFirstChild("Other") or (cakeIslandPos.Position - root.Position).Magnitude > 3000 then
+                    _tp(cakeIslandPos)
+                end
+
+                local transparency = 1
+                if bigMirror and bigMirror:FindFirstChild("Other") then
+                    transparency = bigMirror.Other.Transparency
+                end
+
+                -- /// PHẦN 1: ĐÁNH CAKE PRINCE (BOSS) ///
+                if transparency == 0 or enemies:FindFirstChild("Cake Prince") then
+                    local v = GetConnectionEnemies("Cake Prince")
+                    if v then
+                        repeat 
+                            task.wait()
+                            if v and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+                                local enemyRoot = v.HumanoidRootPart
+                                local dist = (root.Position - enemyRoot.Position).Magnitude
+                                
+                                if dist < 350 then
+                                    -- TP trên đầu boss 25 stud, nhìn xuống
+                                    root.CFrame = enemyRoot.CFrame * CFrame.new(0, 25, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                    root.Velocity = Vector3.new(0,0,0)
+                                    Attack.Kill2(v, _G.Auto_Cake_Prince)
+                                else
+                                    -- Xa quá thì bay tới
+                                    Attack.Kill2(v, _G.Auto_Cake_Prince)
+                                end
+                            end
+                        until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0
+                    else
+                        -- Đứng đợi boss spawn trong phòng
+                        if transparency == 0 and (CFrame.new(-1990.67, 4533, -14973.67).Position - root.Position).Magnitude >= 2000 then
+                            _tp(CFrame.new(-2151.82, 149.32, -12404.91))
+                        end
                     end
-                  end
+                
+                -- /// PHẦN 2: FARM 500 QUÁI ///
+                else
+                    local CakePrince = {"Cookie Crafter","Cake Guard","Baking Staff","Head Baker"}
+                    for _, mobType in ipairs(CakePrince) do
+                        if not _G.Auto_Cake_Prince then break end
+                        
+                        local hasMobs = true
+                        while hasMobs and _G.Auto_Cake_Prince do
+                            local v = GetConnectionEnemies({mobType})
+                            
+                            -- Tìm quái gần nhất nếu không bắt được target
+                            if not v then
+                                local nearestMob = nil
+                                local shortestDistance = math.huge
+                                
+                                for _, enemy in pairs(enemies:GetChildren()) do
+                                    if enemy.Name == mobType and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
+                                        local distance = (root.Position - enemy.HumanoidRootPart.Position).Magnitude
+                                        if distance < shortestDistance then
+                                            shortestDistance = distance
+                                            nearestMob = enemy
+                                        end
+                                    end
+                                end
+                                v = nearestMob
+                            end
+                            
+                            if v then
+                                -- Nhận Quest
+                                if _G.AcceptQuestC and not questUI.Visible then
+                                    local questPos = CFrame.new(-1927.92, 37.8, -12842.54)
+                                    -- Kiểm tra khoảng cách Quest
+                                    if (questPos.Position - root.Position).Magnitude > 350 then
+                                        _tp(questPos)
+                                    else
+                                        -- Nếu gần NPC Quest (< 350) thì TP thẳng tới NPC để nhận cho lẹ
+                                        root.CFrame = questPos
+                                        
+                                        local questData = {
+                                            {"StartQuest", "CakeQuest2", 2},
+                                            {"StartQuest", "CakeQuest2", 1},
+                                            {"StartQuest", "CakeQuest1", 1},
+                                            {"StartQuest", "CakeQuest1", 2}
+                                        }
+                                        local randomQuest = questData[math.random(1, #questData)]
+
+                                        local success = false
+                                        repeat
+                                            success = pcall(function()
+                                                return game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
+                                            end)
+                                            task.wait(0.5)
+                                        until not _G.Auto_Cake_Prince or questUI.Visible
+                                    end
+                                end
+
+                                -- Đánh Quái
+                                repeat 
+                                    task.wait()
+                                    if v and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+                                        local enemyRoot = v.HumanoidRootPart
+                                        local dist = (root.Position - enemyRoot.Position).Magnitude
+                                        
+                                        if dist < 350 then
+                                            -- TP trên đầu quái 25 stud, nhìn xuống
+                                            root.CFrame = enemyRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                            root.Velocity = Vector3.new(0,0,0)
+                                            Attack.Kill(v, _G.Auto_Cake_Prince)
+                                        else
+                                            -- Xa quá thì bay tới
+                                            Attack.Kill(v, _G.Auto_Cake_Prince)
+                                        end
+                                    else
+                                        break
+                                    end
+                                until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0 or transparency == 0
+                                task.wait(0.5)
+                            else
+                                hasMobs = false
+                            end
+                        end
+                        if _G.Auto_Cake_Prince then
+                            task.wait(0.5)
+                        end
+                    end
+                    -- Nếu không có boss và không farm quái, quay về vị trí chờ
+                    if _G.Auto_Cake_Prince and transparency ~= 0 then
+                        _tp(CFrame.new(-2077, 252, -12373))
+                    end
                 end
-                v = nearestMob
-              end
-              
-              if v then
-                if _G.AcceptQuestC and not questUI.Visible then
-                  local questPos = CFrame.new(-1927.92, 37.8, -12842.54)
-                  _tp(questPos)
-
-                  while root and (questPos.Position - root.Position).Magnitude > 15 do
-                    task.wait(0.2)
-                  end
-
-                  local questData = {
-                    {"StartQuest", "CakeQuest2", 2},
-                    {"StartQuest", "CakeQuest2", 1},
-                    {"StartQuest", "CakeQuest1", 1},
-                    {"StartQuest", "CakeQuest1", 2}
-                  }
-                  local randomQuest = questData[math.random(1, #questData)]
-
-                  local success = false
-                  repeat
-                    success = pcall(function()
-                      return game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(randomQuest))
-                    end)
-                    task.wait(0.5)
-                  until not _G.Auto_Cake_Prince or questUI.Visible
-                end
-
-                repeat 
-                  task.wait()
-                  Attack.Kill(v, _G.Auto_Cake_Prince)
-                until not _G.Auto_Cake_Prince or not v.Parent or v.Humanoid.Health <= 0 or transparency == 0
-                task.wait(0.5)
-              else
-                hasMobs = false
-              end
-            end
-            if _G.Auto_Cake_Prince then
-              task.wait(0.5)
-            end
-          end
-          if _G.Auto_Cake_Prince and transparency ~= 0 then
-            _tp(CFrame.new(-2077, 252, -12373))
-          end
+            end)
         end
-      end)
     end
-  end
 end)
 local Q = Tabs.Main:AddToggle("Q", {Title = "Auto Farm Bones", Description = "", Default = false})
 Q:OnChanged(function(Value)
@@ -7709,6 +7779,3 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
-
-
-
