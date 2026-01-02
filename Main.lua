@@ -1699,11 +1699,18 @@ spawn(function()
     local ws = game:GetService("Workspace")
     local Root = plr.Character:WaitForChild("HumanoidRootPart")
 
+    -- Hàm xóa BodyVelocity khi không farm để trả lại di chuyển bình thường
+    local function RemoveAntiGravity()
+        if Root:FindFirstChild("AntiGravity") then
+            Root.AntiGravity:Destroy()
+        end
+    end
+
     while task.wait(Sec or 0.2) do
         if _G.Level then
             pcall(function()
                 local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
-                local q = QuestNeta() -- Đảm bảo hàm này đã được định nghĩa trong script gốc của bạn
+                local q = QuestNeta() 
                 if not q or not q[1] then return end
 
                 local questMobName, questID, questIndex, mobPos, questDisplay, questPos =
@@ -1714,26 +1721,28 @@ spawn(function()
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
                 
-                -- /// LOGIC NHẬN QUEST ///
+                -- /// 1. LOGIC NHẬN QUEST ///
                 if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
+                    RemoveAntiGravity() -- Tắt giữ trên không để di chuyển đi nhận quest
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
-                    task.wait(0.25)
                     
-                    -- Nếu xa NPC Quest quá thì TP, gần thì nhận luôn
-                    if (Root.Position - questPos.Position).Magnitude > 50 then
+                    local distToNPC = (Root.Position - questPos.Position).Magnitude
+                    
+                    if distToNPC > 350 then
                          _tp(questPos)
-                         return -- Đợi TP tới nơi
-                    end
-                    
-                    -- Đoạn này xử lý lại một chút để không bị kẹt vòng lặp
-                    if (Root.Position - questPos.Position).Magnitude <= 50 then
+                         return 
+                    else
+                         Root.CFrame = questPos
+                         Root.Velocity = Vector3.new(0,0,0)
+                         task.wait(0.1)
                          replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                         replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, 1) 
                          task.wait(0.5)
                     end
                     return
                 end
 
-                -- /// LOGIC TÌM VÀ ĐÁNH QUÁI ///
+                -- /// 2. LOGIC TÌM VÀ ĐÁNH QUÁI ///
                 local foundMob = false
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
@@ -1746,36 +1755,59 @@ spawn(function()
                             if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
-
+                            
+                            -- Logic TP Farm
                             if dist < 350 then
-
-                                Root.CFrame = mobRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-                                Root.Velocity = Vector3.new(0, 0, 0) -- Chống trôi
+                                -- TP lên đầu quái 25 stud
+                                Root.CFrame = mobRoot.CFrame * CFrame.new(0, 25, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                
+                                -- /// FIX RỚT ĐẤT: THÊM BODYVELOCITY ///
+                                if not Root:FindFirstChild("AntiGravity") then
+                                    local bv = Instance.new("BodyVelocity")
+                                    bv.Name = "AntiGravity"
+                                    bv.Parent = Root
+                                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge) -- Lực vô cực để chống trọng lực
+                                    bv.Velocity = Vector3.new(0, 0, 0) -- Giữ vận tốc bằng 0 (đứng yên)
+                                end
+                                
                                 Attack.Kill(mob, _G.Level)
                             else
+                                -- Nếu xa thì xóa AntiGravity để dùng hàm bay mặc định
+                                RemoveAntiGravity()
                                 Attack.Kill(mob, _G.Level)
                             end
                             
                         until mob.Humanoid.Health <= 0 or not mob.Parent
+                        
+                        -- Xóa AntiGravity sau khi quái chết để có thể di chuyển sang con khác
+                        RemoveAntiGravity()
                         break
                     end
                 end
 
+                -- /// 3. LOGIC KHI KHÔNG TÌM THẤY QUÁI ///
                 if not foundMob then
-
+                    RemoveAntiGravity() -- Đảm bảo không bị kẹt trên trời
                     if (Root.Position - mobPos.Position).Magnitude > 350 then
-                        _tp(mobPos) -- Bay tới bãi quái
+                        _tp(mobPos) 
                     else
                          Root.CFrame = mobPos * CFrame.new(0, 50, 0)
-                         Root.Velocity = Vector3.new(0, 0, 0)
+                         -- Khi chờ spawn cũng giữ trên trời cho an toàn
+                         if not Root:FindFirstChild("AntiGravity") then
+                            local bv = Instance.new("BodyVelocity", Root)
+                            bv.Name = "AntiGravity"
+                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bv.Velocity = Vector3.new(0, 0, 0)
+                         end
                     end
-                    
                     task.wait(0.5)
-                    local spawnMob = ws.Enemies:FindFirstChild(questMobName)
-                    if spawnMob and spawnMob:FindFirstChild("HumanoidRootPart") then
-                    end
                 end
             end)
+        else
+            -- Nếu tắt Auto Farm thì xóa ngay hiệu ứng giữ trên không
+            if Root:FindFirstChild("AntiGravity") then
+                Root.AntiGravity:Destroy()
+            end
         end
     end
 end)
@@ -7804,3 +7836,4 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
