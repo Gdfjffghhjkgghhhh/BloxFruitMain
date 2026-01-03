@@ -196,96 +196,62 @@ statsSetings = function(Num, value)
   end
 end
 local plr = game.Players.LocalPlayer
-local RunService = game:GetService("RunService")
-
--- Cấu hình độ mượt
-local Smoothness = 0.15 -- Từ 0.01 đến 1. (0.1 là chậm từ từ, 1 là tức thì). Chỉnh 0.1-0.2 là đẹp nhất.
-local RotationAngle = 0
-
--- Hàm tạo Visual đẹp mắt (Vòng tròn hút)
-local function CreateVisual(pos)
-    local VisualPart = workspace:FindFirstChild("FarmVisual")
-    if not VisualPart then
-        VisualPart = Instance.new("Part")
-        VisualPart.Name = "FarmVisual"
-        VisualPart.Parent = workspace
-        VisualPart.Anchored = true
-        VisualPart.CanCollide = false
-        VisualPart.Shape = Enum.PartType.Ball
-        VisualPart.Size = Vector3.new(1, 1, 1) -- Bắt đầu nhỏ
-        VisualPart.Material = Enum.Material.Neon
-        VisualPart.Color = Color3.fromRGB(0, 255, 255) -- Màu Cyan (Xanh lơ)
-        VisualPart.Transparency = 0.6
-        
-        -- Hiệu ứng sóng lan tỏa
-        local m = Instance.new("SpecialMesh", VisualPart)
-        m.MeshType = Enum.MeshType.Sphere
-        m.Scale = Vector3.new(15, 15, 15)
-    end
-    
-    VisualPart.CFrame = CFrame.new(pos)
-    
-    -- Hiệu ứng Visual phập phồng
-    local s = 15 + math.sin(tick() * 5) * 2
-    VisualPart.Mesh.Scale = Vector3.new(s, s, s)
-end
 
 BringEnemy = function()
-    if not _B or not PosMon then 
-        if workspace:FindFirstChild("FarmVisual") then workspace.FarmVisual:Destroy() end
-        return 
-    end
+    -- Kiểm tra điều kiện cơ bản
+    if not _B or not PosMon then return end
     
-    CreateVisual(PosMon)
-    
-    -- Tăng góc xoay cho quái
-    RotationAngle = RotationAngle + 8 
-
+    -- Tăng SimulationRadius để chiếm quyền điều khiển quái (Network Ownership)
     pcall(function()
         sethiddenproperty(plr, "SimulationRadius", math.huge)
     end)
 
+    -- Dùng task.spawn thay vì defer để chạy mượt hơn trong loop
     task.spawn(function()
         for _, v in ipairs(workspace.Enemies:GetChildren()) do
+            -- Chỉ xử lý khi quái còn sống và có HumanoidRootPart
             local hum = v:FindFirstChild("Humanoid")
             local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
             
             if hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - PosMon).Magnitude
                 
+                -- Check khoảng cách và quyền điều khiển (NetworkOwner)
                 if dist <= 350 and isnetworkowner(hrp) then
                     
-                    -- 1. Tắt vật lý để quái lướt đi mượt hơn
+                    -- 1. Làm tê liệt quái (Xóa Animation, tắt va chạm)
                     hum.WalkSpeed = 0
                     hum.JumpPower = 0
                     hum.PlatformStand = true
-                    if v:FindFirstChild("Head") then v.Head.CanCollide = false end
-                    hrp.CanCollide = false 
+                    
+                    if v:FindFirstChild("Head") and v.Head.CanCollide then
+                        v.Head.CanCollide = false
+                    end
+                    
+                    -- Tắt va chạm HRP để các quái gom lại không bị văng nhau
+                    hrp.CanCollide = false
                     hrp.Massless = true
                     
+                    -- Xóa Animator để giảm lag (không cần thiết load anim khi đang bị gom)
                     local anim = hum:FindFirstChildOfClass("Animator")
                     if anim then anim:Destroy() end
 
-                    -- 2. Chống rớt đất (AntiFall) - BẮT BUỘC PHẢI CÓ KHI LƯỚT
+                    -- 2. FIX RỚT QUÁI: Thêm BodyVelocity (Lực giữ trên không)
+                    -- Check xem đã có chưa, chưa có thì tạo mới
                     if not hrp:FindFirstChild("AntiFall") then
                         local bv = Instance.new("BodyVelocity")
                         bv.Name = "AntiFall"
                         bv.Parent = hrp
-                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        bv.Velocity = Vector3.new(0, 0, 0)
+                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge) -- Lực vô cực
+                        bv.Velocity = Vector3.new(0, 0, 0) -- Giữ vận tốc bằng 0 (Đứng yên)
                     end
                     
-                    -- 3. LOGIC HÚT TỪ TỪ (LERP)
-                    -- Tính toán vị trí đích đến (Kèm xoay vòng tròn)
-                    local TargetCFrame = CFrame.new(PosMon) * CFrame.Angles(0, math.rad(RotationAngle), 0)
-                    
-                    -- Dùng Lerp để lướt từ vị trí hiện tại đến đích
-                    -- Smoothness càng nhỏ thì lướt càng chậm
-                    hrp.CFrame = hrp.CFrame:Lerp(TargetCFrame, Smoothness)
-                    
-                    -- Khóa vận tốc để không bị trôi sau khi lướt
+                    -- 3. Đưa quái về vị trí PosMon
+                    -- Set cả CFrame và Velocity về 0 để chắc chắn không bị trôi
+                    hrp.CFrame = CFrame.new(PosMon)
                     hrp.Velocity = Vector3.new(0, 0, 0)
                     hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                 end
             end
         end
@@ -7913,3 +7879,4 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
