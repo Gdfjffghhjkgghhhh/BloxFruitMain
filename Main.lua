@@ -1,4 +1,3 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/blox-initialize.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/noti.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
 
@@ -197,47 +196,96 @@ statsSetings = function(Num, value)
   end
 end
 local plr = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- Cấu hình độ mượt
+local Smoothness = 0.15 -- Từ 0.01 đến 1. (0.1 là chậm từ từ, 1 là tức thì). Chỉnh 0.1-0.2 là đẹp nhất.
+local RotationAngle = 0
+
+-- Hàm tạo Visual đẹp mắt (Vòng tròn hút)
+local function CreateVisual(pos)
+    local VisualPart = workspace:FindFirstChild("FarmVisual")
+    if not VisualPart then
+        VisualPart = Instance.new("Part")
+        VisualPart.Name = "FarmVisual"
+        VisualPart.Parent = workspace
+        VisualPart.Anchored = true
+        VisualPart.CanCollide = false
+        VisualPart.Shape = Enum.PartType.Ball
+        VisualPart.Size = Vector3.new(1, 1, 1) -- Bắt đầu nhỏ
+        VisualPart.Material = Enum.Material.Neon
+        VisualPart.Color = Color3.fromRGB(0, 255, 255) -- Màu Cyan (Xanh lơ)
+        VisualPart.Transparency = 0.6
+        
+        -- Hiệu ứng sóng lan tỏa
+        local m = Instance.new("SpecialMesh", VisualPart)
+        m.MeshType = Enum.MeshType.Sphere
+        m.Scale = Vector3.new(15, 15, 15)
+    end
+    
+    VisualPart.CFrame = CFrame.new(pos)
+    
+    -- Hiệu ứng Visual phập phồng
+    local s = 15 + math.sin(tick() * 5) * 2
+    VisualPart.Mesh.Scale = Vector3.new(s, s, s)
+end
 
 BringEnemy = function()
-    if not _B or not PosMon then return end
+    if not _B or not PosMon then 
+        if workspace:FindFirstChild("FarmVisual") then workspace.FarmVisual:Destroy() end
+        return 
+    end
     
+    CreateVisual(PosMon)
+    
+    -- Tăng góc xoay cho quái
+    RotationAngle = RotationAngle + 8 
+
     pcall(function()
         sethiddenproperty(plr, "SimulationRadius", math.huge)
     end)
 
-    task.defer(function()
+    task.spawn(function()
         for _, v in ipairs(workspace.Enemies:GetChildren()) do
             local hum = v:FindFirstChild("Humanoid")
             local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
             
             if hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - PosMon).Magnitude
+                
                 if dist <= 350 and isnetworkowner(hrp) then
                     
-                    -- Apply anti-ghost measures
-                    for _, part in ipairs(v:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                            part.Anchored = false
-                            part.Massless = true
-                        end
-                    end
-                    
-                    hum.WalkSpeed, hum.JumpPower = 0, 0
+                    -- 1. Tắt vật lý để quái lướt đi mượt hơn
+                    hum.WalkSpeed = 0
+                    hum.JumpPower = 0
                     hum.PlatformStand = true
+                    if v:FindFirstChild("Head") then v.Head.CanCollide = false end
+                    hrp.CanCollide = false 
+                    hrp.Massless = true
                     
                     local anim = hum:FindFirstChildOfClass("Animator")
-                    if anim then anim.Parent = nil end
-                    
-                    -- Smooth teleport without dropping to ground
-                    for i = 1, 3 do
-                        if isnetworkowner(hrp) then
-                            hrp.CFrame = CFrame.new(PosMon + Vector3.new(0, 0, 0))
-                            task.wait(0.05)
-                        else
-                            break
-                        end
+                    if anim then anim:Destroy() end
+
+                    -- 2. Chống rớt đất (AntiFall) - BẮT BUỘC PHẢI CÓ KHI LƯỚT
+                    if not hrp:FindFirstChild("AntiFall") then
+                        local bv = Instance.new("BodyVelocity")
+                        bv.Name = "AntiFall"
+                        bv.Parent = hrp
+                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                        bv.Velocity = Vector3.new(0, 0, 0)
                     end
+                    
+                    -- 3. LOGIC HÚT TỪ TỪ (LERP)
+                    -- Tính toán vị trí đích đến (Kèm xoay vòng tròn)
+                    local TargetCFrame = CFrame.new(PosMon) * CFrame.Angles(0, math.rad(RotationAngle), 0)
+                    
+                    -- Dùng Lerp để lướt từ vị trí hiện tại đến đích
+                    -- Smoothness càng nhỏ thì lướt càng chậm
+                    hrp.CFrame = hrp.CFrame:Lerp(TargetCFrame, Smoothness)
+                    
+                    -- Khóa vận tốc để không bị trôi sau khi lướt
+                    hrp.Velocity = Vector3.new(0, 0, 0)
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 end
             end
         end
@@ -2192,7 +2240,7 @@ spawn(function()
                                 -- Nếu khoảng cách nhỏ hơn 350 (Đang ở trên đảo Haunted)
                                 if dist < 350 then
                                     -- 1. Set vị trí trên đầu quái (cao 25 stud cho an toàn), nhìn xuống đất
-                                    root.CFrame = enemyRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                    root.CFrame = enemyRoot.CFrame * CFrame.new(0, 25, 0) * CFrame.Angles(math.rad(-90), 0, 0)
                                     
                                     -- 2. TẠO ANTI-GRAVITY (CHỐNG RỚT)
                                     if not root:FindFirstChild("AntiGravity") then
