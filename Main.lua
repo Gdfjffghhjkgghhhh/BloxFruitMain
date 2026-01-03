@@ -199,46 +199,49 @@ local plr = game.Players.LocalPlayer
 
 BringEnemy = function()
     if not _B or not PosMon then return end
-
+    
     pcall(function()
         sethiddenproperty(plr, "SimulationRadius", math.huge)
     end)
 
     task.defer(function()
         for _, v in ipairs(workspace.Enemies:GetChildren()) do
-            local hum = v:FindFirstChildOfClass("Humanoid")
-            local hrp = v:FindFirstChild("HumanoidRootPart")
-
+            local hum = v:FindFirstChild("Humanoid")
+            local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
+            
             if hum and hrp and hum.Health > 0 then
                 local dist = (hrp.Position - PosMon).Magnitude
-                if dist <= 350 and isnetworkowner(hrp) then
-
-                    -- Anti ghost / vật lý
+                if dist <= 300 and isnetworkowner(hrp) then
+                    
+                    -- Apply anti-ghost measures
                     for _, part in ipairs(v:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CanCollide = false
+                            part.Anchored = false
                             part.Massless = true
                         end
                     end
-
-                    -- FIX RỚT ĐẤT
-                    hum.AutoRotate = false
-                    hum.WalkSpeed = 0
-                    hum.JumpPower = 0
-                    hum:ChangeState(Enum.HumanoidStateType.Physics)
-
-                    hrp.Anchored = true
-                    hrp.AssemblyLinearVelocity = Vector3.zero
-                    hrp.AssemblyAngularVelocity = Vector3.zero
-
-                    -- Đặt cao hơn mặt đất
-                    hrp.CFrame = CFrame.new(PosMon + Vector3.new(0, 5, 0))
+                    
+                    hum.WalkSpeed, hum.JumpPower = 0, 0
+                    hum.PlatformStand = true
+                    
+                    local anim = hum:FindFirstChildOfClass("Animator")
+                    if anim then anim.Parent = nil end
+                    
+                    -- Smooth teleport without dropping to ground
+                    for i = 1, 3 do
+                        if isnetworkowner(hrp) then
+                            hrp.CFrame = CFrame.new(PosMon + Vector3.new(0, 5, 0))
+                            task.wait(0.05)
+                        else
+                            break
+                        end
+                    end
                 end
             end
         end
     end)
 end
-
 Useskills = function(weapon, skill)
   if weapon == "Melee" then
     weaponSc("Melee")
