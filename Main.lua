@@ -1693,181 +1693,109 @@ local FarmLevel = Tabs.Main:AddToggle("FarmLevel", {Title = "Auto Farm Level", D
 FarmLevel:OnChanged(function(Value)
   _G.Level = Value
 end)
--- /// KHAI BÁO CÁC BIẾN CẦN THIẾT ///
-local plr = game.Players.LocalPlayer
-local replicated = game:GetService("ReplicatedStorage")
-local ws = workspace
-local TweenService = game:GetService("TweenService")
-
--- Hàm Bay (Tween) An Toàn - Tránh nước
-local function SmartTween(targetCFrame)
-    local Character = plr.Character or plr.CharacterAdded:Wait()
-    local Root = Character:WaitForChild("HumanoidRootPart")
-    
-    local Speed = 350 -- Tốc độ bay
-    
-    -- Tính khoảng cách
-    local currentPos = Root.Position
-    local targetPos = targetCFrame.Position
-    local Distance = (currentPos - targetPos).Magnitude
-    
-    -- Nếu ở gần (< 200 stud) thì bay thẳng cho lẹ
-    if Distance < 200 then
-        local Info = TweenInfo.new(Distance / Speed, Enum.EasingStyle.Linear)
-        local Tween = TweenService:Create(Root, Info, {CFrame = targetCFrame})
-        Root.Velocity = Vector3.zero
-        Tween:Play()
-        Tween.Completed:Wait()
-        return
-    end
-
-    -- Nếu ở xa -> BAY CAO LÊN TRỜI (Y = 400) ĐỂ TRÁNH NƯỚC
-    local HighY = 400 
-    
-    -- Bước 1: Bay lên cao tại chỗ
-    local UpCFrame = CFrame.new(currentPos.X, HighY, currentPos.Z)
-    local DistUp = (currentPos - UpCFrame.Position).Magnitude
-    local TweenUp = TweenService:Create(Root, TweenInfo.new(DistUp / Speed, Enum.EasingStyle.Linear), {CFrame = UpCFrame})
-    Root.Velocity = Vector3.zero
-    TweenUp:Play()
-    TweenUp.Completed:Wait()
-    
-    -- Bước 2: Bay ngang trên trời tới đích
-    local AboveTargetCFrame = CFrame.new(targetPos.X, HighY, targetPos.Z)
-    local DistAcross = (UpCFrame.Position - AboveTargetCFrame.Position).Magnitude
-    local TweenAcross = TweenService:Create(Root, TweenInfo.new(DistAcross / Speed, Enum.EasingStyle.Linear), {CFrame = AboveTargetCFrame})
-    Root.Velocity = Vector3.zero
-    TweenAcross:Play()
-    TweenAcross.Completed:Wait()
-    
-    -- Bước 3: Hạ cánh xuống đích
-    local DistDown = (AboveTargetCFrame.Position - targetPos).Magnitude
-    local TweenDown = TweenService:Create(Root, TweenInfo.new(DistDown / Speed, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
-    Root.Velocity = Vector3.zero
-    TweenDown:Play()
-    TweenDown.Completed:Wait()
-end
-
--- /// VÒNG LẶP CHÍNH ///
 spawn(function()
-    while task.wait(0.2) do -- Thời gian lặp
-        if _G.Level then -- Biến bật/tắt Farm
-            pcall(function()
+    local plr = game.Players.LocalPlayer
+    local replicated = game:GetService("ReplicatedStorage")
+    local ws = game:GetService("Workspace")
+
+    while task.wait(Sec or 0.2) do
+        if _G.Level then
+            local ok, err = pcall(function()
+
+                -- FIX ROOT (KHÔNG BỊ CŨ SAU KHI QUA ĐẢO)
                 local Character = plr.Character or plr.CharacterAdded:Wait()
                 local Root = Character:WaitForChild("HumanoidRootPart")
-                local Level = plr.Data.Level.Value
-                
-                -- ==========================================
-                -- PHẦN 1: LOGIC TỰ ĐỘNG QUA ĐẢO (ƯU TIÊN)
-                -- ==========================================
-                
-                -- Tọa độ NPC Submarine
-                local NPC_Pos = CFrame.new(-16269.1016, 29.5177539, 1372.3204)
-                
-                -- Check: Đủ Level 2600 VÀ Đang ở Map cũ (Khoảng cách tới NPC < 50000)
-                -- Nếu đã qua Map mới (Sea 3), tọa độ NPC này sẽ rất xa (> 100k stud), nên nó sẽ tự bỏ qua.
-                if Level >= 2600 and (Root.Position - NPC_Pos.Position).Magnitude < 50000 then
-                    
-                    local distToNPC = (Root.Position - NPC_Pos.Position).Magnitude
-                    
-                    if distToNPC > 10 then
-                        -- Nếu xa > 10 stud thì dùng SmartTween để bay tới
-                        -- Nó sẽ tự động bay lên trời nếu xa để tránh nước
-                        SmartTween(NPC_Pos)
-                    else
-                        -- Đã tới nơi -> Nói chuyện
-                        Root.CFrame = NPC_Pos
-                        Root.Velocity = Vector3.zero
-                        task.wait(0.5)
-                        
-                        -- Gửi Remote
-                        local args = "TravelToSubmergedIsland"
-                        replicated.Modules.Net["RF/SubmarineWorkerSpeak"]:InvokeServer(args)
-                        
-                        task.wait(5) -- Đợi load map
-                        return -- Dừng code farm bên dưới để đợi qua đảo
-                    end
-                    
-                    return -- Khi đang đi tìm NPC thì không chạy phần Farm quái bên dưới
-                end
 
-                -- ==========================================
-                -- PHẦN 2: FARM LEVEL & QUEST (LOGIC CŨ CỦA BẠN)
-                -- ==========================================
-                
                 local questGui = plr.PlayerGui.Main.Quest
-                local q = QuestNeta() -- Đảm bảo bạn đã có hàm QuestNeta
+
+                -- LẤY QUEST DATA
+                local q = QuestNeta()
                 if not q or not q[1] then return end
 
                 local questMobName = q[1]
-                local questID = q[2]
-                local questIndex = q[3]
-                local mobPos = q[4]
-                local questDisplay = q[5]
-                local questPos = q[6]
+                local questID       = q[2]
+                local questIndex    = q[3]
+                local mobPos        = q[4]
+                local questDisplay  = q[5]
+                local questPos      = q[6]
 
                 if not questPos or not mobPos then return end
 
-                -- Check tên Quest hiện tại
+                -- TÊN QUEST ĐANG NHẬN
                 local questTitle = ""
-                if questGui.Visible and questGui:FindFirstChild("Container") and questGui.Container:FindFirstChild("QuestTitle") then
+                if questGui.Visible
+                    and questGui:FindFirstChild("Container")
+                    and questGui.Container:FindFirstChild("QuestTitle") then
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
 
-                -- A. NHẬN QUEST
+                ------------------------------------------------
+                -- NHẬN QUEST
+                ------------------------------------------------
                 if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
-                    task.wait(0.1)
+                    task.wait(0.25)
 
                     if (Root.Position - questPos.Position).Magnitude > 50 then
-                        SmartTween(questPos) -- Dùng SmartTween thay cho _tp để an toàn
-                    else
-                        Root.CFrame = questPos
-                        task.wait(0.2)
-                        replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                        _tp(questPos)
+                        return
                     end
+
+                    replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                    task.wait(0.5)
                     return
                 end
 
-                -- B. TÌM & ĐÁNH QUÁI
+                ------------------------------------------------
+                -- ĐÁNH QUÁI
+                ------------------------------------------------
                 local foundMob = false
-                if ws:FindFirstChild("Enemies") then
-                    for _, mob in pairs(ws.Enemies:GetChildren()) do
-                        if mob.Name == questMobName and Attack.Alive(mob) then -- Đảm bảo có module Attack
-                            foundMob = true
-                            local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-                            if not mobRoot then break end
-                            
-                            -- Loop đánh quái
-                            repeat
-                                task.wait()
-                                if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
-                                
-                                -- TP tới quái (Dùng CFrame trực tiếp vì quái ở gần)
-                                Root.CFrame = mobRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-                                Root.Velocity = Vector3.zero
-                                
-                                -- Gọi hàm đánh
-                                if Attack and Attack.Kill then
-                                    Attack.Kill(mob, _G.Level)
-                                end
-                            until mob.Humanoid.Health <= 0 or not mob.Parent
-                            break
-                        end
+
+                for _, mob in pairs(ws.Enemies:GetChildren()) do
+                    if mob.Name == questMobName and Attack.Alive(mob) then
+                        local mobRoot = mob:FindFirstChild("HumanoidRootPart")
+                        if not mobRoot then continue end
+
+                        foundMob = true
+                        repeat
+                            task.wait()
+                            if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
+
+                            local dist = (Root.Position - mobRoot.Position).Magnitude
+                            if dist <= 350 then
+                                Root.CFrame =
+                                    mobRoot.CFrame
+                                    * CFrame.new(0, 15, 0)
+                                    * CFrame.Angles(math.rad(-90), 0, 0)
+                                Root.Velocity = Vector3.new(0,0,0)
+                            else
+                                _tp(mobRoot.CFrame)
+                            end
+
+                            Attack.Kill(mob, _G.Level)
+                        until mob.Humanoid.Health <= 0 or not mob.Parent
+
+                        break
                     end
                 end
 
-                -- C. KHÔNG CÓ QUÁI -> VỀ BÃI
+                ------------------------------------------------
+                -- KHÔNG CÓ QUÁI → VỀ BÃI
+                ------------------------------------------------
                 if not foundMob then
-                    if (Root.Position - mobPos.Position).Magnitude > 300 then
-                        SmartTween(mobPos) -- Bay cao nếu bãi quái xa
+                    if (Root.Position - mobPos.Position).Magnitude > 350 then
+                        _tp(mobPos)
                     else
                         Root.CFrame = mobPos * CFrame.new(0, 50, 0)
-                        Root.Velocity = Vector3.zero
+                        Root.Velocity = Vector3.new(0,0,0)
                     end
                 end
 
             end)
+
+            if not ok then
+                warn("AUTO FARM ERROR:", err)
+            end
         end
     end
 end)
@@ -7974,7 +7902,7 @@ task.spawn(function()
 
         -- BAY TỚI NPC (KHÔNG RỚT NƯỚC)
         if (root.Position - NPC.Position).Magnitude > 8 then
-            TweenToSpeed(NPC * CFrame.new(0, 5, 0), 350)
+            TweenToSpeed(NPC * CFrame.new(0, 30, 0), 350)
             continue
         end
 
@@ -7997,4 +7925,3 @@ task.spawn(function()
 end)
 
 Window:SelectTab(1)
-
