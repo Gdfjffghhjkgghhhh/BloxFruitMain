@@ -71,26 +71,26 @@ if game["Players"]["LocalPlayer"]["PlayerGui"]:FindFirstChild("Main (minimal)") 
 		until game["Players"]["LocalPlayer"]["Team"] ~= nil and game:IsLoaded()
 	end
 end
-L_1_[29] = game:GetService("Players")
-L_1_[5] = L_1_[29]["LocalPlayer"]
+Players = game:GetService("Players")
+LocalPlayer = Players["LocalPlayer"]
 L_1_[30] = game["PlaceId"]
-L_1_[19] = game:GetService("Workspace")
-L_1_[40] = L_1_[19]:WaitForChild("Enemies")
-L_1_[10] = game:GetService("TeleportService")
-L_1_[7] = game:GetService("ReplicatedStorage")
-L_1_[24] = (L_1_[5]:WaitForChild("Data")):WaitForChild("Level")
-L_1_[17] = (L_1_[5]:WaitForChild("Data")):WaitForChild("Fragments")
-L_1_[1] = (L_1_[5]:WaitForChild("Data")):WaitForChild("Beli")
-L_1_[48] = require(L_1_[7]["Modules"]["Net"])
-L_1_[16] = game:GetService("Lighting")
+Workspace = game:GetService("Workspace")
+L_1_[40] = Workspace:WaitForChild("Enemies")
+TeleportService = game:GetService("TeleportService")
+ReplicatedStorage = game:GetService("ReplicatedStorage")
+L_1_[24] = (LocalPlayer:WaitForChild("Data")):WaitForChild("Level")
+L_1_[17] = (LocalPlayer:WaitForChild("Data")):WaitForChild("Fragments")
+L_1_[1] = (LocalPlayer:WaitForChild("Data")):WaitForChild("Beli")
+L_1_[48] = require(ReplicatedStorage["Modules"]["Net"])
+Lighting = game:GetService("Lighting")
 L_1_[2] = game:service("VirtualInputManager")
 L_1_[33] = game:service("VirtualUser")
-L_1_[4] = game:GetService("CoreGui")
+CoreGui = game:GetService("CoreGui")
 L_1_[45] = {}
 task["spawn"](function()
 	if (getgenv())["Configs"] and (getgenv())["Configs"]["FPS Booster"] then
-		L_1_[7]["Effect"]:Destroy()
-		for L_2_forvar0, L_3_forvar1 in pairs(getconnections(L_1_[5]["PlayerGui"]["Main"]["Settings"]["Buttons"]["FastModeButton"]["Activated"])) do
+		ReplicatedStorage["Effect"]:Destroy()
+		for L_2_forvar0, L_3_forvar1 in pairs(getconnections(LocalPlayer["PlayerGui"]["Main"]["Settings"]["Buttons"]["FastModeButton"]["Activated"])) do
 			local L_4_ = {}
 			L_4_[2], L_4_[3] = L_2_forvar0, L_3_forvar1
 			L_4_[3]["Function"]()
@@ -101,8 +101,8 @@ wait(2)
 task["spawn"](function()
 	if (getgenv())["Configs"]["FPS Booster"] then
 		local L_5_ = {}
-		L_5_[3] = L_1_[19]:WaitForChild("Enemies")
-		L_5_[2] = (L_1_[19]:WaitForChild("Map")):GetDescendants()
+		L_5_[3] = Workspace:WaitForChild("Enemies")
+		L_5_[2] = (Workspace:WaitForChild("Map")):GetDescendants()
 		for L_6_forvar0, L_7_forvar1 in ipairs(L_5_[2]) do
 			local L_8_ = {}
 			L_8_[2], L_8_[1] = L_6_forvar0, L_7_forvar1
@@ -112,7 +112,7 @@ task["spawn"](function()
 				for L_10_forvar0 = 1, 5, 1 do
 					local L_11_ = {}
 					L_11_[3] = L_10_forvar0
-					L_11_[1] = L_1_[19]["Map"]["Jungle"]["QuestPlates"]:FindFirstChild("Plate" .. L_11_[3])
+					L_11_[1] = Workspace["Map"]["Jungle"]["QuestPlates"]:FindFirstChild("Plate" .. L_11_[3])
 					if L_11_[1] and (L_8_[1]["Name"] == "Button" and L_8_[1]:IsDescendantOf(L_11_[1])) then
 						L_9_[2] = true
 						break
@@ -121,14 +121,14 @@ task["spawn"](function()
 				if L_9_[2] then
 					continue
 				end
-				if L_8_[1]["Name"] == "Door" and L_8_[1]:IsDescendantOf(L_1_[19]["Map"]["Ice"]) then
+				if L_8_[1]["Name"] == "Door" and L_8_[1]:IsDescendantOf(Workspace["Map"]["Ice"]) then
 					continue
 				end
-				if L_8_[1]:IsDescendantOf(L_1_[19]["Map"]["Jungle"]:FindFirstChild("Final")) then
+				if L_8_[1]:IsDescendantOf(Workspace["Map"]["Jungle"]:FindFirstChild("Final")) then
 					continue
 				end
-				if L_1_[19]["Map"]:FindFirstChild("IceCastle") then
-					if L_8_[1]:IsDescendantOf(L_1_[19]["Map"]:FindFirstChild("IceCastle")) then
+				if Workspace["Map"]:FindFirstChild("IceCastle") then
+					if L_8_[1]:IsDescendantOf(Workspace["Map"]:FindFirstChild("IceCastle")) then
 						continue
 					end
 				end
@@ -147,8 +147,8 @@ task["spawn"](function()
 				end
 			end
 		end
-		if L_1_[5]["PlayerGui"]:FindFirstChild("Notifications") then
-			L_1_[5]["PlayerGui"]["Notifications"]["Enabled"] = false
+		if LocalPlayer["PlayerGui"]:FindFirstChild("Notifications") then
+			LocalPlayer["PlayerGui"]["Notifications"]["Enabled"] = false
 		end
 		shared = shared or {}
 		if shared["BC_1"] == nil then
@@ -157,10 +157,10 @@ task["spawn"](function()
 		if shared["BC_1"] and shared["BC_2"] == nil then
 			local L_15_ = {}
 			L_15_[6] = workspace
-			L_15_[4] = L_1_[16]
+			L_15_[4] = Lighting
 			L_15_[3] = L_15_[6]["Terrain"]
-			L_15_[2] = L_1_[29]
-			L_15_[1] = L_1_[5]["Character"]
+			L_15_[2] = Players
+			L_15_[1] = LocalPlayer["Character"]
 			L_15_[3]["WaterWaveSize"] = 0
 			L_15_[3]["WaterWaveSpeed"] = 0
 			L_15_[3]["WaterReflectance"] = 0
@@ -224,7 +224,7 @@ task["spawn"](function()
 			end
 			if L_1_[30] == 2753915549 or L_1_[30] == 4442272183 or L_1_[30] == 7449423635 then
 				local L_25_ = {}
-				L_25_[1] = L_1_[7]:FindFirstChild("Effect") and L_1_[7]["Effect"]:FindFirstChild("Container")
+				L_25_[1] = ReplicatedStorage:FindFirstChild("Effect") and ReplicatedStorage["Effect"]:FindFirstChild("Container")
 				if L_25_[1] then
 					local L_26_ = {}
 					L_26_[1] = L_25_[1]:FindFirstChild("Shared")
@@ -255,7 +255,7 @@ task["spawn"](function()
 	end
 end)
 L_1_[43] = game:GetService("CoreGui")
-L_1_[6] = game:GetService("TweenService")
+TweenService = game:GetService("TweenService")
 if L_1_[43]:FindFirstChild("Status_UI") then
 	L_1_[43]["Status_UI"]:Destroy()
 end
@@ -316,22 +316,22 @@ L_1_[26]["Parent"] = L_1_[42]
 task["spawn"](function()
 	while task["wait"]() do
 		local L_27_ = {}
-		L_27_[4] = L_1_[6]:Create(L_1_[12], TweenInfo["new"](1.2, Enum["EasingStyle"]["Quad"], Enum["EasingDirection"]["Out"]), {
+		L_27_[4] = TweenService:Create(L_1_[12], TweenInfo["new"](1.2, Enum["EasingStyle"]["Quad"], Enum["EasingDirection"]["Out"]), {
 			["Color"] = Color3["fromRGB"](255, 255, 180)
 		})
-		L_27_[5] = L_1_[6]:Create(L_1_[12], TweenInfo["new"](1.2, Enum["EasingStyle"]["Quad"], Enum["EasingDirection"]["Out"]), {
+		L_27_[5] = TweenService:Create(L_1_[12], TweenInfo["new"](1.2, Enum["EasingStyle"]["Quad"], Enum["EasingDirection"]["Out"]), {
 			["Color"] = Color3["fromRGB"](255, 200, 60)
 		})
-		L_27_[2] = L_1_[6]:Create(L_1_[15], TweenInfo["new"](1.2), {
+		L_27_[2] = TweenService:Create(L_1_[15], TweenInfo["new"](1.2), {
 			["TextColor3"] = Color3["fromRGB"](255, 255, 180)
 		})
-		L_27_[3] = L_1_[6]:Create(L_1_[15], TweenInfo["new"](1.2), {
+		L_27_[3] = TweenService:Create(L_1_[15], TweenInfo["new"](1.2), {
 			["TextColor3"] = Color3["fromRGB"](255, 200, 60)
 		})
-		L_27_[1] = L_1_[6]:Create(L_1_[26], TweenInfo["new"](1.2), {
+		L_27_[1] = TweenService:Create(L_1_[26], TweenInfo["new"](1.2), {
 			["TextColor3"] = Color3["fromRGB"](255, 255, 180)
 		})
-		L_27_[7] = L_1_[6]:Create(L_1_[26], TweenInfo["new"](1.2), {
+		L_27_[7] = TweenService:Create(L_1_[26], TweenInfo["new"](1.2), {
 			["TextColor3"] = Color3["fromRGB"](255, 200, 60)
 		})
 		L_27_[4]:Play()
@@ -351,7 +351,7 @@ elseif L_1_[30] == 4442272183 then
 elseif L_1_[30] == 7449423635 then
 	Three_World = true
 end
-L_1_[22] = (L_1_[5]:WaitForChild("Data")):WaitForChild("Level")
+L_1_[22] = (LocalPlayer:WaitForChild("Data")):WaitForChild("Level")
 function CheckLevel2()
 	local L_28_ = {}
 	L_28_[2] = (game:GetService("Players"))["LocalPlayer"]["Data"]["Level"]["Value"]
@@ -1474,8 +1474,8 @@ L_1_[8] = function()
 		QuestNumber = 1
 		QuestPos = CFrame["new"](61122.65234375, 18.497442245483, 1569.3997802734)
 		EnemyPos = CFrame["new"](60878.30078125, 18.482830047607, 1543.7574462891)
-		if ((CFrame["new"](61164, 12, 1820))["Position"] - L_1_[5]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 2000 then
-			L_1_[5]["Character"]["HumanoidRootPart"]["CFrame"] = CFrame["new"](61164, 12, 1820)
+		if ((CFrame["new"](61164, 12, 1820))["Position"] - LocalPlayer["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 2000 then
+			LocalPlayer["Character"]["HumanoidRootPart"]["CFrame"] = CFrame["new"](61164, 12, 1820)
 		end
 	elseif Old_World and (L_1_[22]["Value"] >= 400 and L_1_[22]["Value"] <= 449) then
 		Enemy = "Fishman Commando"
@@ -1489,8 +1489,8 @@ L_1_[8] = function()
 			QuestName_Boss = "FishmanQuest"
 			QuestNumber_Boss = 3
 		end
-		if ((CFrame["new"](61164, 12, 1820))["Position"] - L_1_[5]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 2000 then
-			L_1_[5]["Character"]["HumanoidRootPart"]["CFrame"] = CFrame["new"](61164, 12, 1820)
+		if ((CFrame["new"](61164, 12, 1820))["Position"] - LocalPlayer["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 2000 then
+			LocalPlayer["Character"]["HumanoidRootPart"]["CFrame"] = CFrame["new"](61164, 12, 1820)
 		end
 	elseif Old_World and (L_1_[22]["Value"] >= 450 and L_1_[22]["Value"] <= 474) then
 		Enemy = "God's Guard"
@@ -1499,8 +1499,8 @@ L_1_[8] = function()
 		QuestNumber = 1
 		QuestPos = CFrame["new"](-4721.88867, 843.874695, -1949.96643, .996191859, 0, -0.0871884301, 0, 1, 0, .0871884301, 0, .996191859)
 		EnemyPos = CFrame["new"](-4710.04296875, 845.27697753906, -1927.3079833984)
-		if ((CFrame["new"](-4721.88867, 843.874695, -1949.96643, .996191859, 0, -0.0871884301, 0, 1, 0, .0871884301, 0, .996191859))["Position"] - L_1_[5]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-			L_1_[7]["Remotes"]["CommF_"]:InvokeServer("requestEntrance", Vector3["new"](-4607.82275, 872.54248, -1667.55688))
+		if ((CFrame["new"](-4721.88867, 843.874695, -1949.96643, .996191859, 0, -0.0871884301, 0, 1, 0, .0871884301, 0, .996191859))["Position"] - LocalPlayer["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
+			ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("requestEntrance", Vector3["new"](-4607.82275, 872.54248, -1667.55688))
 		end
 	elseif Old_World and (L_1_[22]["Value"] >= 475 and L_1_[22]["Value"] <= 524) then
 		Enemy = "Shanda"
@@ -1672,8 +1672,8 @@ L_1_[8] = function()
 		QuestNumber = 1
 		QuestPos = CFrame["new"](1037.80127, 125.092171, 32911.6016)
 		EnemyPos = CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375)
-		if ((CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375))["Position"] - L_1_[5]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 5000 then
-			((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", Vector3["new"](923.21301269531, 126.9759979248, 32852.83203125))
+		if ((CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375))["Position"] - LocalPlayer["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 5000 then
+			((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", Vector3["new"](923.21301269531, 126.9759979248, 32852.83203125))
 		end
 	elseif New_World and (L_1_[22]["Value"] >= 1275 and L_1_[22]["Value"] <= 1299) then
 		Enemy = "Ship Engineer"
@@ -1682,8 +1682,8 @@ L_1_[8] = function()
 		QuestNumber = 2
 		QuestPos = CFrame["new"](1037.80127, 125.092171, 32911.6016)
 		EnemyPos = CFrame["new"](919.47863769531, 43.544013977051, 32779.96875)
-		if ((CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375))["Position"] - L_1_[5]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 5000 then
-			((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", Vector3["new"](923.21301269531, 126.9759979248, 32852.83203125))
+		if ((CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375))["Position"] - LocalPlayer["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 5000 then
+			((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", Vector3["new"](923.21301269531, 126.9759979248, 32852.83203125))
 		end
 	elseif New_World and (L_1_[22]["Value"] >= 1300 and L_1_[22]["Value"] <= 1324) then
 		Enemy = "Ship Steward"
@@ -1692,8 +1692,8 @@ L_1_[8] = function()
 		QuestNumber = 1
 		QuestPos = CFrame["new"](968.80957, 125.092171, 33244.125)
 		EnemyPos = CFrame["new"](919.43853759766, 129.55599975586, 33436.03515625)
-		if ((CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375))["Position"] - L_1_[5]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 5000 then
-			((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", Vector3["new"](923.21301269531, 126.9759979248, 32852.83203125))
+		if ((CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375))["Position"] - LocalPlayer["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 5000 then
+			((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", Vector3["new"](923.21301269531, 126.9759979248, 32852.83203125))
 		end
 	elseif New_World and (L_1_[22]["Value"] >= 1325 and L_1_[22]["Value"] <= 1349) then
 		Enemy = "Ship Officer"
@@ -1702,8 +1702,8 @@ L_1_[8] = function()
 		QuestNumber = 2
 		QuestPos = CFrame["new"](968.80957, 125.092171, 33244.125)
 		EnemyPos = CFrame["new"](1036.0179443359, 181.4390411377, 33315.7265625)
-		if ((CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375))["Position"] - L_1_[5]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 5000 then
-			((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", Vector3["new"](923.21301269531, 126.9759979248, 32852.83203125))
+		if ((CFrame["new"](1212.0111083984, 150.79205322266, 33059.24609375))["Position"] - LocalPlayer["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 5000 then
+			((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", Vector3["new"](923.21301269531, 126.9759979248, 32852.83203125))
 		end
 	elseif New_World and (L_1_[22]["Value"] >= 1350 and L_1_[22]["Value"] <= 1374) then
 		Enemy = "Arctic Warrior"
@@ -2167,11 +2167,11 @@ L_1_[14] = function()
 		end
 		if not Tushita_M then
 			if not L_1_[45]["ffc"](L_1_[35]["Backpack"], "Tushita") and not L_1_[45]["ffc"](L_1_[35]["Character"], "Tushita") then
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadItem", "Tushita")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadItem", "Tushita")
 			end
 		elseif not Yama_M then
 			if not L_1_[45]["ffc"](L_1_[35]["Backpack"], "Yama") and not L_1_[45]["ffc"](L_1_[35]["Character"], "Yama") then
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadItem", "Yama")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadItem", "Yama")
 			end
 		end
 		for L_47_forvar0, L_48_forvar1 in pairs(L_1_[35]["Backpack"]:GetChildren()) do
@@ -2260,7 +2260,7 @@ setmetatable(L_1_[45], {
 				if L_1_[45]["ffc"](L_1_[35]["Backpack"], L_75_[2]) or L_1_[45]["ffc"](L_1_[35]["Character"], L_75_[2]) then
 					return true
 				end
-				for L_76_forvar0, L_77_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventoryWeapons")) do
+				for L_76_forvar0, L_77_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventoryWeapons")) do
 					local L_78_ = {}
 					L_78_[2], L_78_[1] = L_76_forvar0, L_77_forvar1
 					if L_78_[1]["Name"] == L_75_[2] then
@@ -2279,15 +2279,15 @@ setmetatable(L_1_[45], {
 			return function(L_82_arg0)
 				local L_83_ = {}
 				L_83_[1] = L_82_arg0
-				if L_1_[45]["ffc"](L_1_[7], L_83_[1]) or L_1_[45]["ffc"](L_1_[40], L_83_[1]) then
+				if L_1_[45]["ffc"](ReplicatedStorage, L_83_[1]) or L_1_[45]["ffc"](L_1_[40], L_83_[1]) then
 					return true
 				end
 				return false
 			end
 		elseif L_60_[3] == "IsHall" then
 			return function()
-				if L_1_[45]["ffc"](L_1_[19]["Map"], "IceCastle") then
-					if L_1_[45]["ffc"](L_1_[19]["Map"]["IceCastle"]["Hall"]["LibraryDoor"], "Keyhole") then
+				if L_1_[45]["ffc"](Workspace["Map"], "IceCastle") then
+					if L_1_[45]["ffc"](Workspace["Map"]["IceCastle"]["Hall"]["LibraryDoor"], "Keyhole") then
 						return true
 					end
 				end
@@ -2319,7 +2319,7 @@ setmetatable(L_1_[45], {
 			return function()
 				local L_90_ = {}
 				L_90_[2] = {}
-				for L_91_forvar0, L_92_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
+				for L_91_forvar0, L_92_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
 					local L_93_ = {}
 					L_93_[3], L_93_[1] = L_91_forvar0, L_92_forvar1
 					if L_93_[1]["Type"] == "Blox Fruit" and L_93_[1]["Value"] <= 999999 then
@@ -2335,7 +2335,7 @@ setmetatable(L_1_[45], {
 			return function(L_94_arg0, L_95_arg1)
 				local L_96_ = {}
 				L_96_[3], L_96_[1] = L_94_arg0, L_95_arg1
-				for L_97_forvar0, L_98_forvar1 in pairs(L_1_[19]["_WorldOrigin"]["Locations"]:GetChildren()) do
+				for L_97_forvar0, L_98_forvar1 in pairs(Workspace["_WorldOrigin"]["Locations"]:GetChildren()) do
 					local L_99_ = {}
 					L_99_[1], L_99_[2] = L_97_forvar0, L_98_forvar1
 					if L_99_[2]:IsA("Part") or L_99_[2]:IsA("BasePart") then
@@ -2350,7 +2350,7 @@ setmetatable(L_1_[45], {
 			return function()
 				local L_100_ = {}
 				L_100_[1] = {}
-				for L_101_forvar0, L_102_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
+				for L_101_forvar0, L_102_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
 					local L_103_ = {}
 					L_103_[2], L_103_[3] = L_101_forvar0, L_102_forvar1
 					if L_103_[3]["Type"] == "Blox Fruit" then
@@ -2374,7 +2374,7 @@ setmetatable(L_1_[45], {
 			end
 		elseif L_60_[3] == "IsHeavenly" then
 			return function()
-				for L_110_forvar0, L_111_forvar1 in pairs(((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("getTitles")) do
+				for L_110_forvar0, L_111_forvar1 in pairs(((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("getTitles")) do
 					local L_112_ = {}
 					L_112_[1], L_112_[3] = L_110_forvar0, L_111_forvar1
 					if L_112_[3]["Name"] == "Heavenly Devil" then
@@ -2487,7 +2487,7 @@ setmetatable(L_1_[45], {
 			return function(L_137_arg0)
 				local L_138_ = {}
 				L_138_[2] = L_137_arg0
-				for L_139_forvar0, L_140_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
+				for L_139_forvar0, L_140_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
 					local L_141_ = {}
 					L_141_[2], L_141_[3] = L_139_forvar0, L_140_forvar1
 					if type(L_141_[3]) == "table" then
@@ -2513,10 +2513,10 @@ setmetatable(L_1_[45], {
 							}))
 							L_1_[45]["Equip"]("Fire Essence")
 							L_1_[45]["wt"](.5)
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon", true)
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon", true)
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
 						until not L_1_[45]["ffc"](L_1_[35]["Backpack"], "Fire Essence") and not L_1_[45]["ffc"](L_1_[35]["Character"], "Fire Essence")
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
 						Dragon_Talon_C = true
 					else
 						if L_1_[45]["ffc"](L_1_[40], "Demonic Soul") or L_1_[45]["ffc"](L_1_[40], "Posessed Mummy") or L_1_[45]["ffc"](L_1_[40], "Reborn Skeleton") or L_1_[45]["ffc"](L_1_[40], "Living Zombie") then
@@ -2527,12 +2527,12 @@ setmetatable(L_1_[45], {
 									if L_146_[1]:FindFirstChild("HumanoidRootPart") and (L_146_[1]:FindFirstChild("Humanoid") and L_146_[1]["Humanoid"]["Health"] > 0) then
 										repeat
 											L_1_[45]["wt"](.1)
-											if L_1_[45]["CheckItem"]("Bones") > 500 and L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") > 0 then
+											if L_1_[45]["CheckItem"]("Bones") > 500 and ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") > 0 then
 												repeat
 													L_1_[45]["wt"](.2)
-													L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check")
-													L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Buy", 1, 1)
-												until L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") == 0
+													ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check")
+													ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Buy", 1, 1)
+												until ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") == 0
 											end
 											if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
 												L_1_[35]["Character"]["HumanoidRootPart"]["Remotes"]["CommF_"]:InvokeServer("Buso")
@@ -2557,12 +2557,12 @@ setmetatable(L_1_[45], {
 								if L_149_[2]:FindFirstChild("HumanoidRootPart") and (L_149_[2]:FindFirstChild("Humanoid") and L_149_[2]["Humanoid"]["Health"] > 0) then
 									repeat
 										L_1_[45]["wt"](.1)
-										if L_1_[45]["CheckItem"]("Bones") > 500 and L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") > 0 then
+										if L_1_[45]["CheckItem"]("Bones") > 500 and ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") > 0 then
 											repeat
 												L_1_[45]["wt"](.2)
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check")
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Buy", 1, 1)
-											until L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") == 0
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Buy", 1, 1)
+											until ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") == 0
 										end
 										if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
 											L_1_[35]["Character"]["HumanoidRootPart"]["Remotes"]["CommF_"]:InvokeServer("Buso")
@@ -2584,7 +2584,7 @@ setmetatable(L_1_[45], {
 				local L_151_ = {}
 				L_151_[2] = L_150_arg0
 				if not L_1_[45]["ffc"](L_1_[35]["Backpack"], L_151_[2]) and not L_1_[45]["ffc"](L_1_[35]["Character"], L_151_[2]) then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadItem", tostring(L_151_[2]))
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadItem", tostring(L_151_[2]))
 				end
 			end
 		elseif L_60_[3] == "BN" then
@@ -2668,18 +2668,18 @@ setmetatable(L_1_[45], {
 							L_1_[31](CFrame["new"](-12392.5068, 603.319763, -6596.00586), 1.5)
 						until (Vector3["new"](-12392.5068, 603.319763, -6596.00586) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3
 						wait(1)
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "Progress", "Good")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "Progress", "Good")
 						wait(1)
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "StartTrial", "Good")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "StartTrial", "Good")
 					elseif L_170_[1] == "Evil" then
 						repeat
 							wait(.1)
 							L_1_[31](CFrame["new"](-12392.2637, 603.319763, -6503.27832), 1.5)
 						until (Vector3["new"](-12392.2637, 603.319763, -6503.27832) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3
 						wait(1)
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "Progress", "Evil")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "Progress", "Evil")
 						wait(1)
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "StartTrial", "Evil")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "StartTrial", "Evil")
 					end
 				end
 			end
@@ -2689,8 +2689,8 @@ setmetatable(L_1_[45], {
 				L_172_[2] = L_171_arg0
 				repeat
 					wait()
-					L_1_[31](L_1_[19]["Map"]["HeavenlyDimension"][L_172_[2]]["CFrame"], 1.5)
-				until (L_1_[19]["Map"]["HeavenlyDimension"][L_172_[2]]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 7
+					L_1_[31](Workspace["Map"]["HeavenlyDimension"][L_172_[2]]["CFrame"], 1.5)
+				until (Workspace["Map"]["HeavenlyDimension"][L_172_[2]]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 7
 				fireproximityprompt(workspace["Map"]["HeavenlyDimension"][L_172_[2]]["ProximityPrompt"])
 				wait(.5)
 			end
@@ -2700,8 +2700,8 @@ setmetatable(L_1_[45], {
 				L_174_[1] = L_173_arg0
 				repeat
 					wait()
-					L_1_[31](L_1_[19]["Map"]["HellDimension"][L_174_[1]]["CFrame"], 1.5)
-				until (L_1_[19]["Map"]["HellDimension"][L_174_[1]]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 7
+					L_1_[31](Workspace["Map"]["HellDimension"][L_174_[1]]["CFrame"], 1.5)
+				until (Workspace["Map"]["HellDimension"][L_174_[1]]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 7
 				fireproximityprompt(workspace["Map"]["HellDimension"][L_174_[1]]["ProximityPrompt"])
 				wait(.5)
 			end
@@ -2755,8 +2755,8 @@ task["spawn"](function()
 									if L_177_[3]:FindFirstChild("Busy") then
 										L_177_[3]["Busy"]["Value"] = false
 									end
-									if L_1_[7]["Modules"]["Net"]:FindFirstChild("RE") and L_1_[7]["Modules"]["Net"]["RE"]:FindFirstChild("RegisterHit") then
-										L_1_[7]["Modules"]["Net"]["RE"]["RegisterHit"]:SetAttribute("Virtual", not L_1_[7]["Modules"]["Net"]["RE"]["RegisterHit"]:GetAttribute("Virtual"))
+									if ReplicatedStorage["Modules"]["Net"]:FindFirstChild("RE") and ReplicatedStorage["Modules"]["Net"]["RE"]:FindFirstChild("RegisterHit") then
+										ReplicatedStorage["Modules"]["Net"]["RE"]["RegisterHit"]:SetAttribute("Virtual", not ReplicatedStorage["Modules"]["Net"]["RE"]["RegisterHit"]:GetAttribute("Virtual"))
 									end
 									if L_1_[51]["Character"] then
 										L_1_[51]["Character"]:SetAttribute("Clashable", not L_1_[51]["Character"]:GetAttribute("Clashable"))
@@ -2879,7 +2879,7 @@ task["spawn"](function()
 		end
 	end
 end)
-for L_195_forvar0, L_196_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
+for L_195_forvar0, L_196_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
 	local L_197_ = {}
 	L_197_[1], L_197_[3] = L_195_forvar0, L_196_forvar1
 	if L_197_[3]["Type"] == "Material" then
@@ -2889,46 +2889,46 @@ for L_195_forvar0, L_196_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeSer
 	end
 end
 L_1_[35]["PlayerGui"]["Notifications"]["Enabled"] = false
-if (((L_1_[7]:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
+if (((ReplicatedStorage:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
 	["StorageName"] = "Pure Red";
 	["Type"] = "AuraSkin";
 	["Context"] = "Equip"
 }) ~= false then
 	Pure_Red_H = true
 end
-if (((L_1_[7]:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
+if (((ReplicatedStorage:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
 	["StorageName"] = "Snow White";
 	["Type"] = "AuraSkin",
 	["Context"] = "Equip"
 }) ~= false then
 	Snow_White = true
 end
-if (((L_1_[7]:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
+if (((ReplicatedStorage:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
 	["StorageName"] = "Snow White";
 	["Type"] = "AuraSkin";
 	["Context"] = "Equip"
 }) ~= false then
 	Winter_Sky = true
 end
-if (((L_1_[7]:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
+if (((ReplicatedStorage:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
 	["StorageName"] = "Rainbow Saviour";
 	["Type"] = "AuraSkin";
 	["Context"] = "Equip"
 }) ~= false then
 	Rainbow_Saviour = true
 end
-if Three_World and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TushitaProgress"))["OpenedDoor"] then
+if Three_World and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TushitaProgress"))["OpenedDoor"] then
 	Unlock_Tushita_Quest = true
 end
 L_1_[39] = function()
 	local L_198_ = {}
 	if Three_World then
-		if tostring(string["match"](tostring(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+")) == "nil" or tostring(string["match"](tostring(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+")) == nil then
-			L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner", true)
+		if tostring(string["match"](tostring(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+")) == "nil" or tostring(string["match"](tostring(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+")) == nil then
+			ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner", true)
 		end
 	end
 	if Three_World then
-		if L_1_[45]["ffc"](L_1_[40], "Cake Prince") or L_1_[45]["ffc"](L_1_[7], "Cake Prince") then
+		if L_1_[45]["ffc"](L_1_[40], "Cake Prince") or L_1_[45]["ffc"](ReplicatedStorage, "Cake Prince") then
 			if L_1_[45]["ffc"](L_1_[40], "Cake Prince") then
 				for L_199_forvar0, L_200_forvar1 in pairs(L_1_[40]:GetChildren()) do
 					local L_201_ = {}
@@ -2944,8 +2944,8 @@ L_1_[39] = function()
 						until not L_201_[3]["Parent"] or L_201_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
 					end
 				end
-			elseif L_1_[45]["ffc"](L_1_[7], "Cake Prince") then
-				for L_202_forvar0, L_203_forvar1 in pairs(L_1_[7]:GetChildren()) do
+			elseif L_1_[45]["ffc"](ReplicatedStorage, "Cake Prince") then
+				for L_202_forvar0, L_203_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 					local L_204_ = {}
 					L_204_[1], L_204_[3] = L_202_forvar0, L_203_forvar1
 					if L_204_[3]["Name"] == "Cake Prince" and L_204_[3]["Humanoid"]["Health"] > 0 then
@@ -2963,45 +2963,45 @@ L_1_[39] = function()
 		end
 	end
 	if Three_World then
-		if L_1_[40]:FindFirstChild("rip_indra True Form") or L_1_[7]:FindFirstChild("rip_indra True Form") then
-			if not(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TushitaProgress"))["OpenedDoor"] then
+		if L_1_[40]:FindFirstChild("rip_indra True Form") or ReplicatedStorage:FindFirstChild("rip_indra True Form") then
+			if not(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TushitaProgress"))["OpenedDoor"] then
 				local L_205_ = {}
-				L_205_[1] = L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TushitaProgress")
+				L_205_[1] = ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TushitaProgress")
 				if not L_205_[1]["OpenedDoor"] then
 					if L_1_[35]["Backpack"]:FindFirstChild("Holy Torch") or L_1_[35]["Character"]:FindFirstChild("Holy Torch") then
 						L_1_[45]["Equip"]("Holy Torch")
 						for L_206_forvar0 = 1, 5, 1 do
 							local L_207_ = {}
 							L_207_[1] = L_206_forvar0
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TushitaProgress", "Torch", L_207_[1])
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TushitaProgress", "Torch", L_207_[1])
 						end
-					elseif L_1_[7]:FindFirstChild("rip_indra True Form") or L_1_[40]:FindFirstChild("rip_indra True Form") then
+					elseif ReplicatedStorage:FindFirstChild("rip_indra True Form") or L_1_[40]:FindFirstChild("rip_indra True Form") then
 						if L_1_[35]["Backpack"]:FindFirstChild("Holy Torch") or L_1_[35]["Character"]:FindFirstChild("Holy Torch") then
 							L_1_[45]["Equip"]("Holy Torch")
 							for L_208_forvar0 = 1, 5, 1 do
 								local L_209_ = {}
 								L_209_[1] = L_208_forvar0
-								L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TushitaProgress", "Torch", L_209_[1])
+								ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TushitaProgress", "Torch", L_209_[1])
 							end
-						elseif L_1_[7]:FindFirstChild("rip_indra True Form") or L_1_[40]:FindFirstChild("rip_indra True Form") then
+						elseif ReplicatedStorage:FindFirstChild("rip_indra True Form") or L_1_[40]:FindFirstChild("rip_indra True Form") then
 							task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									L_1_[2]:SendKeyEvent(true, "Space", false, game)
 									L_1_[45]["wt"](.3)
 									L_1_[2]:SendKeyEvent(false, "Space", false, game)
-								until L_1_[35]["Backpack"]:FindFirstChild("Holy Torch") or L_1_[35]["Character"]:FindFirstChild("Holy Torch") or not L_1_[7]:FindFirstChild("rip_indra True Form") and not L_1_[40]:FindFirstChild("rip_indra True Form")
+								until L_1_[35]["Backpack"]:FindFirstChild("Holy Torch") or L_1_[35]["Character"]:FindFirstChild("Holy Torch") or not ReplicatedStorage:FindFirstChild("rip_indra True Form") and not L_1_[40]:FindFirstChild("rip_indra True Form")
 							end)
 							repeat
 								L_1_[45]["wt"]()
 								L_1_[35]["Character"]["HumanoidRootPart"]["CFrame"] = CFrame["new"](5714, 19, 254)
-							until L_1_[35]["Backpack"]:FindFirstChild("Holy Torch") or L_1_[35]["Character"]:FindFirstChild("Holy Torch") or not L_1_[7]:FindFirstChild("rip_indra True Form") and not L_1_[40]:FindFirstChild("rip_indra True Form")
+							until L_1_[35]["Backpack"]:FindFirstChild("Holy Torch") or L_1_[35]["Character"]:FindFirstChild("Holy Torch") or not ReplicatedStorage:FindFirstChild("rip_indra True Form") and not L_1_[40]:FindFirstChild("rip_indra True Form")
 							if L_1_[35]["Backpack"]:FindFirstChild("Holy Torch") or L_1_[35]["Character"]:FindFirstChild("Holy Torch") then
 								L_1_[45]["Equip"]("Holy Torch")
 								for L_210_forvar0 = 1, 5, 1 do
 									local L_211_ = {}
 									L_211_[2] = L_210_forvar0
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TushitaProgress", "Torch", L_211_[2])
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TushitaProgress", "Torch", L_211_[2])
 								end
 							end
 						end
@@ -3011,7 +3011,7 @@ L_1_[39] = function()
 					return
 				end
 			else
-				if L_1_[40]:FindFirstChild("rip_indra True Form") or L_1_[7]:FindFirstChild("rip_indra True Form") then
+				if L_1_[40]:FindFirstChild("rip_indra True Form") or ReplicatedStorage:FindFirstChild("rip_indra True Form") then
 					if L_1_[40]:FindFirstChild("rip_indra True Form") then
 						for L_212_forvar0, L_213_forvar1 in pairs(L_1_[40]:GetChildren()) do
 							local L_214_ = {}
@@ -3027,8 +3027,8 @@ L_1_[39] = function()
 								until not L_214_[1]["Parent"] or L_214_[1]["Humanoid"]["Health"] <= 0
 							end
 						end
-					elseif L_1_[7]:FindFirstChild("rip_indra True Form") then
-						L_1_[31]((L_1_[7]:FindFirstChild("rip_indra True Form"))["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0))
+					elseif ReplicatedStorage:FindFirstChild("rip_indra True Form") then
+						L_1_[31]((ReplicatedStorage:FindFirstChild("rip_indra True Form"))["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0))
 					end
 				elseif L_1_[35]["Backpack"]:FindFirstChild("God's Chalice") or L_1_[35]["Character"]:FindFirstChild("God's Chalice") then
 					repeat
@@ -3036,21 +3036,21 @@ L_1_[39] = function()
 						Oyster_H = false
 						Hot_pink_H = false
 						Really_red_H = false
-						for L_215_forvar0, L_216_forvar1 in pairs(L_1_[19]["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
+						for L_215_forvar0, L_216_forvar1 in pairs(Workspace["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
 							local L_217_ = {}
 							L_217_[1], L_217_[2] = L_215_forvar0, L_216_forvar1
 							if L_217_[2]["Name"] == "Part" and (tostring(L_217_[2]["BrickColor"]) == "Oyster" and tostring(L_217_[2]["Part"]["BrickColor"]) == "Lime green") then
 								Oyster_H = true
 							end
 						end
-						for L_218_forvar0, L_219_forvar1 in pairs(L_1_[19]["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
+						for L_218_forvar0, L_219_forvar1 in pairs(Workspace["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
 							local L_220_ = {}
 							L_220_[3], L_220_[1] = L_218_forvar0, L_219_forvar1
 							if L_220_[1]["Name"] == "Part" and (tostring(L_220_[1]["BrickColor"]) == "Hot pink" and tostring(L_220_[1]["Part"]["BrickColor"]) == "Lime green") then
 								Hot_pink_H = true
 							end
 						end
-						for L_221_forvar0, L_222_forvar1 in pairs(L_1_[19]["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
+						for L_221_forvar0, L_222_forvar1 in pairs(Workspace["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
 							local L_223_ = {}
 							L_223_[1], L_223_[3] = L_221_forvar0, L_222_forvar1
 							if L_223_[3]["Name"] == "Part" and (tostring(L_223_[3]["BrickColor"]) == "Really red" and tostring(L_223_[3]["Part"]["BrickColor"]) == "Lime green") then
@@ -3072,12 +3072,12 @@ L_1_[39] = function()
 									L_1_[31](CFrame["new"](-5561.06738, 314.375793, -2663.88892, -0.304127187, -0.00254100002, .952628076, .000226983335, .999996245, .00273981248, -0.952631414, .00104948215, -0.304125458), 1.5)
 								until (Vector3["new"](-5561.06738, 314.375793, -2663.88892) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 5
 								if Snow_White and not Oyster_H then
-									for L_224_forvar0, L_225_forvar1 in pairs(L_1_[19]["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
+									for L_224_forvar0, L_225_forvar1 in pairs(Workspace["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
 										local L_226_ = {}
 										L_226_[3], L_226_[2] = L_224_forvar0, L_225_forvar1
 										if L_226_[2]["Name"] == "Part" and tostring(L_226_[2]["BrickColor"]) == "Oyster" then
 											if tostring(L_226_[2]["Part"]["BrickColor"]) ~= "Lime green" then
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("activateColor", "Snow White")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("activateColor", "Snow White")
 												L_1_[45]["wt"](1)
 												repeat
 													L_1_[45]["wt"]()
@@ -3092,12 +3092,12 @@ L_1_[39] = function()
 									end
 								end
 								if Pure_Red_H and not Really_red_H then
-									for L_227_forvar0, L_228_forvar1 in pairs(L_1_[19]["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
+									for L_227_forvar0, L_228_forvar1 in pairs(Workspace["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
 										local L_229_ = {}
 										L_229_[1], L_229_[2] = L_227_forvar0, L_228_forvar1
 										if L_229_[2]["Name"] == "Part" and tostring(L_229_[2]["BrickColor"]) == "Really red" then
 											if tostring(L_229_[2]["Part"]["BrickColor"]) ~= "Lime green" then
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("activateColor", "Pure Red")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("activateColor", "Pure Red")
 												L_1_[45]["wt"](1)
 												repeat
 													L_1_[45]["wt"]()
@@ -3112,12 +3112,12 @@ L_1_[39] = function()
 									end
 								end
 								if Winter_Sky and not Hot_pink_H then
-									for L_230_forvar0, L_231_forvar1 in pairs(L_1_[19]["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
+									for L_230_forvar0, L_231_forvar1 in pairs(Workspace["Map"]["Boat Castle"]["Summoner"]["Circle"]:GetChildren()) do
 										local L_232_ = {}
 										L_232_[1], L_232_[2] = L_230_forvar0, L_231_forvar1
 										if L_232_[2]["Name"] == "Part" and tostring(L_232_[2]["BrickColor"]) == "Hot pink" then
 											if tostring(L_232_[2]["Part"]["BrickColor"]) ~= "Lime green" then
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("activateColor", "Winter Sky")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("activateColor", "Winter Sky")
 												L_1_[45]["wt"](1)
 												repeat
 													L_1_[45]["wt"]()
@@ -3135,7 +3135,7 @@ L_1_[39] = function()
 								L_1_[31](CFrame["new"](-5561.06738, 314.375793, -2663.88892, -0.304127187, -0.00254100002, .952628076, .000226983335, .999996245, .00273981248, -0.952631414, .00104948215, -0.304125458), 1.5)
 								if TimeLoaderx == nil or tick() - TimeLoaderx > 10 then
 									TimeLoaderx = tick()
-									L_1_[7][L_1_[3]({
+									ReplicatedStorage[L_1_[3]({
 										"DefaultChatSystemCha",
 										"tEvents"
 									})]["SayMessageRequest"]:FireServer(L_1_[3]({
@@ -3152,7 +3152,7 @@ L_1_[39] = function()
 		end
 	end
 	if Three_World then
-		if L_1_[40]:FindFirstChild("rip_indra True Form") or L_1_[7]:FindFirstChild("rip_indra True Form") then
+		if L_1_[40]:FindFirstChild("rip_indra True Form") or ReplicatedStorage:FindFirstChild("rip_indra True Form") then
 			if L_1_[40]:FindFirstChild("rip_indra True Form") then
 				for L_233_forvar0, L_234_forvar1 in pairs(L_1_[40]:GetChildren()) do
 					local L_235_ = {}
@@ -3168,17 +3168,17 @@ L_1_[39] = function()
 						until not L_235_[3]["Parent"] or L_235_[3]["Humanoid"]["Health"] <= 0
 					end
 				end
-			elseif L_1_[7]:FindFirstChild("rip_indra True Form") then
-				L_1_[31]((L_1_[7]:FindFirstChild("rip_indra True Form"))["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0))
+			elseif ReplicatedStorage:FindFirstChild("rip_indra True Form") then
+				L_1_[31]((ReplicatedStorage:FindFirstChild("rip_indra True Form"))["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0))
 			end
 		end
 	end
 	L_198_[2] = false
 	if Three_World and not Mirror_Fractal_H then
-		if L_1_[45]["ffc"](L_1_[35]["Backpack"], "Sweet Chalice") or L_1_[45]["ffc"](L_1_[35]["Character"], "Sweet Chalice") or L_1_[45]["ffc"](L_1_[35]["Backpack"], "God's Chalice") or L_1_[45]["ffc"](L_1_[35]["Character"], "God's Chalice") or L_1_[45]["ffc"](L_1_[40], "Dough King") or L_1_[45]["ffc"](L_1_[7], "Dough King") then
+		if L_1_[45]["ffc"](L_1_[35]["Backpack"], "Sweet Chalice") or L_1_[45]["ffc"](L_1_[35]["Character"], "Sweet Chalice") or L_1_[45]["ffc"](L_1_[35]["Backpack"], "God's Chalice") or L_1_[45]["ffc"](L_1_[35]["Character"], "God's Chalice") or L_1_[45]["ffc"](L_1_[40], "Dough King") or L_1_[45]["ffc"](ReplicatedStorage, "Dough King") then
 			repeat
 				wait()
-				for L_236_forvar0, L_237_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
+				for L_236_forvar0, L_237_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
 					local L_238_ = {}
 					L_238_[2], L_238_[3] = L_236_forvar0, L_237_forvar1
 					if L_238_[3]["Type"] == "Material" then
@@ -3187,7 +3187,7 @@ L_1_[39] = function()
 						end
 					end
 				end
-				if L_1_[45]["ffc"](L_1_[40], "Dough King") or L_1_[45]["ffc"](L_1_[7], "Dough King") then
+				if L_1_[45]["ffc"](L_1_[40], "Dough King") or L_1_[45]["ffc"](ReplicatedStorage, "Dough King") then
 					if L_1_[45]["ffc"](L_1_[40], "Dough King") then
 						for L_239_forvar0, L_240_forvar1 in pairs(L_1_[40]:GetChildren()) do
 							local L_241_ = {}
@@ -3210,7 +3210,7 @@ L_1_[39] = function()
 								return
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Dough King") then
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Dough King") then
 						L_1_[31]((game["ReplicatedStorage"]:FindFirstChild("Dough King"))["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 					end
 				elseif L_1_[45]["ffc"](L_1_[35]["Backpack"], "Sweet Chalice") or L_1_[45]["ffc"](L_1_[35]["Character"], "Sweet Chalice") and not Mirror_Fractal_H then
@@ -3236,9 +3236,9 @@ L_1_[39] = function()
 								L_1_[14]()
 							until not Monster["Parent"] or Monster["Humanoid"]["Health"] <= 0
 							StatrMagnet = false
-							L_247_[1] = tostring(string["match"](tostring(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+"))
+							L_247_[1] = tostring(string["match"](tostring(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+"))
 							if L_247_[1] == "nil" or L_247_[1] == nil then
-								L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner", true)
+								ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner", true)
 							end
 						elseif Monster == nil then
 							for L_248_forvar0 = 1500, 0, -300 do
@@ -3253,7 +3253,7 @@ L_1_[39] = function()
 					end
 				elseif L_1_[45]["ffc"](L_1_[35]["Backpack"], "God's Chalice") or L_1_[45]["ffc"](L_1_[35]["Character"], "God's Chalice") and not Mirror_Fractal_H then
 					if L_1_[45]["CheckItem"]("Conjured Cocoa") >= 10 then
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("SweetChaliceNpc")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("SweetChaliceNpc")
 					elseif L_1_[45]["CheckItem"]("Conjured Cocoa") < 10 then
 						if (L_1_[35]["Character"]["HumanoidRootPart"]["Position"] - Vector3["new"](658.22302246094, 24.734258651733, -12541.991210938))["Magnitude"] >= 1800 then
 							repeat
@@ -3288,19 +3288,19 @@ L_1_[39] = function()
 							end
 						end
 					end
-				elseif not L_1_[40]:FindFirstChild("Dough King") and not L_1_[7]:FindFirstChild("Dough King") then
+				elseif not L_1_[40]:FindFirstChild("Dough King") and not ReplicatedStorage:FindFirstChild("Dough King") then
 					L_198_[2] = true
 				end
 			until Mirror_Fractal_H or L_198_[2]
 		end
 	end
 	if Three_World then
-		if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("EliteHunter") ~= L_1_[3]({
+		if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("EliteHunter") ~= L_1_[3]({
 			"I don't have anythin";
 			"g for you right now.",
 			" Come back later."
 		}) then
-			L_1_[7]["Remotes"]["CommF_"]:InvokeServer("EliteHunter")
+			ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("EliteHunter")
 			for L_254_forvar0, L_255_forvar1 in ipairs({
 				"Diablo";
 				"Deandre";
@@ -3308,11 +3308,11 @@ L_1_[39] = function()
 			}) do
 				local L_256_ = {}
 				L_256_[2], L_256_[1] = L_254_forvar0, L_255_forvar1
-				L_256_[3] = L_1_[40]:FindFirstChild(L_256_[1]) or L_1_[7]:FindFirstChild(L_256_[1])
+				L_256_[3] = L_1_[40]:FindFirstChild(L_256_[1]) or ReplicatedStorage:FindFirstChild(L_256_[1])
 				if L_256_[3] and (L_256_[3]:FindFirstChild("HumanoidRootPart") and (L_256_[3]:FindFirstChild("Humanoid") and L_256_[3]["Humanoid"]["Health"] > 0)) then
 					repeat
 						L_1_[45]["wt"]()
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("EliteHunter")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("EliteHunter")
 						L_1_[31](L_256_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 						if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
 							L_1_[35]["Character"]["HumanoidRootPart"]["Remotes"]["CommF_"]:InvokeServer("Buso")
@@ -3324,7 +3324,7 @@ L_1_[39] = function()
 		end
 	end
 	if New_World then
-		if L_1_[45]["ffc"](L_1_[40], "Darkbeard") or L_1_[45]["ffc"](L_1_[7], "Darkbeard") then
+		if L_1_[45]["ffc"](L_1_[40], "Darkbeard") or L_1_[45]["ffc"](ReplicatedStorage, "Darkbeard") then
 			if L_1_[45]["ffc"](L_1_[40], "Darkbeard") then
 				for L_257_forvar0, L_258_forvar1 in pairs(L_1_[40]:GetChildren()) do
 					local L_259_ = {}
@@ -3340,8 +3340,8 @@ L_1_[39] = function()
 						until not L_259_[1]["Parent"] or L_259_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
 					end
 				end
-			elseif L_1_[45]["ffc"](L_1_[7], "Darkbeard") then
-				for L_260_forvar0, L_261_forvar1 in pairs(L_1_[7]:GetChildren()) do
+			elseif L_1_[45]["ffc"](ReplicatedStorage, "Darkbeard") then
+				for L_260_forvar0, L_261_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 					local L_262_ = {}
 					L_262_[2], L_262_[1] = L_260_forvar0, L_261_forvar1
 					if L_262_[1]["Name"] == "Darkbeard" and L_262_[1]["Humanoid"]["Health"] > 0 then
@@ -3359,7 +3359,7 @@ L_1_[39] = function()
 		end
 	end
 	if New_World then
-		if L_1_[45]["ffc"](L_1_[40], "Core") or L_1_[45]["ffc"](L_1_[7], "Core") then
+		if L_1_[45]["ffc"](L_1_[40], "Core") or L_1_[45]["ffc"](ReplicatedStorage, "Core") then
 			if L_1_[45]["ffc"](L_1_[40], "Core") then
 				for L_263_forvar0, L_264_forvar1 in pairs(L_1_[40]:GetChildren()) do
 					local L_265_ = {}
@@ -3369,14 +3369,14 @@ L_1_[39] = function()
 							L_1_[45]["wt"]()
 							L_1_[31](L_265_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 							if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-								L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+								ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 							end
 							L_1_[14]()
 						until not L_265_[2]["Parent"] or L_265_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
 					end
 				end
-			elseif L_1_[45]["ffc"](L_1_[7], "Core") then
-				for L_266_forvar0, L_267_forvar1 in pairs(L_1_[7]:GetChildren()) do
+			elseif L_1_[45]["ffc"](ReplicatedStorage, "Core") then
+				for L_266_forvar0, L_267_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 					local L_268_ = {}
 					L_268_[3], L_268_[2] = L_266_forvar0, L_267_forvar1
 					if L_268_[2]["Name"] == "Core" and L_268_[2]["Humanoid"]["Health"] > 0 then
@@ -3384,7 +3384,7 @@ L_1_[39] = function()
 							L_1_[45]["wt"]()
 							L_1_[31](L_268_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 							if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-								L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+								ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 							end
 							L_1_[14]()
 						until not L_268_[2]["Parent"] or L_268_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
@@ -3411,7 +3411,7 @@ L_1_[39] = function()
 									L_1_[45]["BN"](L_271_[2]["Name"])
 									L_1_[31](L_271_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until L_271_[2]["Humanoid"]["Health"] <= 0 or not L_1_[40]:FindFirstChild(Enemy) or not(L_1_[35]["PlayerGui"]["Main"]:FindFirstChild("Quest"))["Visible"] or not(getgenv())["AutoFarm"] or Quest ~= nil
@@ -3421,7 +3421,7 @@ L_1_[39] = function()
 						L_1_[31](EnemyPos, 1.5)
 					end
 				else
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("AbandonQuest")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("AbandonQuest")
 				end
 			else
 				repeat
@@ -3429,7 +3429,7 @@ L_1_[39] = function()
 					L_1_[31](QuestPos, 1.5)
 					if (QuestPos["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 5 and (L_1_[35]["Character"]:WaitForChild("Humanoid"))["Health"] > 0 then
 						L_1_[45]["wt"]();
-						((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("StartQuest", QuestName, QuestNumber)
+						((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("StartQuest", QuestName, QuestNumber)
 					end
 				until (L_1_[35]["PlayerGui"]["Main"]:FindFirstChild("Quest"))["Visible"] or not(getgenv())["AutoFarm"] or Quest ~= nil
 			end
@@ -3453,7 +3453,7 @@ L_1_[39] = function()
 					L_1_[31](CFrame["new"](-7757, 5582, -481), 1.5)
 				end
 			else
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("requestEntrance", Vector3["new"](-7894.6176757813, 5547.1416015625, -380.29119873047))
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("requestEntrance", Vector3["new"](-7894.6176757813, 5547.1416015625, -380.29119873047))
 			end
 		elseif L_1_[24]["Value"] >= 71 then
 			if L_1_[35]["PlayerGui"]["Main"]["Quest"]["Visible"] then
@@ -3468,7 +3468,7 @@ L_1_[39] = function()
 									SROP = false
 									L_1_[31](L_277_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[45]["BN"](L_277_[2]["Name"])
 									L_1_[14]()
@@ -3479,7 +3479,7 @@ L_1_[39] = function()
 						L_1_[31](EnemyPos, 1.5)
 					end
 				else
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("AbandonQuest")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("AbandonQuest")
 				end
 			else
 				repeat
@@ -3487,15 +3487,15 @@ L_1_[39] = function()
 					L_1_[31](QuestPos, 1.5)
 					if (QuestPos["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 5 and (L_1_[35]["Character"]:WaitForChild("Humanoid"))["Health"] > 0 then
 						L_1_[45]["wt"](.5);
-						((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("StartQuest", QuestName, QuestNumber)
+						((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("StartQuest", QuestName, QuestNumber)
 					end
 				until (L_1_[35]["PlayerGui"]["Main"]:FindFirstChild("Quest"))["Visible"] or not(getgenv())["AutoFarm"] or Quest ~= nil
 			end
 		end
 	elseif L_1_[24]["Value"] >= 2650 and Three_World then
 		SROP = false
-		if L_1_[45]["ffc"](L_1_[7], "Cake Prince") then
-			for L_278_forvar0, L_279_forvar1 in pairs(L_1_[7]:GetChildren()) do
+		if L_1_[45]["ffc"](ReplicatedStorage, "Cake Prince") then
+			for L_278_forvar0, L_279_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 				local L_280_ = {}
 				L_280_[1], L_280_[2] = L_278_forvar0, L_279_forvar1
 				if L_280_[2]["Name"] == "Cake Prince" and (L_280_[2]:FindFirstChild("Humanoid") and (L_280_[2]:FindFirstChild("Humanoid"))["Health"] > 0) then
@@ -3511,8 +3511,8 @@ L_1_[39] = function()
 				end
 			end
 		else
-			if tostring(string["match"](tostring(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+")) == "nil" or tostring(string["match"](tostring(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+")) == nil then
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner", true)
+			if tostring(string["match"](tostring(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+")) == "nil" or tostring(string["match"](tostring(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner")), "%d+")) == nil then
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CakePrinceSpawner", true)
 			end
 			if L_1_[45]["ffc"](L_1_[40], "Cookie Crafter") or L_1_[45]["ffc"](L_1_[40], "Cake Guard") or L_1_[45]["ffc"](L_1_[40], "Baking Staff") or L_1_[45]["ffc"](L_1_[40], "Head Baker") then
 				for L_284_forvar0, L_285_forvar1 in pairs(L_1_[40]:GetChildren()) do
@@ -3523,7 +3523,7 @@ L_1_[39] = function()
 							L_1_[45]["wt"]()
 							L_1_[31](L_286_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 							if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-								L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+								ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 							end
 							L_1_[45]["BN"](L_286_[2]["Name"])
 							L_1_[14]()
@@ -3548,8 +3548,8 @@ L_1_[38] = function()
 					L_289_[2]:GetAttribute("OriginalName"),
 					L_289_[2]
 				};
-				((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer(unpack(L_290_[1]))
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GetFruits", false)
+				((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer(unpack(L_290_[1]))
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GetFruits", false)
 			end
 		end
 		for L_291_forvar0, L_292_forvar1 in pairs(L_1_[35]["Character"]:GetChildren()) do
@@ -3562,8 +3562,8 @@ L_1_[38] = function()
 					L_293_[1]:GetAttribute("OriginalName"),
 					L_293_[1]
 				};
-				((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer(unpack(L_294_[2]))
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GetFruits", false)
+				((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer(unpack(L_294_[2]))
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GetFruits", false)
 			end
 		end
 	end
@@ -3590,7 +3590,7 @@ task["spawn"](function()
 			if not Black_Leg_C then
 				repeat
 					L_1_[45]["wt"](L_1_[21])
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyBlackLeg")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyBlackLeg")
 					L_1_[14]()
 					L_1_[45]["wt"](.05)
 					if L_1_[45]["ffc"](L_1_[35]["Character"], "Black Leg") or L_1_[45]["ffc"](L_1_[35]["Backpack"], "Black Leg") and not Black_Leg_C then
@@ -3612,7 +3612,7 @@ task["spawn"](function()
 						end
 						Electro_C = true
 						L_1_[45]["wt"](.05)
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectro")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectro")
 					end
 				until Electro_C
 			end
@@ -3626,7 +3626,7 @@ task["spawn"](function()
 						end
 						Fishman_Karate_C = true
 						L_1_[45]["wt"](.05)
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyFishmanKarate")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyFishmanKarate")
 					end
 				until Fishman_Karate_C
 			end
@@ -3635,7 +3635,7 @@ task["spawn"](function()
 					local L_295_ = {}
 					task["wait"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyFishmanKarate")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyFishmanKarate")
 					L_295_[2] = L_1_[35]["Character"]:FindFirstChild("Fishman Karate")
 					if L_295_[2] and (L_295_[2]:FindFirstChild("Level") and L_295_[2]["Level"]["Value"] >= 400) then
 						Fishman_Karate_C_M = true
@@ -3645,7 +3645,7 @@ task["spawn"](function()
 			L_1_[45]["wt"](L_1_[21])
 			if not Dragon_Claw_C then
 				local L_296_ = {}
-				L_296_[2] = L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BlackbeardReward", "DragonClaw", "2")
+				L_296_[2] = ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BlackbeardReward", "DragonClaw", "2")
 				if L_296_[2] == 1 or L_296_[2] == 2 then
 					pcall(function()
 						if L_1_[35]["Character"]["Fishman Karate"]["Level"]["Value"] >= 400 then
@@ -3668,7 +3668,7 @@ task["spawn"](function()
 							L_297_[2] = {
 								[1] = "BuySuperhuman"
 							}
-							if L_1_[7]["Remotes"]["CommF_"]:InvokeServer(unpack(L_297_[2])) == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer(unpack(L_297_[2])) == 2 then
+							if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer(unpack(L_297_[2])) == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer(unpack(L_297_[2])) == 2 then
 								Super_human = true
 								if L_1_[35]["Character"]["Superhuman"]["Level"]["Value"] >= 400 then
 									Super_humanw_C_M = true
@@ -3679,7 +3679,7 @@ task["spawn"](function()
 				end
 			until Super_human
 			if not Death_Step then
-				if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep") == 2 then
+				if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep") == 2 then
 					Death_Step = true
 				end
 			end
@@ -3691,7 +3691,7 @@ task["spawn"](function()
 					L_298_[1] = L_1_[35]["Character"]:FindFirstChild("Death Step")
 					if L_298_[1] and (L_298_[1]:FindFirstChild("Level") and L_298_[1]["Level"]["Value"] >= 400) then
 						local L_299_ = {}
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyBlackLeg")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyBlackLeg")
 						L_299_[1] = L_1_[35]["Character"]:FindFirstChild("Black Leg")
 						if L_299_[1] and (L_299_[1]:FindFirstChild("Level") and L_299_[1]["Level"]["Value"] >= 400) then
 							Black_Leg_C_M = true
@@ -3704,7 +3704,7 @@ task["spawn"](function()
 					local L_300_ = {}
 					task["wait"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep")
 					L_300_[1] = L_1_[35]["Character"]:FindFirstChild("Death Step")
 					if L_300_[1] and (L_300_[1]:FindFirstChild("Level") and L_300_[1]["Level"]["Value"] >= 400) then
 						Death_Step_C_M = true
@@ -3716,7 +3716,7 @@ task["spawn"](function()
 					local L_301_ = {}
 					task["wait"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectro")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectro")
 					L_301_[1] = L_1_[35]["Character"]:FindFirstChild("Electro")
 					if L_301_[1] and (L_301_[1]:FindFirstChild("Level") and L_301_[1]["Level"]["Value"] >= 400) then
 						Electro_C_M = true
@@ -3727,7 +3727,7 @@ task["spawn"](function()
 				repeat
 					local L_302_ = {}
 					task["wait"](L_1_[21])
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyFishmanKarate")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyFishmanKarate")
 					warn()
 					L_302_[1] = L_1_[35]["Character"]:FindFirstChild("Fishman Karate")
 					if L_302_[1] and (L_302_[1]:FindFirstChild("Level") and L_302_[1]["Level"]["Value"] >= 400) then
@@ -3740,7 +3740,7 @@ task["spawn"](function()
 					local L_303_ = {}
 					task["wait"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BlackbeardReward", "DragonClaw", "2")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BlackbeardReward", "DragonClaw", "2")
 					L_303_[1] = L_1_[35]["Character"]:FindFirstChild("Dragon Claw")
 					if L_303_[1] and (L_303_[1]:FindFirstChild("Level") and L_303_[1]["Level"]["Value"] >= 400) then
 						Dragon_Claw_C_M = true
@@ -3751,7 +3751,7 @@ task["spawn"](function()
 				repeat
 					L_1_[45]["wt"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate")
 					if L_1_[45]["ffc"](L_1_[35]["Backpack"], "Sharkman Karate") or L_1_[45]["ffc"](L_1_[35]["Character"], "Sharkman Karate") then
 						Sharkman_Karate_C = true
 					end
@@ -3762,7 +3762,7 @@ task["spawn"](function()
 					local L_304_ = {}
 					task["wait"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate")
 					L_304_[1] = L_1_[35]["Character"]:FindFirstChild("Sharkman Karate")
 					if L_304_[1] and (L_304_[1]:FindFirstChild("Level") and L_304_[1]["Level"]["Value"] >= 400) then
 						Sharkman_Karate_C_M = true
@@ -3772,7 +3772,7 @@ task["spawn"](function()
 			if not Electric_Claw_C then
 				repeat
 					task["wait"](L_1_[21])
-					if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 2 then
+					if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 2 then
 						Electric_Claw_C = true
 					end
 				until Electric_Claw_C
@@ -3782,7 +3782,7 @@ task["spawn"](function()
 					local L_305_ = {}
 					task["wait"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw")
 					L_305_[2] = L_1_[35]["Character"]:FindFirstChild("Electric Claw")
 					if L_305_[2] and (L_305_[2]:FindFirstChild("Level") and L_305_[2]["Level"]["Value"] >= 400) then
 						Electric_Claw_C_M = true
@@ -3792,7 +3792,7 @@ task["spawn"](function()
 			if not Dragon_Talon_C then
 				repeat
 					task["wait"](L_1_[21])
-					if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon") == 2 then
+					if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon") == 2 then
 						Dragon_Talon_C = true
 					end
 				until Dragon_Talon_C
@@ -3802,7 +3802,7 @@ task["spawn"](function()
 					local L_306_ = {}
 					task["wait"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
 					L_306_[1] = L_1_[35]["Character"]:FindFirstChild("Dragon Talon")
 					if L_306_[1] and (L_306_[1]:FindFirstChild("Level") and L_306_[1]["Level"]["Value"] >= 400) then
 						Dragon_Talon_C_M = true
@@ -3812,7 +3812,7 @@ task["spawn"](function()
 			if not God_Human_C then
 				repeat
 					task["wait"](L_1_[21])
-					if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyGodhuman") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyGodhuman") == 2 then
+					if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyGodhuman") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyGodhuman") == 2 then
 						God_Human_C = true
 					end
 				until God_Human_C
@@ -3822,7 +3822,7 @@ task["spawn"](function()
 					local L_307_ = {}
 					task["wait"](L_1_[21])
 					L_1_[14]()
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyGodhuman")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyGodhuman")
 					L_307_[2] = L_1_[35]["Character"]:FindFirstChild("Godhuman")
 					if L_307_[2] and (L_307_[2]:FindFirstChild("Level") and L_307_[2]["Level"]["Value"] >= 400) then
 						God_Human_C_M = true
@@ -3833,7 +3833,7 @@ task["spawn"](function()
 	end
 end);
 (getgenv())["AutoFarm"] = true
-if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate", true) ~= L_1_[3]({
+if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate", true) ~= L_1_[3]({
 	"I lost my house keys",
 	", could you help me ";
 	"find them? Thanks."
@@ -3841,7 +3841,7 @@ if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate", true) ~= L_1_[
 	CheckFindWaterKey = true
 end
 if L_1_[24]["Value"] >= 2000 and (getgenv())["Configs"]["Quest"]["RGB Haki"] then
-	if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == 1 then
+	if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == 1 then
 		RGB_Haki_H = true
 	end
 end
@@ -3873,12 +3873,12 @@ task["spawn"](function()
 				local L_312_ = {}
 				Stop_Fast_Attack = false
 				if L_1_[24]["Value"] >= 1500 or RainbowSaviour then
-					if (((L_1_[7]:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
+					if (((ReplicatedStorage:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
 						["StorageName"] = "Rainbow Saviour",
 						["Type"] = "AuraSkin";
 						["Context"] = "Equip"
 					}) ~= false then
-						(((L_1_[7]:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
+						(((ReplicatedStorage:WaitForChild("Modules")):WaitForChild("Net")):WaitForChild("RF/FruitCustomizerRF")):InvokeServer({
 							["StorageName"] = "Rainbow Saviour";
 							["Type"] = "AuraSkin";
 							["Context"] = "Equip"
@@ -3886,11 +3886,11 @@ task["spawn"](function()
 					end
 				end
 				L_312_[1] = false
-				if ((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("Cousin", "Buy") == 1 then
+				if ((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("Cousin", "Buy") == 1 then
 					L_1_[45]["wt"](1)
 					L_1_[38]()
 				else
-					for L_313_forvar0, L_314_forvar1 in pairs(L_1_[19]:GetChildren()) do
+					for L_313_forvar0, L_314_forvar1 in pairs(Workspace:GetChildren()) do
 						local L_315_ = {}
 						L_315_[1], L_315_[3] = L_313_forvar0, L_314_forvar1
 						if L_315_[3]:GetAttribute("OriginalName") ~= nil and (L_1_[45]["sf"](L_315_[3]["Name"], "Fruit") and (L_315_[3]:IsA("Tool") and not L_1_[45]["IsInList"](L_1_[45]["GetType"](), L_315_[3]:GetAttribute("OriginalName")))) then
@@ -3929,11 +3929,11 @@ task["spawn"](function()
 							Quest = "Pole (1st Form)"
 							return
 						end
-						if ((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("Alchemist", "1") ~= -2 and (L_1_[1]["Value"] >= 2500000 and (L_1_[24]["Value"] >= 850 and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BartiloQuestProgress", "Bartilo") == 3 and not L_1_[45]["ffc"](L_1_[35]["Data"]["Race"], "Evolved")))) then
+						if ((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("Alchemist", "1") ~= -2 and (L_1_[1]["Value"] >= 2500000 and (L_1_[24]["Value"] >= 850 and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BartiloQuestProgress", "Bartilo") == 3 and not L_1_[45]["ffc"](L_1_[35]["Data"]["Race"], "Evolved")))) then
 							Quest = "Evo Race V1"
 							return
 						end
-						if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "3") ~= -2 and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") == 0 and (L_1_[45]["IsHeavenly"]() and (L_1_[22]["Value"] >= 1400 and L_1_[1]["Value"] >= 2000000))) then
+						if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "3") ~= -2 and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") == 0 and (L_1_[45]["IsHeavenly"]() and (L_1_[22]["Value"] >= 1400 and L_1_[1]["Value"] >= 2000000))) then
 							Quest = "Evo Race V2"
 							return
 						end
@@ -3983,12 +3983,12 @@ task["spawn"](function()
 							Quest = "Flail"
 							return
 						end
-						if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BartiloQuestProgress", "Bartilo") ~= 3 and L_1_[24]["Value"] >= 850 then
+						if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BartiloQuestProgress", "Bartilo") ~= 3 and L_1_[24]["Value"] >= 850 then
 							Quest = "BartiloQuest"
 							return
 						end
 						if not CheckFindWaterKey then
-							if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate", true) == L_1_[3]({
+							if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate", true) == L_1_[3]({
 								"I lost my house keys";
 								", could you help me ",
 								"find them? Thanks."
@@ -3997,11 +3997,11 @@ task["spawn"](function()
 								return
 							end
 						end
-						if New_World and (not L_1_[45]["IsHeavenly"]() and L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") == 0) then
+						if New_World and (not L_1_[45]["IsHeavenly"]() and ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") == 0) then
 							Quest = "Don Swan"
 							return
 						end
-						if Three_World and (L_1_[45]["tf"](Configs["Sword"], "Yama") and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("EliteHunter", "Progress") >= 30 and not L_1_[45]["gi"]("Yama"))) then
+						if Three_World and (L_1_[45]["tf"](Configs["Sword"], "Yama") and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("EliteHunter", "Progress") >= 30 and not L_1_[45]["gi"]("Yama"))) then
 							Quest = "Yama"
 							return
 						end
@@ -4014,7 +4014,7 @@ task["spawn"](function()
 							return
 						end
 						if L_1_[24]["Value"] >= 2000 and ((getgenv())["Configs"]["Quest"]["RGB Haki"] and not RGB_Haki_H) then
-							if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == nil then
+							if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == nil then
 								Quest = "RGB"
 								return
 							end
@@ -4027,7 +4027,7 @@ task["spawn"](function()
 							Quest = "Twin Hooks"
 							return
 						end
-						if (game:GetService("Workspace"))["Map"]:FindFirstChild("MysticIsland") and (not L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CheckTempleDoor") and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "3") == -2 and Mirror_Fractal_H)) then
+						if (game:GetService("Workspace"))["Map"]:FindFirstChild("MysticIsland") and (not ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CheckTempleDoor") and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "3") == -2 and Mirror_Fractal_H)) then
 							Quest = "Pull Lerver"
 							return
 						end
@@ -4044,10 +4044,10 @@ task["spawn"](function()
 									}))
 									L_1_[45]["Equip"]("Fire Essence")
 									L_1_[45]["wt"](.5)
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon", true)
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon", true)
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
 								until not L_1_[45]["ffc"](L_1_[35]["Backpack"], "Fire Essence") and not L_1_[45]["ffc"](L_1_[35]["Character"], "Fire Essence")
-								L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
+								ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
 								Dragon_Talon_C = true
 								return
 							end
@@ -4069,7 +4069,7 @@ task["spawn"](function()
 												[2] = "DragonClaw",
 												[3] = "2"
 											}
-											L_1_[7]["Remotes"]["CommF_"]:InvokeServer(unpack(L_317_[1]))
+											ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer(unpack(L_317_[1]))
 											Dragon_Claw_C = true
 											return
 										elseif L_1_[17]["Value"] < 1500 then
@@ -4077,7 +4077,7 @@ task["spawn"](function()
 												L_1_[45]["Status"](" Status : Farm Raid")
 												if #L_1_[45]["GetMobRaid"]() == 0 then
 													if Select_Map == "Magma" or Select_Map == "Flame" then
-														for L_318_forvar0, L_319_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+														for L_318_forvar0, L_319_forvar1 in pairs(Workspace:GetDescendants()) do
 															local L_320_ = {}
 															L_320_[3], L_320_[2] = L_318_forvar0, L_319_forvar1
 															if L_320_[2]["Name"] == "Lava" then
@@ -4105,7 +4105,7 @@ task["spawn"](function()
 																local L_324_ = {}
 																L_1_[45]["wt"](.1)
 																if Select_Map == "Magma" or Select_Map == "Flame" then
-																	for L_325_forvar0, L_326_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+																	for L_325_forvar0, L_326_forvar1 in pairs(Workspace:GetDescendants()) do
 																		local L_327_ = {}
 																		L_327_[1], L_327_[2] = L_325_forvar0, L_326_forvar1
 																		if L_327_[2]["Name"] == "Lava" then
@@ -4127,7 +4127,7 @@ task["spawn"](function()
 																end
 																L_1_[31](L_323_[1]["HumanoidRootPart"]["CFrame"] * L_324_[3], 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															until not L_323_[1]["Parent"] or L_323_[1]["Humanoid"]["Health"] <= 0 or #L_1_[45]["GetMobRaid"]() == 0
@@ -4158,12 +4158,12 @@ task["spawn"](function()
 												else
 													Select_Map = "Ice"
 												end
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 												L_1_[45]["wt"](.2)
 												if L_1_[35]["Backpack"]:FindFirstChild("Special Microchip") or L_1_[35]["Character"]:FindFirstChild("Special Microchip") and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 													if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 														local L_328_ = {}
-														fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+														fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 														L_328_[2] = 0
 														repeat
 															L_328_[2] = L_328_[2] + 1
@@ -4174,7 +4174,7 @@ task["spawn"](function()
 														if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 															if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																local L_329_ = {}
-																fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																L_329_[1] = 0
 																repeat
 																	L_329_[1] = L_329_[1] + 1
@@ -4208,7 +4208,7 @@ task["spawn"](function()
 															L_1_[45]["wt"](2)
 															if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 																if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 and L_1_[35]["Data"]["Fragments"]["Value"] < 5000 then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
 																elseif L_1_[17]["Value"] < 5000 then
 																	break
 																end
@@ -4235,10 +4235,10 @@ task["spawn"](function()
 																else
 																	Select_Map = "Ice"
 																end
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 																if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																	local L_334_ = {}
-																	fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																	fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																	L_334_[2] = 0
 																	repeat
 																		L_334_[2] = L_334_[2] + 1
@@ -4249,7 +4249,7 @@ task["spawn"](function()
 																	if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 																		if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																			local L_335_ = {}
-																			fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																			fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																			L_335_[1] = 0
 																			repeat
 																				L_335_[1] = L_335_[1] + 1
@@ -4277,7 +4277,7 @@ task["spawn"](function()
 							return
 						end
 						L_316_[1] = function()
-							for L_336_forvar0, L_337_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
+							for L_336_forvar0, L_337_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
 								local L_338_ = {}
 								L_338_[3], L_338_[1] = L_336_forvar0, L_337_forvar1
 								if L_338_[1]["Value"] and L_338_[1]["Value"] >= 1000000 then
@@ -4286,15 +4286,15 @@ task["spawn"](function()
 							end
 							return false
 						end
-						if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") ~= 0 and (game["Players"]["LocalPlayer"]["Data"]["Level"]["Value"] >= 900 and L_316_[1]()) then
+						if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") ~= 0 and (game["Players"]["LocalPlayer"]["Data"]["Level"]["Value"] >= 900 and L_316_[1]()) then
 							repeat
 								L_1_[45]["wt"]()
 								noFruit = true
-								for L_339_forvar0, L_340_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
+								for L_339_forvar0, L_340_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventory")) do
 									local L_341_ = {}
 									L_341_[2], L_341_[1] = L_339_forvar0, L_340_forvar1
 									if L_341_[1]["Value"] and L_341_[1]["Value"] >= 1000000 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("LoadFruit", L_341_[1]["Name"])
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("LoadFruit", L_341_[1]["Name"])
 										L_1_[45]["wt"](1)
 										for L_342_forvar0, L_343_forvar1 in pairs((game:GetService("Players"))["LocalPlayer"]["Backpack"]:GetChildren()) do
 											local L_344_ = {}
@@ -4304,16 +4304,16 @@ task["spawn"](function()
 											end
 										end
 										L_1_[45]["wt"](.2)
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1")
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "2")
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "3")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "2")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "3")
 										return
 									end
 								end
-							until L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") == 0 or not L_316_[1]()
+							until ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") == 0 or not L_316_[1]()
 							noFruit = false
 						end
-						if L_1_[24]["Value"] >= 1500 and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") ~= 0 and not L_316_[1]()) then
+						if L_1_[24]["Value"] >= 1500 and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") ~= 0 and not L_316_[1]()) then
 							L_1_[45]["HopLowServer"](10)
 							return
 						end
@@ -4323,7 +4323,7 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[14]()
 									if not Super_humanw_C_M then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySuperhuman")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuySuperhuman")
 										if L_1_[35]["Character"]["Superhuman"]["Level"]["Value"] < 400 then
 											repeat
 												L_1_[45]["wt"]()
@@ -4346,7 +4346,7 @@ task["spawn"](function()
 										if L_1_[17]["Value"] >= 5000 then
 											if Black_Leg_C_M then
 												if L_1_[1]["Value"] >= 2500000 then
-													L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep")
+													ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep")
 													Death_Step = true
 													return
 												else
@@ -4361,7 +4361,7 @@ task["spawn"](function()
 											else
 												repeat
 													L_1_[45]["wt"]()
-													L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyBlackLeg")
+													ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyBlackLeg")
 													L_1_[14]()
 													Quest = nil
 													L_1_[45]["Status"](L_1_[3]({
@@ -4372,7 +4372,7 @@ task["spawn"](function()
 												until L_1_[35]["Character"]["Black Leg"]["Level"]["Value"] >= 400
 												Black_Leg_C_M = true
 												if not Super_human then
-													L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySuperhuman")
+													ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuySuperhuman")
 												end
 												return
 											end
@@ -4381,7 +4381,7 @@ task["spawn"](function()
 												L_1_[45]["Status"](" Status : Farm Raid")
 												if #L_1_[45]["GetMobRaid"]() == 0 then
 													if Select_Map == "Magma" or Select_Map == "Flame" then
-														for L_345_forvar0, L_346_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+														for L_345_forvar0, L_346_forvar1 in pairs(Workspace:GetDescendants()) do
 															local L_347_ = {}
 															L_347_[2], L_347_[1] = L_345_forvar0, L_346_forvar1
 															if L_347_[1]["Name"] == "Lava" then
@@ -4409,7 +4409,7 @@ task["spawn"](function()
 																local L_351_ = {}
 																L_1_[45]["wt"](.1)
 																if Select_Map == "Magma" or Select_Map == "Flame" then
-																	for L_352_forvar0, L_353_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+																	for L_352_forvar0, L_353_forvar1 in pairs(Workspace:GetDescendants()) do
 																		local L_354_ = {}
 																		L_354_[1], L_354_[3] = L_352_forvar0, L_353_forvar1
 																		if L_354_[3]["Name"] == "Lava" then
@@ -4431,7 +4431,7 @@ task["spawn"](function()
 																end
 																L_1_[31](L_350_[1]["HumanoidRootPart"]["CFrame"] * L_351_[1], 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															until not L_350_[1]["Parent"] or L_350_[1]["Humanoid"]["Health"] <= 0 or #L_1_[45]["GetMobRaid"]() == 0
@@ -4462,12 +4462,12 @@ task["spawn"](function()
 												else
 													Select_Map = "Ice"
 												end
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 												L_1_[45]["wt"](.2)
 												if L_1_[35]["Backpack"]:FindFirstChild("Special Microchip") or L_1_[35]["Character"]:FindFirstChild("Special Microchip") and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 													if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 														local L_355_ = {}
-														fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+														fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 														L_355_[1] = 0
 														repeat
 															L_355_[1] = L_355_[1] + 1
@@ -4478,7 +4478,7 @@ task["spawn"](function()
 														if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 															if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																local L_356_ = {}
-																fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																L_356_[1] = 0
 																repeat
 																	L_356_[1] = L_356_[1] + 1
@@ -4491,7 +4491,7 @@ task["spawn"](function()
 													if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 														if L_1_[35]["Data"]["Fragments"]["Value"] >= 5000 then
 															if L_1_[35]["Data"]["Beli"]["Value"] >= 2500000 then
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep")
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDeathStep")
 																Death_Step = true
 																return
 															end
@@ -4510,7 +4510,7 @@ task["spawn"](function()
 															L_1_[45]["wt"](2)
 															if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 																if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 and L_1_[35]["Data"]["Fragments"]["Value"] < 5000 then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
 																elseif L_1_[17]["Value"] < 5000 then
 																	break
 																end
@@ -4537,10 +4537,10 @@ task["spawn"](function()
 																else
 																	Select_Map = "Ice"
 																end
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 																if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																	local L_360_ = {}
-																	fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																	fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																	L_360_[2] = 0
 																	repeat
 																		L_360_[2] = L_360_[2] + 1
@@ -4551,7 +4551,7 @@ task["spawn"](function()
 																	if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 																		if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																			local L_361_ = {}
-																			fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																			fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																			L_361_[1] = 0
 																			repeat
 																				L_361_[1] = L_361_[1] + 1
@@ -4590,7 +4590,7 @@ task["spawn"](function()
 									if not Sharkman_Karate_C and L_1_[24]["Value"] >= 1100 then
 										if L_1_[17]["Value"] >= 5000 then
 											if L_1_[1]["Value"] >= 2550000 and not Sharkman_Karate_C then
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate")
 												Sharkman_Karate_C = true
 												return
 											else
@@ -4607,7 +4607,7 @@ task["spawn"](function()
 												L_1_[45]["Status"](" Status : Farm Raid")
 												if #L_1_[45]["GetMobRaid"]() == 0 then
 													if Select_Map == "Magma" or Select_Map == "Flame" then
-														for L_362_forvar0, L_363_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+														for L_362_forvar0, L_363_forvar1 in pairs(Workspace:GetDescendants()) do
 															local L_364_ = {}
 															L_364_[1], L_364_[3] = L_362_forvar0, L_363_forvar1
 															if L_364_[3]["Name"] == "Lava" then
@@ -4635,7 +4635,7 @@ task["spawn"](function()
 																local L_368_ = {}
 																L_1_[45]["wt"](.1)
 																if Select_Map == "Magma" or Select_Map == "Flame" then
-																	for L_369_forvar0, L_370_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+																	for L_369_forvar0, L_370_forvar1 in pairs(Workspace:GetDescendants()) do
 																		local L_371_ = {}
 																		L_371_[2], L_371_[3] = L_369_forvar0, L_370_forvar1
 																		if L_371_[3]["Name"] == "Lava" then
@@ -4657,7 +4657,7 @@ task["spawn"](function()
 																end
 																L_1_[31](L_367_[1]["HumanoidRootPart"]["CFrame"] * L_368_[3], 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															until not L_367_[1]["Parent"] or L_367_[1]["Humanoid"]["Health"] <= 0 or #L_1_[45]["GetMobRaid"]() == 0
@@ -4688,12 +4688,12 @@ task["spawn"](function()
 												else
 													Select_Map = "Ice"
 												end
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 												L_1_[45]["wt"](.2)
 												if L_1_[35]["Backpack"]:FindFirstChild("Special Microchip") or L_1_[35]["Character"]:FindFirstChild("Special Microchip") and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 													if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 														local L_372_ = {}
-														fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+														fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 														L_372_[1] = 0
 														repeat
 															L_372_[1] = L_372_[1] + 1
@@ -4704,7 +4704,7 @@ task["spawn"](function()
 														if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 															if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																local L_373_ = {}
-																fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																L_373_[2] = 0
 																repeat
 																	L_373_[2] = L_373_[2] + 1
@@ -4717,7 +4717,7 @@ task["spawn"](function()
 													if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 														if L_1_[1]["Value"] >= 0 and L_1_[35]["Data"]["Fragments"]["Value"] >= 5000 then
 															print("nan")
-															L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate")
+															ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuySharkmanKarate")
 															Sharkman_Karate_C = true
 															return
 														end
@@ -4733,7 +4733,7 @@ task["spawn"](function()
 															L_1_[45]["wt"](2)
 															if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 																if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 and L_1_[35]["Data"]["Fragments"]["Value"] < 5000 then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
 																elseif L_1_[17]["Value"] < 5000 then
 																	break
 																end
@@ -4760,10 +4760,10 @@ task["spawn"](function()
 																else
 																	Select_Map = "Ice"
 																end
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 																if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																	local L_377_ = {}
-																	fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																	fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																	L_377_[1] = 0
 																	repeat
 																		L_377_[1] = L_377_[1] + 1
@@ -4774,7 +4774,7 @@ task["spawn"](function()
 																	if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 																		if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																			local L_378_ = {}
-																			fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																			fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																			L_378_[2] = 0
 																			repeat
 																				L_378_[2] = L_378_[2] + 1
@@ -4814,14 +4814,14 @@ task["spawn"](function()
 										if L_1_[17]["Value"] >= 5000 then
 											if L_1_[1]["Value"] >= 3000000 then
 												pcall(function()
-													L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw")
-													if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 2 then
+													ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw")
+													if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 2 then
 														Electric_Claw_C = true
 													end
 												end)
 												if not Electric_Claw_C then
-													L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw")
-													if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 2 then
+													ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw")
+													if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 2 then
 														Electric_Claw_C = true
 													end
 												end
@@ -4843,7 +4843,7 @@ task["spawn"](function()
 												L_1_[45]["Status"](" Status : Farm Raid")
 												if #L_1_[45]["GetMobRaid"]() == 0 then
 													if Select_Map == "Magma" or Select_Map == "Flame" then
-														for L_379_forvar0, L_380_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+														for L_379_forvar0, L_380_forvar1 in pairs(Workspace:GetDescendants()) do
 															local L_381_ = {}
 															L_381_[2], L_381_[1] = L_379_forvar0, L_380_forvar1
 															if L_381_[1]["Name"] == "Lava" then
@@ -4871,7 +4871,7 @@ task["spawn"](function()
 																local L_385_ = {}
 																L_1_[45]["wt"](.1)
 																if Select_Map == "Magma" or Select_Map == "Flame" then
-																	for L_386_forvar0, L_387_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+																	for L_386_forvar0, L_387_forvar1 in pairs(Workspace:GetDescendants()) do
 																		local L_388_ = {}
 																		L_388_[3], L_388_[2] = L_386_forvar0, L_387_forvar1
 																		if L_388_[2]["Name"] == "Lava" then
@@ -4893,7 +4893,7 @@ task["spawn"](function()
 																end
 																L_1_[31](L_384_[2]["HumanoidRootPart"]["CFrame"] * L_385_[1], 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															until not L_384_[2]["Parent"] or L_384_[2]["Humanoid"]["Health"] <= 0 or #L_1_[45]["GetMobRaid"]() == 0
@@ -4924,12 +4924,12 @@ task["spawn"](function()
 												else
 													Select_Map = "Ice"
 												end
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 												L_1_[45]["wt"](.2)
 												if L_1_[35]["Backpack"]:FindFirstChild("Special Microchip") or L_1_[35]["Character"]:FindFirstChild("Special Microchip") and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 													if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 														local L_389_ = {}
-														fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+														fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 														L_389_[2] = 0
 														repeat
 															L_389_[2] = L_389_[2] + 1
@@ -4940,7 +4940,7 @@ task["spawn"](function()
 														if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 															if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																local L_390_ = {}
-																fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																L_390_[2] = 0
 																repeat
 																	L_390_[2] = L_390_[2] + 1
@@ -4953,8 +4953,8 @@ task["spawn"](function()
 													if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 														if L_1_[35]["Data"]["Fragments"]["Value"] >= 5000 then
 															if L_1_[35]["Data"]["Beli"]["Value"] >= 3000000 then
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw")
-																if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 2 then
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw")
+																if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw") == 2 then
 																	Electric_Claw_C = true
 																end
 																return
@@ -4974,7 +4974,7 @@ task["spawn"](function()
 															L_1_[45]["wt"](2)
 															if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 																if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 and L_1_[35]["Data"]["Fragments"]["Value"] < 5000 then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
 																elseif L_1_[17]["Value"] < 5000 then
 																	break
 																end
@@ -5001,10 +5001,10 @@ task["spawn"](function()
 																else
 																	Select_Map = "Ice"
 																end
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 																if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																	local L_394_ = {}
-																	fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																	fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																	L_394_[2] = 0
 																	repeat
 																		L_394_[2] = L_394_[2] + 1
@@ -5015,7 +5015,7 @@ task["spawn"](function()
 																	if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 																		if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																			local L_395_ = {}
-																			fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																			fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																			L_395_[2] = 0
 																			repeat
 																				L_395_[2] = L_395_[2] + 1
@@ -5074,7 +5074,7 @@ task["spawn"](function()
 												L_1_[45]["Status"](" Status : Farm Raid")
 												if #L_1_[45]["GetMobRaid"]() == 0 then
 													if Select_Map == "Magma" or Select_Map == "Flame" then
-														for L_396_forvar0, L_397_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+														for L_396_forvar0, L_397_forvar1 in pairs(Workspace:GetDescendants()) do
 															local L_398_ = {}
 															L_398_[1], L_398_[3] = L_396_forvar0, L_397_forvar1
 															if L_398_[3]["Name"] == "Lava" then
@@ -5102,7 +5102,7 @@ task["spawn"](function()
 																local L_402_ = {}
 																L_1_[45]["wt"](.1)
 																if Select_Map == "Magma" or Select_Map == "Flame" then
-																	for L_403_forvar0, L_404_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+																	for L_403_forvar0, L_404_forvar1 in pairs(Workspace:GetDescendants()) do
 																		local L_405_ = {}
 																		L_405_[3], L_405_[1] = L_403_forvar0, L_404_forvar1
 																		if L_405_[1]["Name"] == "Lava" then
@@ -5124,7 +5124,7 @@ task["spawn"](function()
 																end
 																L_1_[31](L_401_[3]["HumanoidRootPart"]["CFrame"] * L_402_[2], 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															until not L_401_[3]["Parent"] or L_401_[3]["Humanoid"]["Health"] <= 0 or #L_1_[45]["GetMobRaid"]() == 0
@@ -5155,12 +5155,12 @@ task["spawn"](function()
 												else
 													Select_Map = "Ice"
 												end
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 												L_1_[45]["wt"](.2)
 												if L_1_[35]["Backpack"]:FindFirstChild("Special Microchip") or L_1_[35]["Character"]:FindFirstChild("Special Microchip") and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 													if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 														local L_406_ = {}
-														fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+														fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 														L_406_[1] = 0
 														repeat
 															L_406_[1] = L_406_[1] + 1
@@ -5171,7 +5171,7 @@ task["spawn"](function()
 														if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 															if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																local L_407_ = {}
-																fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																L_407_[2] = 0
 																repeat
 																	L_407_[2] = L_407_[2] + 1
@@ -5184,7 +5184,7 @@ task["spawn"](function()
 													if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 														if L_1_[35]["Data"]["Fragments"]["Value"] >= 5000 then
 															if L_1_[35]["Data"]["Beli"]["Value"] >= 3000000 then
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
 																Dragon_Talon_C = true
 																return
 															end
@@ -5203,7 +5203,7 @@ task["spawn"](function()
 															L_1_[45]["wt"](2)
 															if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 																if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 and L_1_[35]["Data"]["Fragments"]["Value"] < 5000 then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
 																elseif L_1_[17]["Value"] < 5000 then
 																	break
 																end
@@ -5230,10 +5230,10 @@ task["spawn"](function()
 																else
 																	Select_Map = "Ice"
 																end
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 																if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																	local L_411_ = {}
-																	fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																	fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																	L_411_[2] = 0
 																	repeat
 																		L_411_[2] = L_411_[2] + 1
@@ -5244,7 +5244,7 @@ task["spawn"](function()
 																	if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 																		if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																			local L_412_ = {}
-																			fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																			fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																			L_412_[1] = 0
 																			repeat
 																				L_412_[1] = L_412_[1] + 1
@@ -5298,7 +5298,7 @@ task["spawn"](function()
 												L_1_[45]["Status"](" Status : Farm Raid")
 												if #L_1_[45]["GetMobRaid"]() == 0 then
 													if Select_Map == "Magma" or Select_Map == "Flame" then
-														for L_413_forvar0, L_414_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+														for L_413_forvar0, L_414_forvar1 in pairs(Workspace:GetDescendants()) do
 															local L_415_ = {}
 															L_415_[3], L_415_[1] = L_413_forvar0, L_414_forvar1
 															if L_415_[1]["Name"] == "Lava" then
@@ -5326,7 +5326,7 @@ task["spawn"](function()
 																local L_419_ = {}
 																L_1_[45]["wt"](.1)
 																if Select_Map == "Magma" or Select_Map == "Flame" then
-																	for L_420_forvar0, L_421_forvar1 in pairs(L_1_[19]:GetDescendants()) do
+																	for L_420_forvar0, L_421_forvar1 in pairs(Workspace:GetDescendants()) do
 																		local L_422_ = {}
 																		L_422_[2], L_422_[1] = L_420_forvar0, L_421_forvar1
 																		if L_422_[1]["Name"] == "Lava" then
@@ -5348,7 +5348,7 @@ task["spawn"](function()
 																end
 																L_1_[31](L_418_[1]["HumanoidRootPart"]["CFrame"] * L_419_[1], 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															until not L_418_[1]["Parent"] or L_418_[1]["Humanoid"]["Health"] <= 0 or #L_1_[45]["GetMobRaid"]() == 0
@@ -5379,12 +5379,12 @@ task["spawn"](function()
 												else
 													Select_Map = "Ice"
 												end
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 												L_1_[45]["wt"](.2)
 												if L_1_[35]["Backpack"]:FindFirstChild("Special Microchip") or L_1_[35]["Character"]:FindFirstChild("Special Microchip") and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 													if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 														local L_423_ = {}
-														fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+														fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 														L_423_[2] = 0
 														repeat
 															L_423_[2] = L_423_[2] + 1
@@ -5395,7 +5395,7 @@ task["spawn"](function()
 														if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 															if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																local L_424_ = {}
-																fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																L_424_[1] = 0
 																repeat
 																	L_424_[1] = L_424_[1] + 1
@@ -5408,7 +5408,7 @@ task["spawn"](function()
 													if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 														if L_1_[35]["Data"]["Fragments"]["Value"] >= 5000 then
 															if L_1_[35]["Data"]["Beli"]["Value"] >= 3000000 then
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyGodHuman")
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyGodHuman")
 																God_Human_C = true
 																return
 															end
@@ -5427,7 +5427,7 @@ task["spawn"](function()
 															L_1_[45]["wt"](2)
 															if not L_1_[35]["PlayerGui"]["Main"]["TopHUDList"]["RaidTimer"]["Visible"] then
 																if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 and L_1_[35]["Data"]["Fragments"]["Value"] < 5000 then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LoadFruit", (L_1_[45]["GetFruits"]())[1]["Name"])
 																elseif L_1_[17]["Value"] < 5000 then
 																	break
 																end
@@ -5454,10 +5454,10 @@ task["spawn"](function()
 																else
 																	Select_Map = "Ice"
 																end
-																L_1_[7]["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
+																ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("RaidsNpc", "Select", Select_Map)
 																if L_1_[30] == 4442272183 and L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																	local L_428_ = {}
-																	fireclickdetector(L_1_[19]["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																	fireclickdetector(Workspace["Map"]["CircleIsland"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																	L_428_[2] = 0
 																	repeat
 																		L_428_[2] = L_428_[2] + 1
@@ -5468,7 +5468,7 @@ task["spawn"](function()
 																	if ((CFrame["new"](-5034, 315, -2951))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
 																		if L_1_[35]["Character"]["Humanoid"]["Health"] > 0 then
 																			local L_429_ = {}
-																			fireclickdetector(L_1_[19]["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
+																			fireclickdetector(Workspace["Map"]["Boat Castle"]["RaidSummon2"]["Button"]["Main"]["ClickDetector"], 1)
 																			L_429_[1] = 0
 																			repeat
 																				L_429_[1] = L_429_[1] + 1
@@ -5499,7 +5499,7 @@ task["spawn"](function()
 							Quest = "World 2"
 							return
 						end
-						if New_World and (CheckFindWaterKey and (L_1_[24]["Value"] >= 1500 and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") == 0 and (not L_1_[45]["IsHall"]() and L_1_[45]["IsHeavenly"]())))) then
+						if New_World and (CheckFindWaterKey and (L_1_[24]["Value"] >= 1500 and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TalkTrevor", "1") == 0 and (not L_1_[45]["IsHall"]() and L_1_[45]["IsHeavenly"]())))) then
 							Quest = "TravelZou"
 							return
 						end
@@ -5524,9 +5524,9 @@ task["spawn"](function()
 			if Quest == "Saber" then
 				local L_430_ = {}
 				if not old_World then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelMain")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelMain")
 				end
-				L_430_[2] = L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress")
+				L_430_[2] = ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress")
 				if L_430_[2]["UsedTorch"] == false then
 					for L_431_forvar0, L_432_forvar1 in pairs((game:GetService("Workspace"))["Map"]["Jungle"]["QuestPlates"]:GetChildren()) do
 						local L_433_ = {}
@@ -5541,17 +5541,17 @@ task["spawn"](function()
 							L_433_[2]["Button"]["CFrame"] = L_1_[35]["Character"]["HumanoidRootPart"]["CFrame"]
 						end
 					end
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "GetTorch")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "GetTorch")
 					L_1_[45]["Equip"]("Torch")
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "DestroyTorch")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "DestroyTorch")
 				elseif L_430_[2]["UsedCup"] == false then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "GetCup")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "GetCup")
 					L_1_[45]["Equip"]("Cup")
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "FillCup", (game:GetService("Players"))["LocalPlayer"]["Character"]["Cup"])
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "SickMan")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "FillCup", (game:GetService("Players"))["LocalPlayer"]["Character"]["Cup"])
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "SickMan")
 				elseif L_430_[2]["KilledMob"] == false then
 					local L_434_ = {}
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "RichSon")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "RichSon")
 					L_434_[2] = L_1_[45]["ffc"](L_1_[40], "Mob Leader")
 					if L_434_[2] then
 						for L_435_forvar0, L_436_forvar1 in pairs(L_1_[40]:GetChildren()) do
@@ -5562,18 +5562,18 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_437_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 20, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_437_[3]["Parent"] or L_437_[3]["Humanoid"]["Health"] <= 0 or L_1_[45]["gi"]("Saber")
-								L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "RichSon")
+								ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "RichSon")
 							end
 						end
 					else
 						L_1_[31](CFrame["new"](-2848.59399, 7.4272871, 5342.44043), 1.5)
 					end
 				elseif L_430_[2]["UsedRelic"] == false then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "RichSon")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ProQuestProgress", "RichSon")
 					L_1_[45]["Equip"]("Relic")
 					L_1_[31](CFrame["new"](-1406.60925, 29.8520069, 4.5805192), 1.5)
 				else
@@ -5586,7 +5586,7 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_440_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 25, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_440_[3]["Parent"] or L_440_[3]["Humanoid"]["Health"] <= 0 or L_1_[45]["gi"]("Saber")
@@ -5599,20 +5599,20 @@ task["spawn"](function()
 							if not L_1_[45]["ffc"](L_1_[40], "Saber Expert") then
 								L_1_[35]:Kick("Hop")
 								L_1_[45]["wt"](.1)
-								L_1_[10]:Teleport(L_1_[30], L_1_[35])
+								TeleportService:Teleport(L_1_[30], L_1_[35])
 							end
 						end
 					end
 				end
 			elseif Quest == "World 2" then
 				local L_441_ = {}
-				L_441_[1] = L_1_[7]["Remotes"]["CommF_"]:InvokeServer(L_1_[3]({
+				L_441_[1] = ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer(L_1_[3]({
 					"DressrosaQuestProgre";
 					"ss"
 				}))
 				if L_441_[1]["UsedKey"] == false then
 					L_1_[31](CFrame["new"](1347.32947, 37.349369, -1325.44922, .538348913, 8.57539106e-08, .842722058, 8.61935634e-10, 1, -1.0230886e-07, -0.842722058, 5.58042359e-08, .538348913), 1.5)
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer(L_1_[3]({
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer(L_1_[3]({
 						"DressrosaQuestProgre",
 						"ss"
 					}), "Detective")
@@ -5627,21 +5627,21 @@ task["spawn"](function()
 									L_1_[45]["wt"](.1)
 									L_1_[31](L_444_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 20, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_444_[2]["Parent"] or L_444_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or L_441_[1]["KilledIceBoss"]
 								L_1_[45]["wt"](2)
-								L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+								ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 								TleP = true
 								L_1_[45]["wt"](25)
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Ice Admiral") then
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Ice Admiral") then
 						L_1_[31](CFrame["new"](1144.5270996094, 7.3292083740234, -1164.7322998047), 1.5)
 					end
 				elseif L_441_[1]["KilledIceBoss"] == true then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 					TleP = true
 					L_1_[45]["wt"](25)
 				end
@@ -5659,29 +5659,29 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_447_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_447_[1]["Parent"] or L_447_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Thunder God")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Thunder God") then
-						for L_448_forvar0, L_449_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Thunder God") then
+						for L_448_forvar0, L_449_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_450_ = {}
 							L_450_[2], L_450_[3] = L_448_forvar0, L_449_forvar1
 							if L_450_[3]["Name"] == "Thunder God" and L_450_[3]["Humanoid"]["Health"] > 0 then
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_450_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_450_[3]["Parent"] or L_450_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Thunder God")
@@ -5703,29 +5703,29 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_453_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_453_[3]["Parent"] or L_453_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("The Saw")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "The Saw") then
-						for L_454_forvar0, L_455_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "The Saw") then
+						for L_454_forvar0, L_455_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_456_ = {}
 							L_456_[1], L_456_[3] = L_454_forvar0, L_455_forvar1
 							if L_456_[3]["Name"] == "The Saw" and L_456_[3]["Humanoid"]["Health"] > 0 then
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_456_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_456_[3]["Parent"] or L_456_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("The Saw")
@@ -5747,29 +5747,29 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_459_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_459_[1]["Parent"] or L_459_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Smoke Admiral")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Smoke Admiral") then
-						for L_460_forvar0, L_461_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Smoke Admiral") then
+						for L_460_forvar0, L_461_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_462_ = {}
 							L_462_[1], L_462_[2] = L_460_forvar0, L_461_forvar1
 							if L_462_[2]["Name"] == "Smoke Admiral" and L_462_[2]["Humanoid"]["Health"] > 0 then
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_462_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_462_[2]["Parent"] or L_462_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Smoke Admiral")
@@ -5791,29 +5791,29 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_465_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_465_[1]["Parent"] or L_465_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Chief Warden")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Chief Warden") then
-						for L_466_forvar0, L_467_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Chief Warden") then
+						for L_466_forvar0, L_467_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_468_ = {}
 							L_468_[1], L_468_[2] = L_466_forvar0, L_467_forvar1
 							if L_468_[2]["Name"] == "Chief Warden" and L_468_[2]["Humanoid"]["Health"] > 0 then
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_468_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_468_[2]["Parent"] or L_468_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Chief Warden")
@@ -5835,29 +5835,29 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_471_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_471_[2]["Parent"] or L_471_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Magma Admiral")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Magma Admiral") then
-						for L_472_forvar0, L_473_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Magma Admiral") then
+						for L_472_forvar0, L_473_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_474_ = {}
 							L_474_[2], L_474_[3] = L_472_forvar0, L_473_forvar1
 							if L_474_[3]["Name"] == "Magma Admiral" and L_474_[3]["Humanoid"]["Health"] > 0 then
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_474_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_474_[3]["Parent"] or L_474_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Magma Admiral")
@@ -5879,29 +5879,29 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_477_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_477_[2]["Parent"] or L_477_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Wysper")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Wysper") then
-						for L_478_forvar0, L_479_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Wysper") then
+						for L_478_forvar0, L_479_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_480_ = {}
 							L_480_[3], L_480_[1] = L_478_forvar0, L_479_forvar1
 							if L_480_[1]["Name"] == "Wysper" and L_480_[1]["Humanoid"]["Health"] > 0 then
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_480_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_480_[1]["Parent"] or L_480_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Wysper")
@@ -5923,29 +5923,29 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_483_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_483_[3]["Parent"] or L_483_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Captain Elephant")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Captain Elephant") then
-						for L_484_forvar0, L_485_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Captain Elephant") then
+						for L_484_forvar0, L_485_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_486_ = {}
 							L_486_[1], L_486_[2] = L_484_forvar0, L_485_forvar1
 							if L_486_[2]["Name"] == "Captain Elephant" and L_486_[2]["Humanoid"]["Health"] > 0 then
 								repeat
 									L_1_[45]["wt"]()
 									if ((CFrame["new"](-7894.6181640625, 5547.1420898438, -380.29098510742))["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] >= 7500 then
-										((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
+										((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommF_")):InvokeServer("requestEntrance", vector["create"](-7894.6181640625, 5547.1420898438, -380.29098510742))
 									end
 									L_1_[31](L_486_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_486_[2]["Parent"] or L_486_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Captain Elephant")
@@ -5968,14 +5968,14 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_489_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_489_[1]["Parent"] or L_489_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Orbitus")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Orbitus") then
-						for L_490_forvar0, L_491_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Orbitus") then
+						for L_490_forvar0, L_491_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_492_ = {}
 							L_492_[3], L_492_[2] = L_490_forvar0, L_491_forvar1
 							if L_492_[2]["Name"] == "Orbitus" and L_492_[2]["Humanoid"]["Health"] > 0 then
@@ -5983,7 +5983,7 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_492_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_492_[2]["Parent"] or L_492_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Orbitus")
@@ -6006,14 +6006,14 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_495_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_495_[2]["Parent"] or L_495_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Diamond")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Diamond") then
-						for L_496_forvar0, L_497_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Diamond") then
+						for L_496_forvar0, L_497_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_498_ = {}
 							L_498_[2], L_498_[3] = L_496_forvar0, L_497_forvar1
 							if L_498_[3]["Name"] == "Diamond" and L_498_[3]["Humanoid"]["Health"] > 0 then
@@ -6021,7 +6021,7 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_498_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_498_[3]["Parent"] or L_498_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Diamond")
@@ -6044,14 +6044,14 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_501_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_501_[2]["Parent"] or L_501_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Awakened Ice Admiral")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Awakened Ice Admiral") then
-						for L_502_forvar0, L_503_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Awakened Ice Admiral") then
+						for L_502_forvar0, L_503_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_504_ = {}
 							L_504_[3], L_504_[2] = L_502_forvar0, L_503_forvar1
 							if L_504_[2]["Name"] == "Awakened Ice Admiral" and L_504_[2]["Humanoid"]["Health"] > 0 then
@@ -6059,7 +6059,7 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_504_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_504_[2]["Parent"] or L_504_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Awakened Ice Admiral")
@@ -6070,7 +6070,7 @@ task["spawn"](function()
 			elseif Quest == "BartiloQuest" then
 				if New_World then
 					local L_505_ = {}
-					L_505_[1] = L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BartiloQuestProgress")
+					L_505_[1] = ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BartiloQuestProgress")
 					if L_505_[1]["KilledBandits"] == false then
 						if L_1_[35]["PlayerGui"]["Main"]["Quest"]["Visible"] and (L_1_[45]["sf"](L_1_[35]["PlayerGui"]["Main"]["Quest"]["Container"]["QuestTitle"]["Title"]["Text"], "Swan Pirates") and L_1_[45]["sf"](L_1_[35]["PlayerGui"]["Main"]["Quest"]["Container"]["QuestTitle"]["Title"]["Text"], "50")) then
 							if L_1_[45]["ffc"](L_1_[40], "Swan Pirate") then
@@ -6078,13 +6078,13 @@ task["spawn"](function()
 									local L_508_ = {}
 									L_508_[1], L_508_[2] = L_506_forvar0, L_507_forvar1
 									if L_508_[2]["Name"] == "Swan Pirate" and L_508_[2]["Humanoid"]["Health"] > 0 then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("SetSpawnPoint")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("SetSpawnPoint")
 										repeat
 											L_1_[45]["wt"]()
 											L_1_[45]["BN"](L_508_[2]["Name"])
 											L_1_[31](L_508_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 											if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 											end
 											L_1_[14]()
 										until (L_508_[2]["HumanoidRootPart"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 50 or L_508_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
@@ -6094,7 +6094,7 @@ task["spawn"](function()
 								L_1_[31](CFrame["new"](976.467651, 111.174057, 1229.1084), 1.5)
 							end
 						else
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("StartQuest", "BartiloQuest", 1)
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("StartQuest", "BartiloQuest", 1)
 						end
 					elseif L_505_[1]["KilledSpring"] == false then
 						if L_1_[45]["ffc"](L_1_[40], "Jeremy") then
@@ -6106,15 +6106,15 @@ task["spawn"](function()
 										L_1_[45]["wt"]()
 										L_1_[31](L_511_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 										if not game["Players"]["LocalPlayer"]["Character"]:FindFirstChild("HasBuso") then
-											L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+											ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 										end
 										L_1_[14]()
 									until not L_511_[1]["Parent"] or L_511_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
 								end
 							end
-						elseif L_1_[45]["ffc"](L_1_[7], "Jeremy") then
-							L_1_[31]((L_1_[7]:FindFirstChild("Jeremy"))["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
-						elseif not L_1_[45]["ffc"](L_1_[40], "Jeremy") and not L_1_[45]["ffc"](L_1_[7], "Jeremy") then
+						elseif L_1_[45]["ffc"](ReplicatedStorage, "Jeremy") then
+							L_1_[31]((ReplicatedStorage:FindFirstChild("Jeremy"))["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
+						elseif not L_1_[45]["ffc"](L_1_[40], "Jeremy") and not L_1_[45]["ffc"](ReplicatedStorage, "Jeremy") then
 							L_1_[39]()
 						end
 					elseif L_505_[1]["DidPlates"] == false then
@@ -6123,10 +6123,10 @@ task["spawn"](function()
 							L_1_[31](CFrame["new"](-1836, 11, 1714), 1.5)
 						until (Vector3["new"](-1836, 11, 1714) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] < 10
 						L_1_[45]["wt"](1)
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BartiloQuestProgress", "DidPlates")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BartiloQuestProgress", "DidPlates")
 					end
 				else
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 				end
 			elseif Quest == "Find Water Key" then
 				if New_World then
@@ -6149,14 +6149,14 @@ task["spawn"](function()
 										task["wait"]()
 										L_1_[31](L_514_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 										if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-											L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+											ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 										end
 										L_1_[14]()
 									until not L_514_[2]["Parent"] or L_514_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
 								end
 							end
-						elseif L_1_[45]["ffc"](L_1_[7], "Tide Keeper") then
-							for L_515_forvar0, L_516_forvar1 in pairs(L_1_[7]:GetChildren()) do
+						elseif L_1_[45]["ffc"](ReplicatedStorage, "Tide Keeper") then
+							for L_515_forvar0, L_516_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 								local L_517_ = {}
 								L_517_[1], L_517_[2] = L_515_forvar0, L_516_forvar1
 								if L_517_[2]["Name"] == "Tide Keeper" and (L_517_[2]:FindFirstChild("Humanoid") and (L_517_[2]:FindFirstChild("Humanoid"))["Health"] > 0) then
@@ -6164,7 +6164,7 @@ task["spawn"](function()
 										L_1_[45]["wt"]()
 										L_1_[31](L_517_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 										if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-											L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+											ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 										end
 										L_1_[14]()
 									until not L_517_[2]["Parent"] or L_517_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
@@ -6173,11 +6173,11 @@ task["spawn"](function()
 						else
 							L_1_[35]:Kick("Hop")
 							L_1_[45]["wt"](.1)
-							L_1_[10]:Teleport(L_1_[30], L_1_[35])
+							TeleportService:Teleport(L_1_[30], L_1_[35])
 						end
 					end
 				else
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 				end
 			elseif Quest == "Evo Race V1" then
 				if New_World then
@@ -6192,7 +6192,7 @@ task["spawn"](function()
 											L_1_[45]["wt"]()
 											L_1_[31](L_520_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 											if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 											end
 											L_1_[14]()
 										until not L_520_[1]["Parent"] or L_520_[1]["Humanoid"]["Health"] <= 0 or L_1_[45]["ffc"](L_1_[35]["Backpack"], "Flower 3") or L_1_[45]["ffc"](L_1_[35]["Character"], "Flower 3") or not(getgenv())["AutoFarm"]
@@ -6202,64 +6202,64 @@ task["spawn"](function()
 								L_1_[31](CFrame["new"](976.467651, 111.174057, 1229.1084), 1.5)
 							end
 						elseif not L_1_[45]["ffc"](L_1_[35]["Backpack"], "Flower 2") and not L_1_[45]["ffc"](L_1_[35]["Character"], "Flower 2") then
-							if L_1_[45]["ffc"](L_1_[19], "Flower2") then
-								L_1_[31](L_1_[19]["Flower2"]["CFrame"], 1.5)
-								if (L_1_[35]["Character"]["HumanoidRootPart"]["Position"] - L_1_[19]["Flower2"]["Position"])["Magnitude"] <= 5 then
+							if L_1_[45]["ffc"](Workspace, "Flower2") then
+								L_1_[31](Workspace["Flower2"]["CFrame"], 1.5)
+								if (L_1_[35]["Character"]["HumanoidRootPart"]["Position"] - Workspace["Flower2"]["Position"])["Magnitude"] <= 5 then
 									L_1_[2]:SendKeyEvent(true, "Space", false, game)
 									L_1_[45]["wt"](.5)
 									L_1_[2]:SendKeyEvent(false, "Space", false, game)
 								end
 							end
 						elseif not L_1_[45]["ffc"](L_1_[35]["Backpack"], "Flower 1") and not L_1_[45]["ffc"](L_1_[35]["Character"], "Flower 1") then
-							L_1_[31](L_1_[19]["Flower1"]["CFrame"], 1.5)
-							if (L_1_[35]["Character"]["HumanoidRootPart"]["Position"] - L_1_[19]["Flower1"]["Position"])["Magnitude"] <= 5 and L_1_[19]["Flower1"]["Transparency"] == 0 then
+							L_1_[31](Workspace["Flower1"]["CFrame"], 1.5)
+							if (L_1_[35]["Character"]["HumanoidRootPart"]["Position"] - Workspace["Flower1"]["Position"])["Magnitude"] <= 5 and Workspace["Flower1"]["Transparency"] == 0 then
 								L_1_[2]:SendKeyEvent(true, "Space", false, game)
 								L_1_[45]["wt"](.5)
 								L_1_[2]:SendKeyEvent(false, "Space", false, game)
 							end
 							L_1_[45]["wt"](1)
 						else
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Alchemist", "3")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Alchemist", "3")
 						end
 					else
-						if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Alchemist", "1") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Alchemist", "1") == 2 then
+						if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Alchemist", "1") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Alchemist", "1") == 2 then
 							Start_Quest_Evo_V1 = true
 						end
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Alchemist", "2")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Alchemist", "2")
 					end
 				else
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 				end
 			elseif Quest == "Evo Race V2" then
 				if New_World then
 					if L_1_[35]["Data"]["Race"]["Value"] == "Human" then
 						if Quest_Start_Evo_Human_V3 then
-							if not L_1_[45]["ffc"](L_1_[40], "Orbitus") and (not L_1_[45]["ffc"](L_1_[7], "Orbitus") and not Kill_Orbitus) then
+							if not L_1_[45]["ffc"](L_1_[40], "Orbitus") and (not L_1_[45]["ffc"](ReplicatedStorage, "Orbitus") and not Kill_Orbitus) then
 								L_1_[45]["HopLowServer"](4)
 								wait(.2)
 								L_1_[35]:Kick("Hop")
 								L_1_[45]["wt"](.1)
-								L_1_[10]:Teleport(L_1_[30], L_1_[35])
+								TeleportService:Teleport(L_1_[30], L_1_[35])
 							end
-							if not L_1_[45]["ffc"](L_1_[40], "Jeremy") and (not L_1_[45]["ffc"](L_1_[7], "Jeremy") and not Kill_Jeremy) then
+							if not L_1_[45]["ffc"](L_1_[40], "Jeremy") and (not L_1_[45]["ffc"](ReplicatedStorage, "Jeremy") and not Kill_Jeremy) then
 								L_1_[45]["HopLowServer"](4)
 								wait(.2)
 								L_1_[35]:Kick("Hop")
 								L_1_[45]["wt"](.1)
-								L_1_[10]:Teleport(L_1_[30], L_1_[35])
+								TeleportService:Teleport(L_1_[30], L_1_[35])
 							end
-							if not L_1_[45]["ffc"](L_1_[40], "Diamond") and (not L_1_[45]["ffc"](L_1_[7], "Diamond") and not Kill_Diamond) then
+							if not L_1_[45]["ffc"](L_1_[40], "Diamond") and (not L_1_[45]["ffc"](ReplicatedStorage, "Diamond") and not Kill_Diamond) then
 								L_1_[45]["HopLowServer"](4)
 								wait(.2)
 								L_1_[35]:Kick("Hop")
 								L_1_[45]["wt"](.1)
-								L_1_[10]:Teleport(L_1_[30], L_1_[35])
+								TeleportService:Teleport(L_1_[30], L_1_[35])
 							end
 							if not Kill_Orbitus then
 								repeat
 									L_1_[45]["wt"]()
 									pcall(function()
-										if L_1_[45]["ffc"](L_1_[40], "Orbitus") or L_1_[45]["ffc"](L_1_[7], "Orbitus") then
+										if L_1_[45]["ffc"](L_1_[40], "Orbitus") or L_1_[45]["ffc"](ReplicatedStorage, "Orbitus") then
 											if L_1_[45]["ffc"](L_1_[40], "Orbitus") then
 												for L_521_forvar0, L_522_forvar1 in pairs(L_1_[40]:GetChildren()) do
 													local L_523_ = {}
@@ -6270,7 +6270,7 @@ task["spawn"](function()
 															if L_523_[1]:FindFirstChild("HumanoidRootPart") then
 																L_1_[31](L_523_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															else
@@ -6281,8 +6281,8 @@ task["spawn"](function()
 														Kill_Orbitus = true
 													end
 												end
-											elseif L_1_[45]["ffc"](L_1_[7], "Orbitus") then
-												L_1_[31](L_1_[7]["Orbitus"]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
+											elseif L_1_[45]["ffc"](ReplicatedStorage, "Orbitus") then
+												L_1_[31](ReplicatedStorage["Orbitus"]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 											end
 										end
 									end)
@@ -6292,7 +6292,7 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									pcall(function()
-										if L_1_[45]["ffc"](L_1_[40], "Jeremy") or L_1_[45]["ffc"](L_1_[7], "Jeremy") then
+										if L_1_[45]["ffc"](L_1_[40], "Jeremy") or L_1_[45]["ffc"](ReplicatedStorage, "Jeremy") then
 											if L_1_[45]["ffc"](L_1_[40], "Jeremy") then
 												for L_524_forvar0, L_525_forvar1 in pairs(L_1_[40]:GetChildren()) do
 													local L_526_ = {}
@@ -6303,7 +6303,7 @@ task["spawn"](function()
 															if L_526_[3]:FindFirstChild("HumanoidRootPart") then
 																L_1_[31](L_526_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															else
@@ -6314,8 +6314,8 @@ task["spawn"](function()
 														Kill_Jeremy = true
 													end
 												end
-											elseif L_1_[45]["ffc"](L_1_[7], "Jeremy") then
-												L_1_[31](L_1_[7]["Jeremy"]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
+											elseif L_1_[45]["ffc"](ReplicatedStorage, "Jeremy") then
+												L_1_[31](ReplicatedStorage["Jeremy"]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 											end
 										end
 									end)
@@ -6325,7 +6325,7 @@ task["spawn"](function()
 								repeat
 									L_1_[45]["wt"]()
 									pcall(function()
-										if L_1_[45]["ffc"](L_1_[40], "Diamond") or L_1_[45]["ffc"](L_1_[7], "Diamond") then
+										if L_1_[45]["ffc"](L_1_[40], "Diamond") or L_1_[45]["ffc"](ReplicatedStorage, "Diamond") then
 											if L_1_[45]["ffc"](L_1_[40], "Diamond") then
 												for L_527_forvar0, L_528_forvar1 in pairs(L_1_[40]:GetChildren()) do
 													local L_529_ = {}
@@ -6336,7 +6336,7 @@ task["spawn"](function()
 															if L_529_[1]:FindFirstChild("HumanoidRootPart") then
 																L_1_[31](L_529_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 																if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-																	L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+																	ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 																end
 																L_1_[14]()
 															else
@@ -6347,19 +6347,19 @@ task["spawn"](function()
 														Kill_Diamond = true
 													end
 												end
-											elseif L_1_[45]["ffc"](L_1_[7], "Diamond") then
-												L_1_[31](L_1_[7]["Diamond"]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
+											elseif L_1_[45]["ffc"](ReplicatedStorage, "Diamond") then
+												L_1_[31](ReplicatedStorage["Diamond"]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
 											end
 										end
 									end)
 								until Kill_Diamond
 							end
 						else
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1")
 							L_1_[45]["wt"](1)
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "2")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "2")
 							warn()
-							if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1") == 2 then
+							if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1") == 2 then
 								Quest_Start_Evo_Human_V3 = true
 							end
 						end
@@ -6368,12 +6368,12 @@ task["spawn"](function()
 							local L_530_ = {}
 							L_530_[1] = false
 							L_530_[3] = false
-							for L_531_forvar0, L_532_forvar1 in pairs(L_1_[19]["SeaBeasts"]:GetChildren()) do
+							for L_531_forvar0, L_532_forvar1 in pairs(Workspace["SeaBeasts"]:GetChildren()) do
 								local L_533_ = {}
 								L_533_[2], L_533_[3] = L_531_forvar0, L_532_forvar1
 								if L_533_[3]:FindFirstChild("Health") and (L_533_[3]["Health"]["Value"] > 0 and (Vector3["new"](-3823.9206542969, 76.979339599609, -11685.7734375) - L_533_[3]["HumanoidRootPart"]["Position"])["Magnitude"] >= 1500) then
 									L_530_[1] = true
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyFishmanKarate")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyFishmanKarate")
 									Tejao = true
 									PositionSkillMasteryDevilFruit = L_533_[3]["HumanoidRootPart"]["CFrame"]
 									L_1_[35]["Character"]["Humanoid"]["Sit"] = false
@@ -6424,12 +6424,12 @@ task["spawn"](function()
 										end
 									until not L_533_[3]["Parent"] or L_533_[3]["Health"]["Value"] <= 0 or not(getgenv())["AutoFarm"]
 									Tejao = false
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "3")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "3")
 									wait(1)
 								end
 							end
 							if not L_530_[1] then
-								for L_534_forvar0, L_535_forvar1 in pairs(L_1_[19]["Boats"]:GetChildren()) do
+								for L_534_forvar0, L_535_forvar1 in pairs(Workspace["Boats"]:GetChildren()) do
 									local L_536_ = {}
 									L_536_[3], L_536_[1] = L_534_forvar0, L_535_forvar1
 									if L_536_[1]["Name"] == "Dinghy" and tostring(L_536_[1]["Owner"]["Value"]) == L_1_[35]["Name"] then
@@ -6465,22 +6465,22 @@ task["spawn"](function()
 							if not L_530_[3] and not L_530_[1] then
 								L_1_[31](CFrame["new"](-1935, 6, -2564), 1.5)
 								if (Vector3["new"](-1935, 6, -2564) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3 then
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyBoat", "Dinghy")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyBoat", "Dinghy")
 									wait(1)
 									Boat = "bit"
 								end
 							end
 						else
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1")
 							wait(1)
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "2")
-							if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1") == 1 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1") == 2 then
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "2")
+							if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1") == 1 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Wenlocktoad", "1") == 2 then
 								Quest_Start_Evo_Fishman_V3 = true
 							end
 						end
 					end
 				else
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 				end
 			elseif Quest == "Don Swan" then
 				repeat
@@ -6494,14 +6494,14 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_539_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_539_[2]["Parent"] or L_539_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Don Swan")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Don Swan") then
-						for L_540_forvar0, L_541_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Don Swan") then
+						for L_540_forvar0, L_541_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_542_ = {}
 							L_542_[3], L_542_[1] = L_540_forvar0, L_541_forvar1
 							if L_542_[1]["Name"] == "Don Swan" and L_542_[1]["Humanoid"]["Health"] > 0 then
@@ -6509,7 +6509,7 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_542_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_542_[1]["Parent"] or L_542_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Don Swan")
@@ -6520,12 +6520,12 @@ task["spawn"](function()
 						L_1_[45]["wt"](.2)
 						L_1_[35]:Kick("Hop")
 						L_1_[45]["wt"](.1)
-						L_1_[10]:Teleport(L_1_[30], L_1_[35])
+						TeleportService:Teleport(L_1_[30], L_1_[35])
 					end
 				until not L_1_[45]["CheckBoss"]("Don Swan")
 			elseif Quest == "TravelZou" then
-				if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check") == 1 then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelZou")
+				if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check") == 1 then
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelZou")
 				end
 				if Kill_Don then
 					if L_1_[45]["ffc"](L_1_[40], "rip_indra") then
@@ -6540,26 +6540,26 @@ task["spawn"](function()
 									L_1_[45]["wt"](.1)
 									L_1_[14]()
 									L_1_[31](L_545_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 30, 0), 1.5)
-								until L_545_[3]["Humanoid"]["Health"] <= 0 or not L_545_[3]["Parent"] or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check") == 1
-								if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check") == 1 then
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelZou")
+								until L_545_[3]["Humanoid"]["Health"] <= 0 or not L_545_[3]["Parent"] or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check") == 1
+								if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check") == 1 then
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelZou")
 									TleP = true
 									L_1_[45]["wt"](30)
 								end
 							end
 						end
-					elseif L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check") == 1 then
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelZou")
+					elseif ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check") == 1 then
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelZou")
 						TleP = true
 						L_1_[45]["wt"](30)
 					elseif not(game:GetService("Workspace"))["Enemies"]:FindFirstChild("rip_indra") then
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check")
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Begin")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Begin")
 						L_1_[45]["wt"](3)
 					end
 				elseif not okokok then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check")
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Begin")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Check")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("ZQuestProgress", "Begin")
 					L_1_[45]["wt"](3)
 					for L_546_forvar0, L_547_forvar1 in pairs(L_1_[40]:GetChildren()) do
 						local L_548_ = {}
@@ -6579,7 +6579,7 @@ task["spawn"](function()
 					L_1_[39]()
 				end
 			elseif Quest == "Yama" then
-				if (L_1_[19]["Map"]["Waterfall"]["SealedKatana"]["Hitbox"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 300 then
+				if (Workspace["Map"]["Waterfall"]["SealedKatana"]["Hitbox"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 300 then
 					if L_1_[45]["ffc"](L_1_[40], "Ghost") then
 						for L_549_forvar0, L_550_forvar1 in pairs(L_1_[40]:GetChildren()) do
 							local L_551_ = {}
@@ -6597,10 +6597,10 @@ task["spawn"](function()
 								until not L_551_[3]["Parent"] or L_551_[3]["Humanoid"]["Health"] <= 0
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Ghost") then
-						L_1_[31]((L_1_[7]:FindFirstChild("Ghost"))["HumanoidRootPart"]["CFrame"], 1.5)
-					elseif not L_1_[45]["ffc"](L_1_[40], "Ghost") and not L_1_[45]["ffc"](L_1_[7], "Ghost") then
-						L_1_[31](L_1_[19]["Map"]["Waterfall"]["SealedKatana"]["Hitbox"]["CFrame"], 1.5)
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Ghost") then
+						L_1_[31]((ReplicatedStorage:FindFirstChild("Ghost"))["HumanoidRootPart"]["CFrame"], 1.5)
+					elseif not L_1_[45]["ffc"](L_1_[40], "Ghost") and not L_1_[45]["ffc"](ReplicatedStorage, "Ghost") then
+						L_1_[31](Workspace["Map"]["Waterfall"]["SealedKatana"]["Hitbox"]["CFrame"], 1.5)
 						for L_552_forvar0, L_553_forvar1 in pairs(L_1_[35]["Character"]:GetChildren()) do
 							local L_554_ = {}
 							L_554_[2], L_554_[3] = L_552_forvar0, L_553_forvar1
@@ -6608,16 +6608,16 @@ task["spawn"](function()
 								L_554_[3]["Parent"] = L_1_[35]["Backpack"]
 							end
 						end
-						fireclickdetector(L_1_[19]["Map"]["Waterfall"]["SealedKatana"]["Hitbox"]["ClickDetector"], 1)
+						fireclickdetector(Workspace["Map"]["Waterfall"]["SealedKatana"]["Hitbox"]["ClickDetector"], 1)
 					end
 				else
-					L_1_[31](L_1_[19]["Map"]["Waterfall"]["SealedKatana"]["Hitbox"]["CFrame"], 1.5)
+					L_1_[31](Workspace["Map"]["Waterfall"]["SealedKatana"]["Hitbox"]["CFrame"], 1.5)
 				end
 			elseif Quest == "Quest Electric Claw" then
-				if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", true) == "Nah." or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", true) == 4 then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", "Start")
+				if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", true) == "Nah." or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", true) == 4 then
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", "Start")
 					L_1_[35]["Character"]["HumanoidRootPart"]["CFrame"] = CFrame["new"](-12548, 337, -7481)
-				elseif L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", true) == 3 or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", true) == 0 then
+				elseif ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", true) == 3 or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyElectricClaw", true) == 0 then
 					Electric_Claw_C = true
 				end
 			elseif Quest == "Venom Bow" then
@@ -6635,14 +6635,14 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_557_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_557_[1]["Parent"] or L_557_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Hydra Leader")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Hydra Leader") then
-						for L_558_forvar0, L_559_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Hydra Leader") then
+						for L_558_forvar0, L_559_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_560_ = {}
 							L_560_[1], L_560_[2] = L_558_forvar0, L_559_forvar1
 							if L_560_[2]["Name"] == "Hydra Leader" and L_560_[2]["Humanoid"]["Health"] > 0 then
@@ -6650,7 +6650,7 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_560_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_560_[2]["Parent"] or L_560_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Hydra Leader")
@@ -6660,7 +6660,7 @@ task["spawn"](function()
 				until not L_1_[45]["CheckBoss"]("Hydra Leader")
 			elseif Quest == "Godhuman" then
 				if L_1_[45]["CheckItem"]("Fish Tail") >= 20 and (L_1_[45]["CheckItem"]("Magma Ore") >= 20 and (L_1_[45]["CheckItem"]("Mystic Droplet") >= 10 and L_1_[45]["CheckItem"]("Dragon Scale") >= 10)) then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyGodhuman", true)
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyGodhuman", true)
 					Godhuman = true
 				elseif L_1_[45]["CheckItem"]("Fish Tail") < 20 or L_1_[45]["CheckItem"]("Magma Ore") < 20 or L_1_[45]["CheckItem"]("Mystic Droplet") < 10 or L_1_[45]["CheckItem"]("Dragon Scale") < 10 then
 					local L_561_ = {}
@@ -6677,7 +6677,7 @@ task["spawn"](function()
 							L_1_[35]["Character"]["HumanoidRootPart"]["CFrame"] = CFrame["new"](61164, 12, 1820)
 						end
 						if not Old_World then
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelMain")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelMain")
 							TleP = true
 							L_1_[45]["wt"](50)
 						end
@@ -6687,7 +6687,7 @@ task["spawn"](function()
 						L_561_[3] = CFrame["new"](-5466.06445, 77.6952019, -5837.42822)
 						L_561_[2] = CFrame["new"](-5169.71729, 54.1234779, -4669.73633)
 						if not New_World then
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 							TleP = true
 							L_1_[45]["wt"](50)
 						end
@@ -6697,7 +6697,7 @@ task["spawn"](function()
 						L_561_[3] = CFrame["new"](-3115.78223, 63.8785706, -9808.38574)
 						L_561_[2] = CFrame["new"](-3212.99683, 263.809296, -10551.8799)
 						if not New_World then
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 							TleP = true
 							L_1_[45]["wt"](50)
 						end
@@ -6707,7 +6707,7 @@ task["spawn"](function()
 						L_561_[3] = CFrame["new"](6241.9951171875, 51.522083282471, -1243.9771728516)
 						L_561_[2] = CFrame["new"](6488.9155273438, 383.38375854492, -110.66246032715)
 						if not Three_World then
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelZou")
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelZou")
 							TleP = true
 							L_1_[45]["wt"](50)
 						end
@@ -6769,14 +6769,14 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_570_[2]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_570_[2]["Parent"] or L_570_[2]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Longma")
 							end
 						end
-					elseif L_1_[45]["ffc"](L_1_[7], "Longma") then
-						for L_571_forvar0, L_572_forvar1 in pairs(L_1_[7]:GetChildren()) do
+					elseif L_1_[45]["ffc"](ReplicatedStorage, "Longma") then
+						for L_571_forvar0, L_572_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 							local L_573_ = {}
 							L_573_[2], L_573_[3] = L_571_forvar0, L_572_forvar1
 							if L_573_[3]["Name"] == "Longma" and L_573_[3]["Humanoid"]["Health"] > 0 then
@@ -6784,7 +6784,7 @@ task["spawn"](function()
 									L_1_[45]["wt"]()
 									L_1_[31](L_573_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 									if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 									end
 									L_1_[14]()
 								until not L_573_[3]["Parent"] or L_573_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"] or not L_1_[45]["CheckBoss"]("Longma")
@@ -6795,7 +6795,7 @@ task["spawn"](function()
 						L_1_[45]["wt"](.2)
 						L_1_[35]:Kick("Hop")
 						L_1_[45]["wt"](.1)
-						L_1_[10]:Teleport(L_1_[30], L_1_[35])
+						TeleportService:Teleport(L_1_[30], L_1_[35])
 					end
 				until not L_1_[45]["CheckBoss"]("Longma")
 			elseif Quest == "Soul Guitar" then
@@ -6803,7 +6803,7 @@ task["spawn"](function()
 					if Three_World then
 						L_1_[45]["FarmBone"](false)
 					else
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelZou")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelZou")
 						TleP = true
 						wait(50)
 					end
@@ -6842,17 +6842,17 @@ task["spawn"](function()
 							end
 						end
 					else
-						L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
+						ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelDressrosa")
 						TleP = true
 						wait(50)
 					end
 				elseif not Three_World then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("TravelZou")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("TravelZou")
 					TleP = true
 					wait(50)
 				else
 					if tostring((game:GetService("Workspace"))["Map"]["Haunted Castle"]["SwampWater"]["BrickColor"]) == "Maroon" then
-						if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check") ~= nil and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check"))["Swamp"] == false then
+						if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check") ~= nil and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check"))["Swamp"] == false then
 							repeat
 								wait()
 								L_1_[31](CFrame["new"](-10147.779296875, 138.6266784668, 5939.5600585938), 1.5)
@@ -6882,36 +6882,36 @@ task["spawn"](function()
 								wait(2)
 							end
 						end
-					elseif L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check") ~= nil then
+					elseif ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check") ~= nil then
 						local L_584_ = {}
-						L_584_[2] = L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check")
+						L_584_[2] = ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check")
 						if not Quest_Soul_Guitar then
 							repeat
 								wait(.1)
 								L_1_[31](CFrame["new"](-9680.7412109375, 6.1591067314148, 6346.1552734375), 1.5)
 							until (Vector3["new"](-9680.7412109375, 6.1591067314148, 6346.1552734375) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 5
 							wait(1)
-							for L_585_forvar0, L_586_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check")) do
+							for L_585_forvar0, L_586_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check")) do
 								local L_587_ = {}
 								L_587_[3], L_587_[1] = L_585_forvar0, L_586_forvar1
 								if L_587_[1] == false then
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", L_587_[3])
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", L_587_[3])
 								end
 							end
 							wait(2)
-							for L_588_forvar0, L_589_forvar1 in pairs(L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check")) do
+							for L_588_forvar0, L_589_forvar1 in pairs(ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", "Check")) do
 								local L_590_ = {}
 								L_590_[3], L_590_[1] = L_588_forvar0, L_589_forvar1
 								if L_590_[1] == false then
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", L_590_[3])
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GuitarPuzzleProgress", L_590_[3])
 								end
 							end
 							wait(1)
 							Quest_Soul_Guitar = true
 						end
 					elseif tostring((game:GetService("Workspace"))["Map"]["Haunted Castle"]["SwampWater"]["BrickColor"]) ~= "Maroon" then
-						if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("gravestoneEvent", 2) == true then
-							L_1_[7]["Remotes"]["CommF_"]:InvokeServer("gravestoneEvent", 2, true)
+						if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("gravestoneEvent", 2) == true then
+							ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("gravestoneEvent", 2, true)
 						else
 							L_1_[31](CFrame["new"](-8652.6416015625, 141.10939025879, 6168.810546875), 1.5)
 						end
@@ -6920,32 +6920,32 @@ task["spawn"](function()
 			elseif Quest == "RGB" then
 				local L_591_ = {}
 				L_591_[1] = nil
-				if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == nil then
+				if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == nil then
 					if L_1_[35]["PlayerGui"]["Main"]["Quest"]["Visible"] then
 						local L_592_ = {}
 						L_592_[1] = (game:GetService("Players"))["LocalPlayer"]["PlayerGui"]["Main"]["Quest"]["Container"]["QuestTitle"]["Title"]["Text"]
 						if string["find"](L_592_[1], "Stone") then
-							if L_1_[45]["ffc"](L_1_[40], "Stone") or L_1_[45]["ffc"](L_1_[7], "Stone") then
+							if L_1_[45]["ffc"](L_1_[40], "Stone") or L_1_[45]["ffc"](ReplicatedStorage, "Stone") then
 								L_591_[1] = "Stone"
 							end
 						end
 						if string["find"](L_592_[1], "Hydra Leader") then
-							if L_1_[45]["ffc"](L_1_[40], "Hydra Leader") or L_1_[45]["ffc"](L_1_[7], "Hydra Leader") then
+							if L_1_[45]["ffc"](L_1_[40], "Hydra Leader") or L_1_[45]["ffc"](ReplicatedStorage, "Hydra Leader") then
 								L_591_[1] = "Hydra Leader"
 							end
 						end
 						if string["find"](L_592_[1], "Kilo Admiral") then
-							if L_1_[45]["ffc"](L_1_[40], "Kilo Admiral") or L_1_[45]["ffc"](L_1_[7], "Kilo Admiral") then
+							if L_1_[45]["ffc"](L_1_[40], "Kilo Admiral") or L_1_[45]["ffc"](ReplicatedStorage, "Kilo Admiral") then
 								L_591_[1] = "Kilo Admiral"
 							end
 						end
 						if string["find"](L_592_[1], "Captain Elephant") then
-							if L_1_[45]["ffc"](L_1_[40], "Captain Elephant") or L_1_[45]["ffc"](L_1_[7], "Captain Elephant") then
+							if L_1_[45]["ffc"](L_1_[40], "Captain Elephant") or L_1_[45]["ffc"](ReplicatedStorage, "Captain Elephant") then
 								L_591_[1] = "Captain Elephant"
 							end
 						end
 						if string["find"](L_592_[1], "Beautiful Pirate") then
-							if L_1_[45]["ffc"](L_1_[40], "Beautiful Pirate") or L_1_[45]["ffc"](L_1_[7], "Beautiful Pirate") then
+							if L_1_[45]["ffc"](L_1_[40], "Beautiful Pirate") or L_1_[45]["ffc"](ReplicatedStorage, "Beautiful Pirate") then
 								L_591_[1] = "Beautiful Pirate"
 							end
 						end
@@ -6959,14 +6959,14 @@ task["spawn"](function()
 											L_1_[45]["wt"]()
 											L_1_[31](L_595_[3]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 											if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 											end
 											L_1_[14]()
 										until not L_595_[3]["Parent"] or L_595_[3]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
 									end
 								end
-							elseif L_1_[45]["ffc"](L_1_[7], L_591_[1]) then
-								for L_596_forvar0, L_597_forvar1 in pairs(L_1_[7]:GetChildren()) do
+							elseif L_1_[45]["ffc"](ReplicatedStorage, L_591_[1]) then
+								for L_596_forvar0, L_597_forvar1 in pairs(ReplicatedStorage:GetChildren()) do
 									local L_598_ = {}
 									L_598_[3], L_598_[1] = L_596_forvar0, L_597_forvar1
 									if L_598_[1]["Name"] == L_591_[1] and L_598_[1]["Humanoid"]["Health"] > 0 then
@@ -6974,7 +6974,7 @@ task["spawn"](function()
 											L_1_[45]["wt"]()
 											L_1_[31](L_598_[1]["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 40, 0), 1.5)
 											if not L_1_[45]["ffc"](L_1_[35]["Character"], "HasBuso") then
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Buso")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Buso")
 											end
 											L_1_[14]()
 										until not L_598_[1]["Parent"] or L_598_[1]["Humanoid"]["Health"] <= 0 or not(getgenv())["AutoFarm"]
@@ -6982,16 +6982,16 @@ task["spawn"](function()
 								end
 							end
 						else
-							if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == 1 then
+							if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == 1 then
 								return
 							else
 								L_1_[35]:Kick("Hop")
 								L_1_[45]["wt"](.1)
-								L_1_[10]:Teleport(L_1_[30], L_1_[35])
+								TeleportService:Teleport(L_1_[30], L_1_[35])
 							end
 						end
 					end
-				elseif L_1_[7]["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == 1 then
+				elseif ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("HornedMan", "Bet") == 1 then
 					return
 				end
 			elseif Quest == "Pull Lerver" then
@@ -7059,10 +7059,10 @@ task["spawn"](function()
 								task["spawn"](function()
 									repeat
 										wait(.2)
-										L_1_[19]["CurrentCamera"]["CFrame"] = CFrame["lookAt"](L_1_[19]["CurrentCamera"]["CFrame"]["Position"], L_1_[16]:GetMoonDirection() + L_1_[19]["CurrentCamera"]["CFrame"]["Position"])
-									until StopCamera or not(game:GetService("Workspace"))["Map"]:FindFirstChild("MysticIsland") or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CheckTempleDoor")
+										Workspace["CurrentCamera"]["CFrame"] = CFrame["lookAt"](Workspace["CurrentCamera"]["CFrame"]["Position"], Lighting:GetMoonDirection() + Workspace["CurrentCamera"]["CFrame"]["Position"])
+									until StopCamera or not(game:GetService("Workspace"))["Map"]:FindFirstChild("MysticIsland") or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CheckTempleDoor")
 								end);
-								((L_1_[7]:WaitForChild("Remotes")):WaitForChild("CommE")):FireServer("ActivateAbility")
+								((ReplicatedStorage:WaitForChild("Remotes")):WaitForChild("CommE")):FireServer("ActivateAbility")
 								wait(17)
 								for L_604_forvar0, L_605_forvar1 in pairs((game:GetService("Workspace"))["Map"]["MysticIsland"]:GetChildren()) do
 									local L_606_ = {}
@@ -7076,7 +7076,7 @@ task["spawn"](function()
 											L_1_[2]:SendKeyEvent(true, "Space", false, game)
 											wait(.5)
 											L_1_[2]:SendKeyEvent(false, "Space", false, game)
-										until L_606_[1]["Transparency"] == 1 or not(game:GetService("Workspace"))["Map"]:FindFirstChild("MysticIsland") or L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CheckTempleDoor")
+										until L_606_[1]["Transparency"] == 1 or not(game:GetService("Workspace"))["Map"]:FindFirstChild("MysticIsland") or ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CheckTempleDoor")
 										wait(.5)
 									end
 								end
@@ -7087,9 +7087,9 @@ task["spawn"](function()
 					end
 				end
 			elseif Quest == "Cursed Dual Katana" then
-				if L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "OpenDoor") == "opened" then
+				if ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "OpenDoor") == "opened" then
 					local L_607_ = {}
-					L_607_[2] = L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "Progress")
+					L_607_[2] = ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "Progress")
 					if L_607_[2]["Good"] == 0 or L_607_[2]["Good"] == -3 then
 						CDK_Q_S_C = 3
 						if L_607_[2]["Good"] == 0 then
@@ -7100,9 +7100,9 @@ task["spawn"](function()
 								L_1_[31](CFrame["new"](-4600.37, 15.1245, -2881.18), 1.5)
 								if (L_1_[35]["Character"]["HumanoidRootPart"]["Position"] - Vector3["new"](-4600.37, 15.1245, -2881.18))["Magnitude"] <= 3 then
 									wait(1)
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"), "Check")
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GetUnlockables")
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"))
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"), "Check")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GetUnlockables")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"))
 									wait(.5)
 									Q_Boat_1 = true
 								end
@@ -7112,9 +7112,9 @@ task["spawn"](function()
 								L_1_[31](CFrame["new"](-2068.63, 3.37222, -9887.08), 1.5)
 								if (L_1_[35]["Character"]["HumanoidRootPart"]["Position"] - Vector3["new"](-2068.63, 3.37222, -9887.08))["Magnitude"] <= 3 then
 									wait(1)
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"), "Check")
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GetUnlockables")
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"))
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"), "Check")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GetUnlockables")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"))
 									wait(.5)
 									Q_Boat_2 = true
 								end
@@ -7124,9 +7124,9 @@ task["spawn"](function()
 								L_1_[31](CFrame["new"](-9531.19, 5.91675, -8377.75), 1.5)
 								if (L_1_[35]["Character"]["HumanoidRootPart"]["Position"] - Vector3["new"](-9531.19, 5.91675, -8377.75))["Magnitude"] <= 3 then
 									wait(1)
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"), "Check")
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("GetUnlockables")
-									L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"))
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"), "Check")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("GetUnlockables")
+									ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "BoatQuest", L_1_[25]["NPCs"]:FindFirstChild("Luxury Boat Dealer"))
 									wait(.5)
 									Q_Boat_3 = true
 								end
@@ -7239,12 +7239,12 @@ task["spawn"](function()
 									L_1_[31](CFrame["new"](-714.643066, 381.565613, -11021.0566), 1.5)
 								end
 							else
-								if L_1_[19]["Map"]:FindFirstChild("HeavenlyDimension") then
+								if Workspace["Map"]:FindFirstChild("HeavenlyDimension") then
 									if not Ceyma_HeavenlyDimension then
 										repeat
 											wait(.1)
-											L_1_[31]((L_1_[19]["Map"]:FindFirstChild("HeavenlyDimension"))["WorldPivot"], 1.5)
-										until ((L_1_[19]["Map"]:FindFirstChild("HeavenlyDimension"))["WorldPivot"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 5
+											L_1_[31]((Workspace["Map"]:FindFirstChild("HeavenlyDimension"))["WorldPivot"], 1.5)
+										until ((Workspace["Map"]:FindFirstChild("HeavenlyDimension"))["WorldPivot"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 5
 										wait(1)
 										Ceyma_HeavenlyDimension = true
 									elseif Ceyma_HeavenlyDimension then
@@ -7253,7 +7253,7 @@ task["spawn"](function()
 											for L_623_forvar0, L_624_forvar1 in pairs(L_1_[40]:GetChildren()) do
 												local L_625_ = {}
 												L_625_[3], L_625_[2] = L_623_forvar0, L_624_forvar1
-												if L_625_[2]:FindFirstChild("HumanoidRootPart") and (L_625_[2]:FindFirstChild("Humanoid") and ((L_1_[19]["Map"]:FindFirstChild("HeavenlyDimension"))["WorldPivot"]["Position"] - L_625_[2]["HumanoidRootPart"]["Position"])["Magnitude"] <= 1000) then
+												if L_625_[2]:FindFirstChild("HumanoidRootPart") and (L_625_[2]:FindFirstChild("Humanoid") and ((Workspace["Map"]:FindFirstChild("HeavenlyDimension"))["WorldPivot"]["Position"] - L_625_[2]["HumanoidRootPart"]["Position"])["Magnitude"] <= 1000) then
 													if L_625_[2]["Humanoid"]["Health"] > 0 then
 														repeat
 															wait()
@@ -7269,17 +7269,17 @@ task["spawn"](function()
 												L_1_[45]["GetTorch"]("Torch2")
 												if not L_1_[40]:FindFirstChildOfClass("Model") then
 													L_1_[45]["GetTorch"]("Torch3")
-													if not L_1_[40]:FindFirstChildOfClass("Model") and L_1_[19]["Map"]:FindFirstChild("HeavenlyDimension") then
-														L_1_[19]["Map"]["HeavenlyDimension"]["Exit"]["CFrame"] = L_1_[35]["Character"]["HumanoidRootPart"]["CFrame"]
+													if not L_1_[40]:FindFirstChildOfClass("Model") and Workspace["Map"]:FindFirstChild("HeavenlyDimension") then
+														Workspace["Map"]["HeavenlyDimension"]["Exit"]["CFrame"] = L_1_[35]["Character"]["HumanoidRootPart"]["CFrame"]
 														wait(1)
 													end
 												end
 											end
 										end
 									end
-								elseif not L_1_[19]["Map"]:FindFirstChild("HeavenlyDimension") then
+								elseif not Workspace["Map"]:FindFirstChild("HeavenlyDimension") then
 									wait(5)
-									if not L_1_[19]["Map"]:FindFirstChild("HeavenlyDimension") then
+									if not Workspace["Map"]:FindFirstChild("HeavenlyDimension") then
 										Kill_Boss_Cake = false
 									end
 								end
@@ -7290,20 +7290,20 @@ task["spawn"](function()
 						if L_607_[2]["Evil"] == 2 then
 							L_1_[45]["GetQuest"]("Evil")
 						elseif L_607_[2]["Evil"] == -5 then
-							if L_1_[19]["Map"]:FindFirstChild("HellDimension") then
-								if ((L_1_[19]["Map"]:FindFirstChild("HellDimension"))["WorldPivot"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] > 1200 then
+							if Workspace["Map"]:FindFirstChild("HellDimension") then
+								if ((Workspace["Map"]:FindFirstChild("HellDimension"))["WorldPivot"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] > 1200 then
 									repeat
 										wait(.1)
-										L_1_[31]((L_1_[19]["Map"]:FindFirstChild("HellDimension"))["WorldPivot"], 1.5)
-									until ((L_1_[19]["Map"]:FindFirstChild("HellDimension"))["WorldPivot"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 10
+										L_1_[31]((Workspace["Map"]:FindFirstChild("HellDimension"))["WorldPivot"], 1.5)
+									until ((Workspace["Map"]:FindFirstChild("HellDimension"))["WorldPivot"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 10
 									wait(1)
-								elseif ((L_1_[19]["Map"]:FindFirstChild("HellDimension"))["WorldPivot"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 1200 then
+								elseif ((Workspace["Map"]:FindFirstChild("HellDimension"))["WorldPivot"]["Position"] - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 1200 then
 									L_1_[14]()
 									if L_1_[40]:FindFirstChildOfClass("Model") then
 										for L_626_forvar0, L_627_forvar1 in pairs(L_1_[40]:GetChildren()) do
 											local L_628_ = {}
 											L_628_[2], L_628_[1] = L_626_forvar0, L_627_forvar1
-											if L_628_[1]:FindFirstChild("HumanoidRootPart") and (L_628_[1]:FindFirstChild("Humanoid") and ((L_1_[19]["Map"]:FindFirstChild("HellDimension"))["WorldPivot"]["Position"] - L_628_[1]["HumanoidRootPart"]["Position"])["Magnitude"] <= 1000) then
+											if L_628_[1]:FindFirstChild("HumanoidRootPart") and (L_628_[1]:FindFirstChild("Humanoid") and ((Workspace["Map"]:FindFirstChild("HellDimension"))["WorldPivot"]["Position"] - L_628_[1]["HumanoidRootPart"]["Position"])["Magnitude"] <= 1000) then
 												if L_628_[1]["Humanoid"]["Health"] > 0 then
 													repeat
 														wait()
@@ -7319,15 +7319,15 @@ task["spawn"](function()
 											L_1_[45]["GetTorchX"]("Torch2")
 											if not L_1_[40]:FindFirstChildOfClass("Model") then
 												L_1_[45]["GetTorchX"]("Torch3")
-												if not L_1_[40]:FindFirstChildOfClass("Model") and L_1_[19]["Map"]:FindFirstChild("HellDimension") then
-													L_1_[19]["Map"]["HellDimension"]["Exit"]["CFrame"] = L_1_[35]["Character"]["HumanoidRootPart"]["CFrame"]
+												if not L_1_[40]:FindFirstChildOfClass("Model") and Workspace["Map"]:FindFirstChild("HellDimension") then
+													Workspace["Map"]["HellDimension"]["Exit"]["CFrame"] = L_1_[35]["Character"]["HumanoidRootPart"]["CFrame"]
 													wait(1)
 												end
 											end
 										end
 									end
 								end
-							elseif not L_1_[19]["Map"]:FindFirstChild("HellDimension") then
+							elseif not Workspace["Map"]:FindFirstChild("HellDimension") then
 								if L_1_[40]:FindFirstChild("Soul Reaper") or game["ReplicatedStorage"]:FindFirstChild("Soul Reaper") then
 									Stop_Fast_Attack = true
 									if not L_1_[40]:FindFirstChild("Soul Reaper") and game["ReplicatedStorage"]:FindFirstChild("Soul Reaper") then
@@ -7341,12 +7341,12 @@ task["spawn"](function()
 										L_1_[31]((L_1_[40]:FindFirstChild("Soul Reaper"))["HumanoidRootPart"]["CFrame"] * CFrame["new"](0, 0, 2), 1.5)
 										wait(1)
 									end
-								elseif L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") > 0 and L_1_[45]["CheckItem"]("Bones") > 500 then
+								elseif ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") > 0 and L_1_[45]["CheckItem"]("Bones") > 500 then
 									repeat
 										wait(.2)
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check")
-										L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Buy", 1, 1)
-									until L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") == 0
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check")
+										ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Buy", 1, 1)
+									until ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Bones", "Check") == 0
 									wait(1)
 									if not Dragon_Talon_C then
 										if L_1_[45]["ffc"](L_1_[35]["Backpack"], "Fire Essence") or L_1_[45]["ffc"](L_1_[35]["Character"], "Fire Essence") then
@@ -7357,10 +7357,10 @@ task["spawn"](function()
 												}))
 												L_1_[45]["Equip"]("Fire Essence")
 												L_1_[45]["wt"](.5)
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon", true)
-												L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon", true)
+												ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
 											until not L_1_[45]["ffc"](L_1_[35]["Backpack"], "Fire Essence") and not L_1_[45]["ffc"](L_1_[35]["Character"], "Fire Essence")
-											L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
+											ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyDragonTalon")
 											Dragon_Talon_C = true
 										end
 									end
@@ -7374,7 +7374,7 @@ task["spawn"](function()
 											L_1_[31](CFrame["new"](-8932.86, 143.258, 6063.31), 1.5)
 										until not L_1_[45]["ffc"](L_1_[35]["Backpack"], "Hallow Essence") and not L_1_[45]["ffc"](L_1_[35]["Character"], "Hallow Essence")
 									end
-								elseif not L_1_[40]:FindFirstChild("Soul Reaper") and not L_1_[7]:FindFirstChild("Soul Reaper") then
+								elseif not L_1_[40]:FindFirstChild("Soul Reaper") and not ReplicatedStorage:FindFirstChild("Soul Reaper") then
 									L_1_[45]["FarmBone"]()
 								end
 							end
@@ -7384,8 +7384,8 @@ task["spawn"](function()
 							wait()
 							L_1_[31](CFrame["new"](-12392.2637, 603.319763, -6503.27832), 1.5)
 						until (Vector3["new"](-12392.2637, 603.319763, -6503.27832) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 2
-						if L_1_[4]:FindFirstChild("     ") then
-							L_1_[4]["     "]["Enabled"] = false
+						if CoreGui:FindFirstChild("     ") then
+							CoreGui["     "]["Enabled"] = false
 						end
 						wait(1)
 						L_1_[2]:SendKeyEvent(true, "E", false, game)
@@ -7398,8 +7398,8 @@ task["spawn"](function()
 							wait()
 							L_1_[31](CFrame["new"](-12392.5068, 603.319763, -6596.00586), 1.5)
 						until (Vector3["new"](-12392.5068, 603.319763, -6596.00586) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 2
-						if L_1_[4]:FindFirstChild("     ") then
-							L_1_[4]["     "]["Enabled"] = false
+						if CoreGui:FindFirstChild("     ") then
+							CoreGui["     "]["Enabled"] = false
 						end
 						wait(1)
 						L_1_[2]:SendKeyEvent(true, "E", false, game)
@@ -7407,14 +7407,14 @@ task["spawn"](function()
 						L_1_[2]:SendKeyEvent(false, "E", false, game)
 						wait(1)
 						L_1_[45]["click"](L_1_[35]["PlayerGui"]["Main"]["Dialogue"])
-					elseif L_607_[2]["Good"] == 4 and (L_607_[2]["Evil"] == 4 and L_1_[19]["Map"]["Turtle"]["Cursed"]["BossDoor"]["Position"]["Y"] > 584) then
+					elseif L_607_[2]["Good"] == 4 and (L_607_[2]["Evil"] == 4 and Workspace["Map"]["Turtle"]["Cursed"]["BossDoor"]["Position"]["Y"] > 584) then
 						L_1_[14]()
 						repeat
 							wait(.1)
 							L_1_[31](CFrame["new"](-12359.1719, 603.319702, -6550.59717, .481593847, 0, -0.87639451, 0, 1, 0, .87639451, 0, .481593847), 1.5)
 						until (Vector3["new"](-12359.1719, 603.319702, -6550.59717) - L_1_[35]["Character"]["HumanoidRootPart"]["Position"])["Magnitude"] <= 3
-						if L_1_[4]:FindFirstChild("     ") then
-							L_1_[4]["     "]["Enabled"] = false
+						if CoreGui:FindFirstChild("     ") then
+							CoreGui["     "]["Enabled"] = false
 						end
 						wait(1)
 						L_1_[2]:SendKeyEvent(true, "E", false, game)
@@ -7422,12 +7422,12 @@ task["spawn"](function()
 						L_1_[2]:SendKeyEvent(false, "E", false, game)
 						wait(1)
 						L_1_[45]["click"](L_1_[35]["PlayerGui"]["Main"]["Dialogue"])
-					elseif L_1_[19]["Map"]["Turtle"]["Cursed"]["BossDoor"]["Position"]["Y"] <= 584 then
+					elseif Workspace["Map"]["Turtle"]["Cursed"]["BossDoor"]["Position"]["Y"] <= 584 then
 						local L_629_ = {}
-						if L_1_[4]:FindFirstChild("     ") then
-							L_1_[4]["     "]["Enabled"] = true
+						if CoreGui:FindFirstChild("     ") then
+							CoreGui["     "]["Enabled"] = true
 						end
-						L_629_[1] = L_1_[7]["Remotes"]["CommF_"]:InvokeServer("getInventory")
+						L_629_[1] = ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("getInventory")
 						for L_630_forvar0, L_631_forvar1 in pairs(L_629_[1]) do
 							local L_632_ = {}
 							L_632_[1], L_632_[3] = L_630_forvar0, L_631_forvar1
@@ -7482,7 +7482,7 @@ task["spawn"](function()
 						end
 					end
 				else
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "OpenDoor", true)
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("CDKQuest", "OpenDoor", true)
 				end
 			end
 		end, warn)
@@ -7650,68 +7650,68 @@ task["spawn"](function()
 	while L_1_[45]["wt"]() do
 		pcall(function()
 			if L_1_[1]["Value"] >= 2500000 and New_World then
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LegendarySwordDealer", "1")
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LegendarySwordDealer", "2")
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("LegendarySwordDealer", "3")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LegendarySwordDealer", "1")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LegendarySwordDealer", "2")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("LegendarySwordDealer", "3")
 			end
 			if L_1_[45]["tf"](Configs["Gun"], "Kabucha") and (L_1_[17]["Value"] >= 10000 and not L_1_[45]["gi"]("Kabucha")) then
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BlackbeardReward", "Slingshot", "2")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BlackbeardReward", "Slingshot", "2")
 			end
 			if L_1_[1]["Value"] >= 3000000 then
 				if L_1_[45]["tf"](Configs["Sword"], "Bisento") and not L_1_[45]["gi"]("Bisento") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Bisento")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Bisento")
 				end
 				if L_1_[45]["tf"](Configs["Sword"], "Cutlass") and not L_1_[45]["gi"]("Cutlass") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Cutlass")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Cutlass")
 				end
 				if L_1_[45]["tf"](Configs["Sword"], "Katana") and not L_1_[45]["gi"]("Katana") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Katana")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Katana")
 				end
 				if L_1_[45]["tf"](Configs["Sword"], "Dual Katana") and not L_1_[45]["gi"]("Dual Katana") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Dual Katana")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Dual Katana")
 				end
 				if L_1_[45]["tf"](Configs["Sword"], "Soul Cane") and not L_1_[45]["gi"]("Soul Cane") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Soul Cane")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Soul Cane")
 				end
 				if L_1_[45]["tf"](Configs["Sword"], "Triple Katana") and not L_1_[45]["gi"]("Triple Katana") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Triple Katana")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Triple Katana")
 				end
 				if L_1_[45]["tf"](Configs["Sword"], "Iron Mace") and not L_1_[45]["gi"]("Iron Mace") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Iron Mace")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Iron Mace")
 				end
 				if L_1_[45]["tf"](Configs["Sword"], "Pipe") and not L_1_[45]["gi"]("Pipe") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Pipe")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Pipe")
 				end
 				if L_1_[45]["tf"](Configs["Sword"], "Dual-Headed Blade") and not L_1_[45]["gi"]("Dual-Headed Blade") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Dual-Headed Blade")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Dual-Headed Blade")
 				end
 				if L_1_[45]["tf"](Configs["Gun"], "Musket") and not L_1_[45]["gi"]("Musket") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Musket")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Musket")
 				end
 				if L_1_[45]["tf"](Configs["Gun"], "Flintlock") and not L_1_[45]["gi"]("Flintlock") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Flintlock")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Flintlock")
 				end
 				if L_1_[45]["tf"](Configs["Gun"], "Refined Slingshot") and not L_1_[45]["gi"]("Refined Slingshot") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Refined Slingshot")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Refined Slingshot")
 				end
 				if L_1_[45]["tf"](Configs["Gun"], "Dual Flintlock") and not L_1_[45]["gi"]("Dual Flintlock") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Dual Flintlock")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Dual Flintlock")
 				end
 				if L_1_[45]["tf"](Configs["Gun"], "Cannon") and not L_1_[45]["gi"]("Cannon") then
-					L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Cannon")
+					ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyItem", "Cannon")
 				end
 			end
-			if L_1_[45]["tf"](Configs["Sword"], "Midnight Blade") and (L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Ectoplasm", "Check") >= 100 and not L_1_[45]["gi"]("Midnight Blade")) then
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("Ectoplasm", "Buy", 3)
+			if L_1_[45]["tf"](Configs["Sword"], "Midnight Blade") and (ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Ectoplasm", "Check") >= 100 and not L_1_[45]["gi"]("Midnight Blade")) then
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("Ectoplasm", "Buy", 3)
 			end
 			if not klmdlkgf and L_1_[24]["Value"] >= 2000 then
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyHaki", "Geppo")
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyHaki", "Soru")
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("KenTalk", "Buy")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyHaki", "Geppo")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyHaki", "Soru")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("KenTalk", "Buy")
 				klmdlkgf = true
 			end
 			if not klmdlkgfx and L_1_[24]["Value"] >= 1000 then
-				L_1_[7]["Remotes"]["CommF_"]:InvokeServer("BuyHaki", "Buso")
+				ReplicatedStorage["Remotes"]["CommF_"]:InvokeServer("BuyHaki", "Buso")
 				klmdlkgfx = true
 			end
 			L_1_[45]["wt"](100)
