@@ -1696,141 +1696,116 @@ end)
 task.spawn(function()
     local replicated = game:GetService("ReplicatedStorage")
     local ws = workspace
-    local Players = game:GetService("Players")
-    local plr = Players.LocalPlayer
-
-    Sec = Sec or 0.2
-    _G.Level = _G.Level or false
-
-    -- ===== HÀM TP AN TOÀN =====
-    local function _tp(cf)
-        local char = plr.Character or plr.CharacterAdded:Wait()
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        hrp.CFrame = cf
+    
+    -- Định nghĩa hàm TP nếu chưa có (Phòng hờ)
+    local function _tp(cframe)
+        pcall(function()
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = cframe
+        end)
     end
 
-    -- ===== CHECK ĐANG Ở SUBMERGED =====
-    local function IsInSubmerged()
-        return ws:FindFirstChild("SubmergedIsland") ~= nil
-    end
-
-    while task.wait(Sec) do
+    while task.wait(Sec or 0.2) do
         if _G.Level then
             local success, err = pcall(function()
-                -- ===== KHÔI PHỤC BIẾN =====
+                -- /// KHÔI PHỤC BIẾN GỐC ///
+                local plr = game.Players.LocalPlayer
                 local Char = plr.Character or plr.CharacterAdded:Wait()
                 local Root = Char:WaitForChild("HumanoidRootPart")
                 local Level = plr.Data.Level.Value
                 local QuestGui = plr.PlayerGui.Main.Quest
+                
+                -- Lấy dữ liệu Quest (dùng biến gốc QuestNeta)
+                local QData = QuestNeta() 
 
-                -- ===== LẤY QUEST DATA =====
-                local QData = QuestNeta()
-                if not QData or not QData[1] then return end
-
-                local QuestTitle = QuestGui.Visible
-                    and QuestGui.Container.QuestTitle.Title.Text
-                    or ""
-
-                -- ===== LOGIC QUA ĐẢO (2600+) =====
+                -- /// CHECK LEVEL 2600 & LOGIC QUA ĐẢO THÔNG MINH ///
                 local NPC_Pos = CFrame.new(-16269.7041, 25.2288494, 1373.65955)
+                local DistToNPC = (Root.Position - NPC_Pos.Position).Magnitude
+                
+                -- Điều kiện qua đảo:
+                -- 1. Level >= 2600
+                -- 2. Đang ở gần NPC (Map cũ) dưới 5000 stud (nghĩa là chưa qua đảo mới)
+                -- 3. Chưa bị khóa (L_1_[44] check)
+                
+                local IsAtOldMap = DistToNPC < 5000 -- Nếu xa hơn 5000 nghĩa là đã qua đảo rồi
+                
+                if Level >= 2600 and IsAtOldMap and not L_1_[133] and not L_1_[44] then
+                    L_1_[133] = true -- Đang thực hiện
 
-                if Level >= 2600 and not IsInSubmerged()
-                    and not L_1_[133] and not L_1_[44] then
-
-                    L_1_[133] = true
-
-                    -- Bay tới NPC
-                    if (Root.Position - NPC_Pos.Position).Magnitude > 10 then
+                    -- 1. Bay tới NPC
+                    if DistToNPC > 10 then
                         _tp(NPC_Pos)
-                        return
+                    else
+                        -- 2. Nói chuyện
+                        task.wait(0.5)
+                        replicated.Modules.Net["RF/SubmarineWorkerSpeak"]:InvokeServer("TravelToSubmergedIsland")
+                        
+                        -- Đợi load map (Timeout 15s)
+                        local StartTime = tick()
+                        repeat 
+                            task.wait(1) 
+                        until (Root.Position - NPC_Pos.Position).Magnitude > 5000 or tick() - StartTime > 15
+                        
+                        L_1_[44] = true -- Đánh dấu xong
+                        L_1_[133] = false
+                        return -- Dừng vòng lặp để load map
                     end
 
-                    -- Nói chuyện NPC
-                    task.wait(0.5)
-                    replicated.Modules.Net
-                        :FindFirstChild("RF/SubmarineWorkerSpeak")
-                        :InvokeServer("TravelToSubmergedIsland")
-
-                    -- Đợi load map (timeout 15s)
-                    local start = tick()
-                    repeat
-                        task.wait(0.5)
-                    until IsInSubmerged() or tick() - start > 15
-
-                    task.wait(2)
-                    L_1_[44] = true
+                -- /// PHẦN AUTO FARM (NẾU ĐÃ QUA ĐẢO HOẶC LEVEL THẤP) ///
+                elseif not IsAtOldMap or Level < 2600 then
                     L_1_[133] = false
-                    return
-                end
-
-                -- ===== AUTO FARM (MAP CŨ HOẶC MỚI) =====
-                if Level < 2600 or IsInSubmerged() then
-                    L_1_[133] = false
-
-                    -- Sai quest -> hủy
+                    
+                    if not QData then return end
+                    local QuestTitle = QuestGui.Visible and QuestGui.Container.QuestTitle.Title.Text or ""
+                    
+                    -- Check sai Quest -> Hủy
                     if QuestGui.Visible and not string.find(QuestTitle, QData[5]) then
                         replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
                         task.wait(0.2)
                     end
 
-                    -- Chưa có quest -> nhận
+                    -- Chưa nhận Quest -> Đi nhận
                     if not QuestGui.Visible then
                         local QuestPos = QData[6]
                         if (Root.Position - QuestPos.Position).Magnitude > 50 then
                             _tp(QuestPos)
                         else
-                            replicated.Remotes.CommF_
-                                :InvokeServer("StartQuest", QData[3], QData[2])
+                            replicated.Remotes.CommF_:InvokeServer("StartQuest", QData[3], QData[2])
                             task.wait(0.5)
                         end
-                        return
-                    end
-
-                    -- Có quest -> đánh quái
-                    local Found = false
-                    for _, v in pairs(ws.Enemies:GetChildren()) do
-                        if v.Name == QData[1]
-                            and L_1_[4].Alive(v)
-                            and v:FindFirstChild("HumanoidRootPart") then
-
-                            Found = true
-                            repeat
-                                task.wait()
-                                if not _G.Level or not v.Parent
-                                    or v.Humanoid.Health <= 0 then break end
-
-                                _tp(
-                                    v.HumanoidRootPart.CFrame
-                                    * CFrame.new(0, 15, 0)
-                                    * CFrame.Angles(math.rad(-90), 0, 0)
-                                )
-
-                                L_1_[4].Kill(v, _G.Level)
-                            until false
-                            break
+                    else
+                        -- Đã có Quest -> Đánh quái
+                        local Found = false
+                        for _, v in pairs(ws.Enemies:GetChildren()) do
+                            if v.Name == QData[1] and L_1_[4].Alive(v) then
+                                Found = true
+                                repeat
+                                    task.wait()
+                                    if not v.Parent or v.Humanoid.Health <= 0 then break end
+                                    
+                                    -- TP & Kill
+                                    local MobPos = v.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90),0,0)
+                                    _tp(MobPos)
+                                    L_1_[4].Kill(v, _G.Level) -- Gọi hàm đánh gốc
+                                    
+                                until v.Humanoid.Health <= 0 or not _G.Level
+                                break
+                            end
                         end
-                    end
-
-                    -- Không có quái -> về bãi
-                    if not Found then
-                        _tp(QData[4])
+                        
+                        if not Found then
+                            _tp(QData[4]) -- Về bãi quái
+                        end
                     end
                 end
             end)
-
-            if not success then
-                warn("❌ Lỗi AutoFarm:", err)
+            
+            -- In lỗi ra F9 để kiểm tra
+            if not success then 
+                warn("Lỗi Script: ", err) 
             end
-        else
-            -- Tắt farm -> reset trạng thái
-            L_1_[133] = false
-            L_1_[44] = false
         end
     end
 end)
-
-warn("✅ AUTO FARM + SUBMERGED FIX FULL ĐÃ CHẠY")
-
 local TravelDress = Tabs.Quests:AddToggle("TravelDress", {Title = "Auto Travel Dressrosa", Description = "", Default = false})
 TravelDress:OnChanged(function(Value)
   _G.TravelDres = Value
