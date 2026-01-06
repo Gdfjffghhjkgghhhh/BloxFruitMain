@@ -1699,10 +1699,17 @@ spawn(function()
     local ws = game:GetService("Workspace")
 
     while task.wait(Sec or 0.2) do
+
+        -- 🔴 ĐANG ĐI NPC → DỪNG FARM HOÀN TOÀN
+        if _G.GoingSubmerged then
+            task.wait()
+            continue
+        end
+
         if _G.Level then
             local ok, err = pcall(function()
 
-                -- FIX ROOT (KHÔNG BỊ CŨ SAU KHI QUA ĐẢO)
+                -- FIX ROOT
                 local Character = plr.Character or plr.CharacterAdded:Wait()
                 local Root = Character:WaitForChild("HumanoidRootPart")
 
@@ -1759,7 +1766,7 @@ spawn(function()
                         foundMob = true
                         repeat
                             task.wait()
-                            if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
+                            if not _G.Level or _G.GoingSubmerged or not mob.Parent or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
                             if dist <= 350 then
@@ -1767,7 +1774,7 @@ spawn(function()
                                     mobRoot.CFrame
                                     * CFrame.new(0, 15, 0)
                                     * CFrame.Angles(math.rad(-90), 0, 0)
-                                Root.Velocity = Vector3.new(0,0,0)
+                                Root.Velocity = Vector3.zero
                             else
                                 _tp(mobRoot.CFrame)
                             end
@@ -1787,7 +1794,7 @@ spawn(function()
                         _tp(mobPos)
                     else
                         Root.CFrame = mobPos * CFrame.new(0, 50, 0)
-                        Root.Velocity = Vector3.new(0,0,0)
+                        Root.Velocity = Vector3.zero
                     end
                 end
 
@@ -7882,53 +7889,48 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
+-- ===== AUTO DỪNG FARM → QUA ĐẢO → FARM LẠI =====
 task.spawn(function()
     local plr = game.Players.LocalPlayer
     local rs = game:GetService("ReplicatedStorage")
     local NPC = CFrame.new(-16269.7041, 25.2288494, 1373.65955)
 
+    _G.GoingSubmerged = false
     _G.SubmergedDone = false
-    _G.FarmLevel = true -- MẶC ĐỊNH FARM
 
-    while task.wait(0.5) do
+    while task.wait(0.3) do
         if not _G.Level then continue end
         if _G.SubmergedDone then continue end
+        if _G.GoingSubmerged then continue end
         if not World3 then continue end
 
-        local lv = plr.Data.Level.Value
-        if lv < 2600 then continue end
+        -- 🔴 VỪA BẬT FARM → DỪNG FARM NGAY
+        _G.GoingSubmerged = true
+        _G.Level = false
 
         local char = plr.Character or plr.CharacterAdded:Wait()
         local root = char:WaitForChild("HumanoidRootPart")
 
-        -- 🔴 DỪNG FARM LEVEL
-        _G.FarmLevel = false
-
-        -- BAY TỚI NPC (KHÔNG RỚT NƯỚC)
-        if (root.Position - NPC.Position).Magnitude > 8 then
-            TweenToSpeed(NPC * CFrame.new(0, 30, 0), 350)
-            continue
-        end
-
-        -- DỪNG TWEEN
-        if activeTween then
-            activeTween:Cancel()
-            activeTween = nil
+        -- BAY TỚI NPC
+        while (root.Position - NPC.Position).Magnitude > 8 do
+            _tp(NPC)
+            task.wait()
         end
 
         task.wait(0.5)
 
-        -- NÓI CHUYỆN NPC QUA ĐẢO
+        -- QUA ĐẢO
         rs.Modules.Net["RF/SubmarineWorkerSpeak"]
             :InvokeServer("TravelToSubmergedIsland")
 
-        task.wait(6)
+        -- ĐỢI RESPAWN + MAP ỔN
+        plr.CharacterAdded:Wait()
+        task.wait(4)
 
-        -- ✅ ĐÁNH DẤU ĐÃ QUA ĐẢO
+        -- 🟢 BẬT LẠI FARM
         _G.SubmergedDone = true
-
-        -- 🟢 CHẠY LẠI FARM LEVEL
-        _G.FarmLevel = true
+        _G.GoingSubmerged = false
+        _G.Level = true
     end
 end)
 
