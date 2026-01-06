@@ -7889,7 +7889,6 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
--- ===== AUTO DỪNG FARM → QUA ĐẢO → FARM LẠI =====
 task.spawn(function()
     local plr = game.Players.LocalPlayer
     local rs = game:GetService("ReplicatedStorage")
@@ -7900,11 +7899,11 @@ task.spawn(function()
 
     while task.wait(0.3) do
         if not _G.Level then continue end
-        if _G.SubmergedDone then continue end
         if _G.GoingSubmerged then continue end
+        if _G.SubmergedDone then continue end -- 🔒 QUA RỒI → KHÔNG ĐI LẠI
         if not World3 then continue end
 
-        -- 🔴 VỪA BẬT FARM → DỪNG FARM NGAY
+        -- 🔴 VỪA BẬT FARM → DỪNG FARM
         _G.GoingSubmerged = true
         _G.Level = false
 
@@ -7920,29 +7919,22 @@ task.spawn(function()
         task.wait(0.5)
 
         -- QUA ĐẢO
-        -- QUA ĐẢO
-rs.Modules.Net["RF/SubmarineWorkerSpeak"]
-    :InvokeServer("TravelToSubmergedIsland")
+        rs.Modules.Net["RF/SubmarineWorkerSpeak"]
+            :InvokeServer("TravelToSubmergedIsland")
 
--- ĐỢI NHÂN VẬT RESPAWN
-local newChar = plr.CharacterAdded:Wait()
-local newRoot = newChar:WaitForChild("HumanoidRootPart")
+        -- ĐỢI RESPAWN + MAP ỔN
+        plr.CharacterAdded:Wait()
+        task.wait(3)
 
--- ĐỢI NHÂN VẬT ỔN ĐỊNH (KHÔNG RƠI / KHÔNG BAY)
-repeat
-    task.wait(0.3)
-until newRoot
-    and newRoot.Parent
-    and newRoot.Velocity.Magnitude < 3
+        -- ✅ ĐÁNH DẤU ĐÃ QUA ĐẢO
+        _G.SubmergedDone = true
 
--- ĐỢI MAP LOAD HẲN
-task.wait(2)
-
--- ✅ MỞ KHÓA + BẬT FARM
-_G.GoingSubmerged = false
-_G.SubmergedDone = true
-_G.Level = true
+        -- 🟢 MỞ KHÓA + BẬT FARM
+        _G.GoingSubmerged = false
+        _G.Level = true
     end
 end)
+
 Window:SelectTab(1)
+
 
