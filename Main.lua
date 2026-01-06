@@ -7888,6 +7888,7 @@ task.spawn(function()
     local NPC = CFrame.new(-16269.7041, 25.2288494, 1373.65955)
 
     _G.SubmergedDone = false
+    _G.FarmLevel = true -- MẶC ĐỊNH FARM
 
     while task.wait(0.5) do
         if not _G.Level then continue end
@@ -7899,6 +7900,9 @@ task.spawn(function()
 
         local char = plr.Character or plr.CharacterAdded:Wait()
         local root = char:WaitForChild("HumanoidRootPart")
+
+        -- 🔴 DỪNG FARM LEVEL
+        _G.FarmLevel = false
 
         -- BAY TỚI NPC (KHÔNG RỚT NƯỚC)
         if (root.Position - NPC.Position).Magnitude > 8 then
@@ -7918,9 +7922,13 @@ task.spawn(function()
         rs.Modules.Net["RF/SubmarineWorkerSpeak"]
             :InvokeServer("TravelToSubmergedIsland")
 
-        -- ĐÁNH DẤU ĐÃ QUA
         task.wait(6)
+
+        -- ✅ ĐÁNH DẤU ĐÃ QUA ĐẢO
         _G.SubmergedDone = true
+
+        -- 🟢 CHẠY LẠI FARM LEVEL
+        _G.FarmLevel = true
     end
 end)
 
