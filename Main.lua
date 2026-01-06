@@ -7920,18 +7920,29 @@ task.spawn(function()
         task.wait(0.5)
 
         -- QUA ĐẢO
-        rs.Modules.Net["RF/SubmarineWorkerSpeak"]
-            :InvokeServer("TravelToSubmergedIsland")
+        -- QUA ĐẢO
+rs.Modules.Net["RF/SubmarineWorkerSpeak"]
+    :InvokeServer("TravelToSubmergedIsland")
 
-        -- ĐỢI RESPAWN + MAP ỔN
-        plr.CharacterAdded:Wait()
-        task.wait(4)
+-- ĐỢI NHÂN VẬT RESPAWN
+local newChar = plr.CharacterAdded:Wait()
+local newRoot = newChar:WaitForChild("HumanoidRootPart")
 
-        -- 🟢 BẬT LẠI FARM
-        _G.SubmergedDone = true
-        _G.GoingSubmerged = false
-        _G.Level = true
+-- ĐỢI NHÂN VẬT ỔN ĐỊNH (KHÔNG RƠI / KHÔNG BAY)
+repeat
+    task.wait(0.3)
+until newRoot
+    and newRoot.Parent
+    and newRoot.Velocity.Magnitude < 3
+
+-- ĐỢI MAP LOAD HẲN
+task.wait(2)
+
+-- ✅ MỞ KHÓA + BẬT FARM
+_G.GoingSubmerged = false
+_G.SubmergedDone = true
+_G.Level = true
     end
 end)
-
 Window:SelectTab(1)
+
