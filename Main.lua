@@ -1698,23 +1698,55 @@ spawn(function()
     local replicated = game:GetService("ReplicatedStorage")
     local ws = game:GetService("Workspace")
 
+    -- /// HÀM KIỂM TRA MAP MỚI (Lấy từ code 1) ///
+    local function IsInSubmergedMap()
+        local char = plr.Character
+        if not char then return false end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return false end
+        
+        -- Tọa độ check map từ code mẫu
+        local mapCenter = Vector3.new(11520.801757812, 0, 9829.513671875)
+        local myPos = Vector3.new(root.Position.X, 0, root.Position.Z)
+        return (myPos - mapCenter).Magnitude < 2000
+    end
+
     while task.wait(Sec or 0.2) do
-
-        -- 🔴 ĐANG ĐI NPC → DỪNG FARM HOÀN TOÀN
-        if _G.GoingSubmerged then
-            task.wait()
-            continue
-        end
-
-        if _G.Level then
+        if _G.Level then -- Biến bật tắt Farm
             local ok, err = pcall(function()
-
-                -- FIX ROOT
+                
                 local Character = plr.Character or plr.CharacterAdded:Wait()
                 local Root = Character:WaitForChild("HumanoidRootPart")
+                local CurrentLevel = plr.Data.Level.Value -- Level hiện tại
+                local QuestGUI = plr.PlayerGui.Main.Quest
 
-                local questGui = plr.PlayerGui.Main.Quest
+                -- ==========================================================
+                -- PHẦN 1: LOGIC CHUYỂN ĐẢO (Submerged Island) - GIỐNG CODE 1
+                -- ==========================================================
+                -- Nếu Level >= 2600 VÀ Chưa ở map mới
+                if CurrentLevel >= 2600 and not IsInSubmergedMap() then
+                    _G.GoingSubmerged = true -- Đánh dấu đang đi chuyển map
+                    
+                    local NPC_Position = CFrame.new(-16269.7041, 25.2288494, 1373.65955)
+                    
+                    -- 1. Bay đến NPC
+                    if (Root.Position - NPC_Position.Position).Magnitude > 8 then
+                        _tp(NPC_Position)
+                    else
+                        -- 2. Đã đến nơi -> Gọi Server để qua đảo
+                        task.wait(0.5)
+                        replicated.Modules.Net["RF/SubmarineWorkerSpeak"]:InvokeServer("TravelToSubmergedIsland")
+                        task.wait(2) -- Đợi load map
+                    end
+                    return -- Dừng vòng lặp hiện tại để tập trung chuyển map
+                else
+                    _G.GoingSubmerged = false -- Đã ở map mới hoặc level thấp -> Tắt trạng thái này
+                end
 
+                -- ==========================================================
+                -- PHẦN 2: LOGIC AUTO FARM BÌNH THƯỜNG - GIỐNG CODE 2
+                -- ==========================================================
+                
                 -- LẤY QUEST DATA
                 local q = QuestNeta()
                 if not q or not q[1] then return end
@@ -1730,69 +1762,77 @@ spawn(function()
 
                 -- TÊN QUEST ĐANG NHẬN
                 local questTitle = ""
-                if questGui.Visible
-                    and questGui:FindFirstChild("Container")
-                    and questGui.Container:FindFirstChild("QuestTitle") then
-                    questTitle = questGui.Container.QuestTitle.Title.Text
+                if QuestGUI.Visible
+                    and QuestGUI:FindFirstChild("Container")
+                    and QuestGUI.Container:FindFirstChild("QuestTitle") then
+                    questTitle = QuestGUI.Container.QuestTitle.Title.Text
                 end
 
-                ------------------------------------------------
-                -- NHẬN QUEST
-                ------------------------------------------------
-                if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
-                    replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
-                    task.wait(0.25)
-
-                    if (Root.Position - questPos.Position).Magnitude > 50 then
-                        _tp(questPos)
-                        return
+                -- ------------------------------------------------
+                -- NHẬN/HỦY QUEST
+                -- ------------------------------------------------
+                if not QuestGUI.Visible or not string.find(questTitle, questDisplay or "") then
+                    -- Nếu đang có quest sai -> Hủy
+                    if QuestGUI.Visible then
+                        replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
+                        task.wait(0.25)
                     end
 
-                    replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
-                    task.wait(0.5)
+                    -- Bay đến nhận quest
+                    if (Root.Position - questPos.Position).Magnitude > 10 then
+                        _tp(questPos)
+                    else
+                        replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                        task.wait(0.5)
+                    end
                     return
                 end
 
-                ------------------------------------------------
-                -- ĐÁNH QUÁI
-                ------------------------------------------------
+                -- ------------------------------------------------
+                -- TÌM VÀ ĐÁNH QUÁI
+                -- ------------------------------------------------
                 local foundMob = false
 
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
-                    if mob.Name == questMobName and Attack.Alive(mob) then
+                    if mob.Name == questMobName and Attack.Alive(mob) then -- Giả sử Attack.Alive là hàm check máu > 0
                         local mobRoot = mob:FindFirstChild("HumanoidRootPart")
                         if not mobRoot then continue end
 
                         foundMob = true
+                        
+                        -- Vòng lặp đánh 1 con quái
                         repeat
                             task.wait()
                             if not _G.Level or _G.GoingSubmerged or not mob.Parent or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
+                            
+                            -- Logic Teleport:
+                            -- Nếu gần (< 350) thì CFrame bình thường để mượt
+                            -- Nếu xa thì dùng _tp để bypass
                             if dist <= 350 then
-                                Root.CFrame =
-                                    mobRoot.CFrame
-                                    * CFrame.new(0, 15, 0)
-                                    * CFrame.Angles(math.rad(-90), 0, 0)
+                                Root.CFrame = mobRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
                                 Root.Velocity = Vector3.zero
                             else
                                 _tp(mobRoot.CFrame)
                             end
 
-                            Attack.Kill(mob, _G.Level)
+                            -- Gọi hàm đánh (Cần có module Attack bên ngoài)
+                            Attack.Kill(mob, _G.Level) 
                         until mob.Humanoid.Health <= 0 or not mob.Parent
 
-                        break
+                        break -- Đánh xong 1 con thì break để tìm con khác (tránh lỗi target)
                     end
                 end
 
-                ------------------------------------------------
-                -- KHÔNG CÓ QUÁI → VỀ BÃI
-                ------------------------------------------------
+                -- ------------------------------------------------
+                -- KHÔNG CÓ QUÁI → VỀ BÃI SPAWN CHỜ
+                -- ------------------------------------------------
                 if not foundMob then
                     if (Root.Position - mobPos.Position).Magnitude > 350 then
                         _tp(mobPos)
                     else
+                        -- Treo trên trời đợi quái ra
                         Root.CFrame = mobPos * CFrame.new(0, 50, 0)
                         Root.Velocity = Vector3.zero
                     end
@@ -1803,10 +1843,12 @@ spawn(function()
             if not ok then
                 warn("AUTO FARM ERROR:", err)
             end
+        else
+            -- Reset trạng thái khi tắt farm
+            _G.GoingSubmerged = false
         end
     end
 end)
-
 local TravelDress = Tabs.Quests:AddToggle("TravelDress", {Title = "Auto Travel Dressrosa", Description = "", Default = false})
 TravelDress:OnChanged(function(Value)
   _G.TravelDres = Value
@@ -5518,8 +5560,8 @@ spawn(function()
 end)
 Tabs.Mirage:AddButton({Title = "Teleport to Temple of Time", Description = "",
 Callback = function()
-  game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("requestEntrance",Vector3.new(28286.35546875, 14895.3017578125, 102.62469482421875))
-end})
+		replicated.Remotes.CommF_:InvokeServer("requestEntrance", Vector3.new(28286.35546875, 14895.301757812, 102.62469482422));
+	end });
 Tabs.Mirage:AddButton({Title = "Teleport to Ancient One", Description = "",
 Callback = function()
   notween(CFrame.new(28981.552734375, 14888.4267578125, - 120.245849609375))
@@ -7889,52 +7931,4 @@ local function GetEnemiesInRange(character, range)
     end
     return targets
 end
-task.spawn(function()
-    local plr = game.Players.LocalPlayer
-    local rs = game:GetService("ReplicatedStorage")
-    local NPC = CFrame.new(-16269.7041, 25.2288494, 1373.65955)
-
-    _G.GoingSubmerged = false
-    _G.SubmergedDone = false
-
-    while task.wait(0.3) do
-        if not _G.Level then continue end
-        if _G.GoingSubmerged then continue end
-        if _G.SubmergedDone then continue end -- 🔒 QUA RỒI → KHÔNG ĐI LẠI
-        if not World3 then continue end
-
-        -- 🔴 VỪA BẬT FARM → DỪNG FARM
-        _G.GoingSubmerged = true
-        _G.Level = false
-
-        local char = plr.Character or plr.CharacterAdded:Wait()
-        local root = char:WaitForChild("HumanoidRootPart")
-
-        -- BAY TỚI NPC
-        while (root.Position - NPC.Position).Magnitude > 8 do
-            _tp(NPC)
-            task.wait()
-        end
-
-        task.wait(0.5)
-
-        -- QUA ĐẢO
-        rs.Modules.Net["RF/SubmarineWorkerSpeak"]
-            :InvokeServer("TravelToSubmergedIsland")
-
-        -- ĐỢI RESPAWN + MAP ỔN
-        plr.CharacterAdded:Wait()
-        task.wait(3)
-
-        -- ✅ ĐÁNH DẤU ĐÃ QUA ĐẢO
-        _G.SubmergedDone = true
-
-        -- 🟢 MỞ KHÓA + BẬT FARM
-        _G.GoingSubmerged = false
-        _G.Level = true
-    end
-end)
-
 Window:SelectTab(1)
-
-
