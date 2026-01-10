@@ -1694,62 +1694,85 @@ FarmLevel:OnChanged(function(Value)
   _G.Level = Value
 end)
 spawn(function()
+    -- /// KIỂM TRA CÁC HÀM CẦN THIẾT ///
+    -- Script này cần các hàm này phải có sẵn từ trước.
+    -- Nếu bạn chưa có, hãy paste đoạn này XUỐNG DƯỚI cùng của script gốc của bạn.
+    if not _tp then warn("LỖI: Thiếu hàm '_tp' (Hàm dịch chuyển)") end
+    if not QuestNeta then warn("LỖI: Thiếu hàm 'QuestNeta' (Hàm lấy dữ liệu nhiệm vụ)") end
+    if not Attack then warn("LỖI: Thiếu module 'Attack' (Hàm đánh quái)") end
+    
+    -- Nếu thiếu hàm quan trọng thì dừng luôn để tránh crash
+    if not _tp or not QuestNeta or not Attack then 
+        warn("Script dừng hoạt động do thiếu hàm. Vui lòng kiểm tra lại!")
+        return 
+    end
+
+    print("Script bắt đầu chạy...") -- Báo hiệu script đã load thành công bước đầu
+
     local plr = game.Players.LocalPlayer
     local replicated = game:GetService("ReplicatedStorage")
     local ws = game:GetService("Workspace")
 
-    -- /// HÀM KIỂM TRA MAP MỚI (Lấy từ code 1) ///
+    -- Hàm check map (An toàn hơn)
     local function IsInSubmergedMap()
         local char = plr.Character
         if not char then return false end
         local root = char:FindFirstChild("HumanoidRootPart")
         if not root then return false end
         
-        -- Tọa độ check map từ code mẫu
         local mapCenter = Vector3.new(11520.801757812, 0, 9829.513671875)
         local myPos = Vector3.new(root.Position.X, 0, root.Position.Z)
         return (myPos - mapCenter).Magnitude < 2000
     end
 
     while task.wait(Sec or 0.2) do
-        if _G.Level then -- Biến bật tắt Farm
+        if _G.Level then -- Chỉ chạy khi bật
             local ok, err = pcall(function()
                 
-                local Character = plr.Character or plr.CharacterAdded:Wait()
-                local Root = Character:WaitForChild("HumanoidRootPart")
-                local CurrentLevel = plr.Data.Level.Value -- Level hiện tại
-                local QuestGUI = plr.PlayerGui.Main.Quest
+                -- Check Character an toàn (Tránh lỗi wait vô tận)
+                local Character = plr.Character
+                if not Character then return end -- Nếu đang chết/chưa load thì bỏ qua vòng lặp này
+                
+                local Root = Character:FindFirstChild("HumanoidRootPart")
+                if not Root then return end
 
-                -- ==========================================================
-                -- PHẦN 1: LOGIC CHUYỂN ĐẢO (Submerged Island) - GIỐNG CODE 1
-                -- ==========================================================
-                -- Nếu Level >= 2600 VÀ Chưa ở map mới
+                local CurrentLevel = plr.Data.Level.Value
+                local QuestGUI = plr.PlayerGui:WaitForChild("Main"):WaitForChild("Quest", 1)
+                
+                if not QuestGUI then return end -- Chưa load xong GUI
+
+                -- ==========================================
+                -- PHẦN 1: CHUYỂN ĐẢO (LEVEL >= 2600)
+                -- ==========================================
                 if CurrentLevel >= 2600 and not IsInSubmergedMap() then
-                    _G.GoingSubmerged = true -- Đánh dấu đang đi chuyển map
+                    if not _G.GoingSubmerged then
+                         print("Đủ cấp 2600! Đang chuẩn bị qua đảo mới...")
+                         _G.GoingSubmerged = true
+                    end
                     
                     local NPC_Position = CFrame.new(-16269.7041, 25.2288494, 1373.65955)
                     
-                    -- 1. Bay đến NPC
-                    if (Root.Position - NPC_Position.Position).Magnitude > 8 then
+                    if (Root.Position - NPC_Position.Position).Magnitude > 10 then
                         _tp(NPC_Position)
                     else
-                        -- 2. Đã đến nơi -> Gọi Server để qua đảo
-                        task.wait(0.5)
+                        -- Đã đến nơi -> Gọi Server
                         replicated.Modules.Net["RF/SubmarineWorkerSpeak"]:InvokeServer("TravelToSubmergedIsland")
-                        task.wait(2) -- Đợi load map
+                        task.wait(1)
                     end
-                    return -- Dừng vòng lặp hiện tại để tập trung chuyển map
+                    return -- Dừng xử lý bên dưới để tập trung chuyển map
                 else
-                    _G.GoingSubmerged = false -- Đã ở map mới hoặc level thấp -> Tắt trạng thái này
+                    _G.GoingSubmerged = false
                 end
 
-                -- ==========================================================
-                -- PHẦN 2: LOGIC AUTO FARM BÌNH THƯỜNG - GIỐNG CODE 2
-                -- ==========================================================
+                -- ==========================================
+                -- PHẦN 2: AUTO FARM
+                -- ==========================================
                 
-                -- LẤY QUEST DATA
-                local q = QuestNeta()
-                if not q or not q[1] then return end
+                local q = QuestNeta() -- Lấy dữ liệu quest
+                if not q then 
+                    -- warn("Không lấy được dữ liệu QuestNeta") 
+                    return 
+                end
 
                 local questMobName = q[1]
                 local questID       = q[2]
@@ -1760,26 +1783,21 @@ spawn(function()
 
                 if not questPos or not mobPos then return end
 
-                -- TÊN QUEST ĐANG NHẬN
+                -- Check tiêu đề Quest
                 local questTitle = ""
-                if QuestGUI.Visible
-                    and QuestGUI:FindFirstChild("Container")
-                    and QuestGUI.Container:FindFirstChild("QuestTitle") then
-                    questTitle = QuestGUI.Container.QuestTitle.Title.Text
+                if QuestGUI.Visible and QuestGUI:FindFirstChild("Container") then
+                     local titleObj = QuestGUI.Container:FindFirstChild("QuestTitle")
+                     if titleObj then questTitle = titleObj.Title.Text end
                 end
 
-                -- ------------------------------------------------
-                -- NHẬN/HỦY QUEST
-                -- ------------------------------------------------
+                -- A. NHẬN/HỦY QUEST
                 if not QuestGUI.Visible or not string.find(questTitle, questDisplay or "") then
-                    -- Nếu đang có quest sai -> Hủy
                     if QuestGUI.Visible then
                         replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
-                        task.wait(0.25)
+                        task.wait(0.2)
                     end
 
-                    -- Bay đến nhận quest
-                    if (Root.Position - questPos.Position).Magnitude > 10 then
+                    if (Root.Position - questPos.Position).Magnitude > 15 then
                         _tp(questPos)
                     else
                         replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
@@ -1788,51 +1806,50 @@ spawn(function()
                     return
                 end
 
-                -- ------------------------------------------------
-                -- TÌM VÀ ĐÁNH QUÁI
-                -- ------------------------------------------------
+                -- B. TÌM VÀ ĐÁNH QUÁI
                 local foundMob = false
-
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
-                    if mob.Name == questMobName and Attack.Alive(mob) then -- Giả sử Attack.Alive là hàm check máu > 0
-                        local mobRoot = mob:FindFirstChild("HumanoidRootPart")
-                        if not mobRoot then continue end
-
+                    -- Kiểm tra mob hợp lệ
+                    if mob.Name == questMobName and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
                         foundMob = true
                         
-                        -- Vòng lặp đánh 1 con quái
+                        -- Lặp đánh
                         repeat
                             task.wait()
-                            if not _G.Level or _G.GoingSubmerged or not mob.Parent or mob.Humanoid.Health <= 0 then break end
+                            if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
+                            
+                            -- Cập nhật vị trí Root mới nhất
+                            if not Root or not Root.Parent then break end 
+                            local mobRoot = mob:FindFirstChild("HumanoidRootPart")
+                            if not mobRoot then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
                             
-                            -- Logic Teleport:
-                            -- Nếu gần (< 350) thì CFrame bình thường để mượt
-                            -- Nếu xa thì dùng _tp để bypass
-                            if dist <= 350 then
+                            if dist <= 300 then
                                 Root.CFrame = mobRoot.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90), 0, 0)
                                 Root.Velocity = Vector3.zero
                             else
                                 _tp(mobRoot.CFrame)
                             end
 
-                            -- Gọi hàm đánh (Cần có module Attack bên ngoài)
-                            Attack.Kill(mob, _G.Level) 
-                        until mob.Humanoid.Health <= 0 or not mob.Parent
+                            if Attack and Attack.Kill then
+                                Attack.Kill(mob, _G.Level)
+                            else
+                                -- Fallback nếu không có Attack module (đánh thường)
+                                game:GetService("VirtualUser"):CaptureController()
+                                game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+                            end
 
-                        break -- Đánh xong 1 con thì break để tìm con khác (tránh lỗi target)
+                        until mob.Humanoid.Health <= 0 or not mob.Parent
+                        break
                     end
                 end
 
-                -- ------------------------------------------------
-                -- KHÔNG CÓ QUÁI → VỀ BÃI SPAWN CHỜ
-                -- ------------------------------------------------
+                -- C. VỀ BÃI NẾU KHÔNG CÓ QUÁI
                 if not foundMob then
-                    if (Root.Position - mobPos.Position).Magnitude > 350 then
+                    if (Root.Position - mobPos.Position).Magnitude > 300 then
                         _tp(mobPos)
                     else
-                        -- Treo trên trời đợi quái ra
                         Root.CFrame = mobPos * CFrame.new(0, 50, 0)
                         Root.Velocity = Vector3.zero
                     end
@@ -1841,11 +1858,8 @@ spawn(function()
             end)
 
             if not ok then
-                warn("AUTO FARM ERROR:", err)
+                warn("AUTO FARM ERROR (Chi tiết):", err)
             end
-        else
-            -- Reset trạng thái khi tắt farm
-            _G.GoingSubmerged = false
         end
     end
 end)
