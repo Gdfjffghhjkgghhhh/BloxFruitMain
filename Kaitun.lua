@@ -294,21 +294,6 @@ Useskills = function(weapon, skill)
     vim1:SendKeyEvent(false, "Y", false, game);
   end
 end
-useskills_spam = function()
-    Useskills("Melee", "Z")
-    Useskills("Melee", "X")
-    Useskills("Melee", "C")
-    task.wait(0.1)
-    Useskills("Sword", "Z")
-    Useskills("Sword", "X")
-    task.wait(0.1)
-    Useskills("Blox Fruit", "Z")
-    Useskills("Blox Fruit", "X")
-    Useskills("Blox Fruit", "C")
-    task.wait(0.1)
-    Useskills("Gun", "Z")
-    Useskills("Gun", "X")
-end
 local gg = getrawmetatable(game)
 local old = gg.__namecall
 setreadonly(gg, false)
@@ -6381,18 +6366,18 @@ spawn(function()
 end)
 
 -- Vòng phụ: tắt va chạm thuyền
-task.spawn(function()
-	while task.wait(1.5) do
+spawn(function()
+	while task.wait(Sec or 0.2) do
 		pcall(function()
-            if _G.SailBoats or _G.Prehis_Find or _G.FindMirage or _G.SailBoat_Hydra or _G.AutofindKitIs then
-                for _, b in ipairs(workspace.Boats:GetChildren()) do
-                    for _, d in ipairs(b:GetDescendants()) do
-                        if d:IsA("BasePart") then
-                            d.CanCollide = false
-                        end
-                    end
-                end
-            end
+			for _, b in pairs(workspace.Boats:GetChildren()) do
+				for _, d in pairs(b:GetDescendants()) do
+					if d:IsA("BasePart") then
+						d.CanCollide = _G.SailBoats or _G.Prehis_Find or _G.FindMirage or _G.SailBoat_Hydra or _G.AutofindKitIs
+							and false
+							or true
+					end
+				end
+			end
 		end)
 	end
 end)
@@ -6433,89 +6418,18 @@ Q = Tabs.SeaEvent:AddToggle("Q", {Title = "Auto Attack Leviathan", Description =
 Q:OnChanged(function(Value)
   _G.Leviathan1 = Value
 end)
-task.spawn(function()
-  while task.wait() do
-    pcall(function()
-      -- Optimize: Check common enemies in one pass
-      if _G.Shark or _G.TerrorShark or _G.Piranha or _G.MobCrew or _G.HCM or _G.FishBoat or _G.PGB then
-          for _, c in ipairs(workspace.Enemies:GetChildren()) do
-             if c:FindFirstChild("Humanoid") and c.Humanoid.Health > 0 then
-                 if _G.Shark and c.Name == "Shark" and Attack.Alive(c) then
-                    repeat task.wait() Attack.Kill(c, _G.Shark) until not _G.Shark or not Attack.Alive(c)
-                 elseif _G.TerrorShark and c.Name == "Terrorshark" and Attack.Alive(c) then
-                    repeat task.wait() Attack.KillSea(c, _G.TerrorShark) until not _G.TerrorShark or not Attack.Alive(c)
-                 elseif _G.Piranha and c.Name == "Piranha" and Attack.Alive(c) then
-                    repeat task.wait() Attack.Kill(c, _G.Piranha) until not _G.Piranha or not Attack.Alive(c)
-                 elseif _G.MobCrew and c.Name == "Fish Crew Member" and Attack.Alive(c) then
-                    repeat task.wait() Attack.Kill(c, _G.MobCrew) until not _G.MobCrew or not Attack.Alive(c)
-                 elseif _G.HCM and c.Name == "Haunted Crew Member" and Attack.Alive(c) then
-                    repeat task.wait() Attack.Kill(c, _G.HCM) until not _G.HCM or not Attack.Alive(c)
-                 elseif _G.FishBoat and c.Name == "FishBoat" and c:FindFirstChild("VehicleSeat") then
-                    repeat task.wait()
-                       if c:FindFirstChild("Engine") then notween(c.Engine.CFrame * CFrame.new(0, -50, -25)) end
-                       if c:FindFirstChild("Engine") and plr:DistanceFromCharacter(c.Engine.CFrame.Position) <= 150 then
-                           AitSeaSkill_Custom = c.Engine.CFrame
-                           MousePos = AitSeaSkill_Custom.Position
-                           if CheckF() then
-                               weaponSc("Blox Fruit") Useskills("Blox Fruit", "Z") Useskills("Blox Fruit", "X") Useskills("Blox Fruit", "C")
-                           else
-                               useskills_spam()
-                           end
-                       end
-                    until not _G.FishBoat or not c:FindFirstChild("VehicleSeat") or c.Health.Value <= 0
-                 elseif _G.PGB and (c.Name == "PirateGrandBrigade" or c.Name == "PirateBrigade") and c:FindFirstChild("VehicleSeat") then
-                    repeat task.wait()
-                        if c.Name == "PirateBrigade" and c:FindFirstChild("Engine") then notween(c.Engine.CFrame * CFrame.new(0, -30, -10))
-                        elseif c.Name == "PirateGrandBrigade" and c:FindFirstChild("Engine") then notween(c.Engine.CFrame * CFrame.new(0, -50, -50)) end
-                        
-                        if c:FindFirstChild("Engine") and plr:DistanceFromCharacter(c.Engine.CFrame.Position) <= 150 then
-                           AitSeaSkill_Custom = c.Engine.CFrame
-                           MousePos = AitSeaSkill_Custom.Position
-                            if CheckF() then
-                               weaponSc("Blox Fruit") Useskills("Blox Fruit", "Z") Useskills("Blox Fruit", "X") Useskills("Blox Fruit", "C")
-                           else
-                               useskills_spam()
-                           end
-                        end
-                    until not _G.PGB or not c:FindFirstChild("VehicleSeat") or c.Health.Value <= 0
-                 end
-             end
-          end
-      end
-
-      -- Optimize: Check SeaBeasts in one pass
-      if _G.SeaBeast1 or _G.Leviathan1 then
-          for _, b in ipairs(workspace.SeaBeasts:GetChildren()) do
-              if b:FindFirstChild("HumanoidRootPart") and b:FindFirstChild("Health") and b.Health.Value > 0 then
-                  if _G.SeaBeast1 and b.Name:find("SeaBeast") then
-                      repeat task.wait()
-                          notween(CFrame.new(b.HumanoidRootPart.Position.X, game:GetService("Workspace").Map["WaterBase-Plane"].Position.Y + 200, b.HumanoidRootPart.Position.Z))
-                          if plr:DistanceFromCharacter(b.HumanoidRootPart.CFrame.Position) <= 500 then
-                              AitSeaSkill_Custom = b.HumanoidRootPart.CFrame
-                              MousePos = AitSeaSkill_Custom.Position
-                              if CheckF() then
-                                  weaponSc("Blox Fruit") Useskills("Blox Fruit", "Z") Useskills("Blox Fruit", "X") Useskills("Blox Fruit", "C")
-                              else
-                                   useskills_spam()
-                              end
-                          end
-                      until not _G.SeaBeast1 or not b:FindFirstChild("HumanoidRootPart") or not b.Parent or b.Health.Value <= 0
-                  elseif _G.Leviathan1 and b.Name == "Leviathan" and b:FindFirstChild("Leviathan Segment") then
-                      repeat task.wait()
-                          notween(CFrame.new(b.HumanoidRootPart.Position.X, game:GetService("Workspace").Map["WaterBase-Plane"].Position.Y + 200, b.HumanoidRootPart.Position.Z))
-                          if plr:DistanceFromCharacter(b.HumanoidRootPart.CFrame.Position) <= 500 then
-                              MousePos = b:FindFirstChild("Leviathan Segment").Position
-                              if CheckF() then
-                                  weaponSc("Blox Fruit") Useskills("Blox Fruit", "Z") Useskills("Blox Fruit", "X") Useskills("Blox Fruit", "C")
-                              else
-                                   useskills_spam()
-                              end
-                          end
-                      until not _G.Leviathan1 or not b:FindFirstChild("HumanoidRootPart") or not b.Parent or b.Health.Value <= 0
-                  end
-              end
-          end
-      end
+spawn(function()
+  while wait() do
+    pcall(function()	
+      if _G.Shark then local a={"Shark"}if CheckShark()then for b,c in pairs(workspace.Enemies:GetChildren())do if table.find(a,c.Name)then if Attack.Alive(c)then repeat task.wait()Attack.Kill(c,_G.Shark)until _G.Shark==false or not c.Parent or c.Humanoid.Health<=0 end end end end end
+      if _G.TerrorShark then local a={"Terrorshark"}if CheckTerrorShark()then for b,c in pairs(workspace.Enemies:GetChildren())do if table.find(a,c.Name)then if Attack.Alive(c)then repeat task.wait()Attack.KillSea(c,_G.TerrorShark)until _G.TerrorShark==false or not c.Parent or c.Humanoid.Health<=0 end end end end end
+      if _G.Piranha then local a={"Piranha"}if CheckPiranha()then for b,c in pairs(workspace.Enemies:GetChildren())do if table.find(a,c.Name)then if Attack.Alive(c)then repeat task.wait()Attack.Kill(c,_G.Piranha)until _G.Piranha==false or not c.Parent or c.Humanoid.Health<=0 end end end end end
+      if _G.MobCrew then local a={"Fish Crew Member"}if CheckFishCrew()then for b,c in pairs(workspace.Enemies:GetChildren())do if table.find(a,c.Name)then if Attack.Alive(c)then repeat task.wait()Attack.Kill(c,_G.MobCrew)until _G.MobCrew==false or not c.Parent or c.Humanoid.Health<=0 end end end end end                 
+      if _G.HCM then local a={"Haunted Crew Member"}if CheckHauntedCrew()then for b,c in pairs(workspace.Enemies:GetChildren())do if table.find(a,c.Name)then if Attack.Alive(c)then repeat task.wait()Attack.Kill(c,_G.HCM)until _G.HCM==false or not c.Parent or c.Humanoid.Health<=0 end end end end end
+      if _G.SeaBeast1 then if workspace.SeaBeasts:FindFirstChild("SeaBeast1")then for a,b in pairs(workspace.SeaBeasts:GetChildren())do if b:FindFirstChild("HumanoidRootPart")and b:FindFirstChild("Health")and b.Health.Value>0 then repeat task.wait()notween(CFrame.new(b.HumanoidRootPart.Position.X,game:GetService("Workspace").Map["WaterBase-Plane"].Position.Y+200,b.HumanoidRootPart.Position.Z))if plr:DistanceFromCharacter(b.HumanoidRootPart.CFrame.Position)<=500 then AitSeaSkill_Custom=b.HumanoidRootPart.CFrame;MousePos=AitSeaSkill_Custom.Position;if CheckF()then weaponSc("Blox Fruit")Useskills("Blox Fruit","Z")Useskills("Blox Fruit","X")Useskills("Blox Fruit","C")else Useskills("Melee","Z")Useskills("Melee","X")Useskills("Melee","C")wait(.1)Useskills("Sword","Z")Useskills("Sword","X")wait(.1)Useskills("Blox Fruit","Z")Useskills("Blox Fruit","X")Useskills("Blox Fruit","C")wait(.1)Useskills("Gun","Z")Useskills("Gun","X")end end until _G.SeaBeast1==false or not b:FindFirstChild("HumanoidRootPart")or not b.Parent or b.Health.Value<=0 end end end end
+      if _G.Leviathan1 then if workspace.SeaBeasts:FindFirstChild("Leviathan")then for a,b in pairs(workspace.SeaBeasts:GetChildren())do if b:FindFirstChild("HumanoidRootPart")and b:FindFirstChild("Leviathan Segment")and b:FindFirstChild("Health")and b.Health.Value>0 then repeat task.wait()notween(CFrame.new(b.HumanoidRootPart.Position.X,game:GetService("Workspace").Map["WaterBase-Plane"].Position.Y+200,b.HumanoidRootPart.Position.Z))if plr:DistanceFromCharacter(b.HumanoidRootPart.CFrame.Position)<=500 then MousePos=b:FindFirstChild("Leviathan Segment").Position;if CheckF()then weaponSc("Blox Fruit")Useskills("Blox Fruit","Z")Useskills("Blox Fruit","X")Useskills("Blox Fruit","C")else Useskills("Melee","Z")Useskills("Melee","X")Useskills("Melee","C")wait(.1)Useskills("Sword","Z")Useskills("Sword","X")wait(.1)Useskills("Blox Fruit","Z")Useskills("Blox Fruit","X")Useskills("Blox Fruit","C")wait(.1)Useskills("Gun","Z")Useskills("Gun","X")end end until _G.Leviathan1==false or not b:FindFirstChild("HumanoidRootPart")or not b.Parent or b.Health.Value<=0 end end end end
+      if _G.FishBoat then if CheckEnemiesBoat()then for a,b in pairs(workspace.Enemies:GetChildren())do if b:FindFirstChild("Health")and b.Health.Value>0 and b:FindFirstChild("VehicleSeat")then repeat task.wait()if b.Name=="FishBoat"then notween(b.Engine.CFrame*CFrame.new(0,-50,-25))end;if plr:DistanceFromCharacter(b.Engine.CFrame.Position)<=150 then AitSeaSkill_Custom=b.Engine.CFrame;MousePos=AitSeaSkill_Custom.Position;if CheckF()then weaponSc("Blox Fruit")Useskills("Blox Fruit","Z")Useskills("Blox Fruit","X")Useskills("Blox Fruit","C")else Useskills("Melee","Z")Useskills("Melee","X")Useskills("Melee","C")wait(.1)Useskills("Sword","Z")Useskills("Sword","X")wait(.1)Useskills("Blox Fruit","Z")Useskills("Blox Fruit","X")Useskills("Blox Fruit","C")wait(.1)Useskills("Gun","Z")Useskills("Gun","X")end end until _G.FishBoat==false or not b:FindFirstChild("VehicleSeat")or b.Health.Value<=0 end end end end
+      if _G.PGB then if CheckPirateGrandBrigade()then for a,b in pairs(workspace.Enemies:GetChildren())do if b:FindFirstChild("Health")and b.Health.Value>0 and b:FindFirstChild("VehicleSeat")then repeat task.wait()if b.Name=="PirateBrigade"then notween(b.Engine.CFrame*CFrame.new(0,-30,-10))elseif b.Name=="PirateGrandBrigade"then notween(b.Engine.CFrame*CFrame.new(0,-50,-50))end;if plr:DistanceFromCharacter(b.Engine.CFrame.Position)<=150 then AitSeaSkill_Custom=b.Engine.CFrame;MousePos=AitSeaSkill_Custom.Position;if CheckF()then weaponSc("Blox Fruit")Useskills("Blox Fruit","Z")Useskills("Blox Fruit","X")Useskills("Blox Fruit","C")else Useskills("Melee","Z")Useskills("Melee","X")Useskills("Melee","C")wait(.1)Useskills("Sword","Z")Useskills("Sword","X")wait(.1)Useskills("Blox Fruit","Z")Useskills("Blox Fruit","X")Useskills("Blox Fruit","C")wait(.1)Useskills("Gun","Z")Useskills("Gun","X")end end until _G.PGB==false or not b:FindFirstChild("VehicleSeat")or b.Health.Value<=0 end end end end
     end)
   end
 end)
@@ -7593,47 +7507,36 @@ end})
 
 Tabs.Shop:AddSection("Fighting - Style")
 Tabs.Shop:AddButton({Title = "Buy Black Leg", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Black Leg Teacher"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuyBlackLeg")
 end})
 Tabs.Shop:AddButton({Title = "Buy Electro", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Mad Scientist"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuyElectro")
 end})
 Tabs.Shop:AddButton({Title = "Buy Fishman Karate", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Water Kung Fu Teacher"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuyFishmanKarate")
 end})
 Tabs.Shop:AddButton({Title = "Buy DragonClaw", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Sabo"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BlackbeardReward","DragonClaw","2")
 end})
 Tabs.Shop:AddButton({Title = "Buy Superhuman", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Martial Arts Master"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuySuperhuman")
 end})
 Tabs.Shop:AddButton({Title = "Buy Death Step", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Phoeyu, the Reformed"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuyDeathStep")
 end})
 Tabs.Shop:AddButton({Title = "Buy Sharkman Karate", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Daigrock, the Sharkman"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuySharkmanKarate")
 end})
 Tabs.Shop:AddButton({Title = "Buy ElectricClaw", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Previous Hero"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuyElectricClaw")
 end})
 Tabs.Shop:AddButton({Title = "Buy DragonTalon", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Uzoth"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuyDragonTalon")
 end})
 Tabs.Shop:AddButton({Title = "Buy Godhuman", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Ancient Monk"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuyGodhuman")
 end})
 Tabs.Shop:AddButton({Title = "Buy SanguineArt", Description = "",Callback = function()
-  _tp(game:GetService("ReplicatedStorage").NPCs["Shafi"].HumanoidRootPart.CFrame)
   replicated.Remotes.CommF_:InvokeServer("BuySanguineArt")
 end})
 
