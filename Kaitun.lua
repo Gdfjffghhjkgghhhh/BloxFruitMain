@@ -18,7 +18,7 @@ pcall(function()
 end)
 
 -- ================= THEME & SETTINGS =================
-local AnimeBackgroundID = "rbxassetid://103052959409576" -- Ảnh nền Anime
+local AnimeBackgroundID = "rbxassetid://78867414575565" -- Ảnh nền Anime
 
 local Theme = {
 	BG = Color3.fromRGB(20, 20, 28), 
