@@ -1,5 +1,5 @@
---// WindyUI v2.9 FINAL SORT FIX
---// Fix lỗi sắp xếp Alphabet bằng cách đánh số tên nút ẩn
+--// WindyUI v3.1 RESIZABLE & WINDOW CONTROLS
+--// Added: Resize Grip, Close/Min Buttons, Sharper Corners
 
 local Windy = {}
 
@@ -8,28 +8,37 @@ local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
+local Mouse = game.Players.LocalPlayer:GetMouse()
 
 -- ================= CLEANUP OLD GUI =================
 pcall(function()
-	if CoreGui:FindFirstChild("WindyUI_V2") then
-		CoreGui:FindFirstChild("WindyUI_V2"):Destroy()
+	if CoreGui:FindFirstChild("WindyUI_V3_Resizable") then
+		CoreGui:FindFirstChild("WindyUI_V3_Resizable"):Destroy()
 	end
 end)
 
--- ================= THEME =================
+-- ================= THEME & SETTINGS =================
+local AnimeBackgroundID = "rbxassetid://13467882512" -- Ảnh nền Anime
+
 local Theme = {
-	BG = Color3.fromRGB(25,25,30),
-	Sidebar = Color3.fromRGB(20,20,25),
-	Section = Color3.fromRGB(35,35,40),
-	SectionText = Color3.fromRGB(255, 255, 255),
-	Text = Color3.fromRGB(240,240,240),
-	SubText = Color3.fromRGB(150,150,150),
-	Main = Color3.fromRGB(45,120,255),
-	Search = Color3.fromRGB(30,30,35)
+	BG = Color3.fromRGB(20, 20, 28), 
+	BG_Transparency = 0.2,
+	Sidebar = Color3.fromRGB(15, 15, 20),
+	Sidebar_Transparency = 0.5,
+	Section = Color3.fromRGB(255, 255, 255),
+	Section_Transparency = 0.95,
+	Text = Color3.fromRGB(255, 255, 255),
+	SubText = Color3.fromRGB(180, 180, 200),
+	Main = Color3.fromRGB(255, 110, 150), -- Màu chủ đạo (Hồng)
+	Search = Color3.fromRGB(0, 0, 0),
+	Search_Transparency = 0.7,
+	
+	-- [NEW] Cài đặt bo góc (Giảm xuống để vuông hơn)
+	CornerRadius = UDim.new(0, 6) 
 }
 
 -- ================= CONFIG SYSTEM =================
-local ConfigFile = "WindyUI_Config.json"
+local ConfigFile = "WindyUI_Anime_Config.json"
 local Config = { Toggles = {}, Keybind = "RightControl" }
 
 pcall(function()
@@ -44,23 +53,53 @@ local function SaveConfig()
 	end)
 end
 
+-- ================= UTILS (ANIMATION) =================
+local function Tween(obj, props, time, style, dir)
+	TweenService:Create(obj, TweenInfo.new(time or 0.3, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out), props):Play()
+end
+
 -- ================= GUI SETUP =================
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "WindyUI_V2"
+ScreenGui.Name = "WindyUI_V3_Resizable"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
 
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0,600,0,400)
-Main.Position = UDim2.new(0.5,-300,0.5,-200)
+-- Main CanvasGroup
+local Main = Instance.new("CanvasGroup", ScreenGui) 
+Main.Size = UDim2.new(0, 600, 0, 400) -- Kích thước mặc định
+Main.Position = UDim2.new(0.5, -300, 0.5, -200)
 Main.BackgroundColor3 = Theme.BG
+Main.BackgroundTransparency = Theme.BG_Transparency
 Main.BorderSizePixel = 0
-Main.ClipsDescendants = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0,10)
+Main.GroupTransparency = 0
+Main.Visible = true
 
--- Drag Logic
+-- [UPDATE] Corner Radius nhỏ hơn
+Instance.new("UICorner", Main).CornerRadius = Theme.CornerRadius
+local MainStroke = Instance.new("UIStroke", Main)
+MainStroke.Thickness = 1
+MainStroke.Color = Color3.fromRGB(255, 255, 255)
+MainStroke.Transparency = 0.8
+
+-- Anime Background
+local BGImage = Instance.new("ImageLabel", Main)
+BGImage.Name = "AnimeBG"
+BGImage.Size = UDim2.new(1, 0, 1, 0)
+BGImage.Image = AnimeBackgroundID
+BGImage.ImageTransparency = 0.7
+BGImage.ScaleType = Enum.ScaleType.Crop
+BGImage.BackgroundTransparency = 1
+BGImage.ZIndex = -1
+
+-- ================= DRAG LOGIC (DI CHUYỂN GUI) =================
+local DragFrame = Instance.new("Frame", Main) -- Vùng vô hình để kéo GUI
+DragFrame.Size = UDim2.new(1, -100, 0, 40) -- Chừa chỗ cho nút tắt/nhỏ
+DragFrame.BackgroundTransparency = 1
+DragFrame.ZIndex = 10
+
 do
 	local drag, startPos, startInput
-	Main.InputBegan:Connect(function(i)
+	DragFrame.InputBegan:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 then
 			drag = true
 			startInput = i.Position
@@ -75,45 +114,135 @@ do
 	UIS.InputChanged:Connect(function(i)
 		if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
 			local delta = i.Position - startInput
-			Main.Position = UDim2.new(
-				startPos.X.Scale, startPos.X.Offset + delta.X,
-				startPos.Y.Scale, startPos.Y.Offset + delta.Y
-			)
+			Tween(Main, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, 0.05)
 		end
 	end)
 end
 
+-- ================= [NEW] WINDOW CONTROLS (TẮT / THU NHỎ) =================
+local ControlsContainer = Instance.new("Frame", Main)
+ControlsContainer.Size = UDim2.new(0, 70, 0, 30)
+ControlsContainer.Position = UDim2.new(1, -75, 0, 5)
+ControlsContainer.BackgroundTransparency = 1
+ControlsContainer.ZIndex = 20
+
+-- 1. Close Button (X)
+local CloseBtn = Instance.new("TextButton", ControlsContainer)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "×"
+CloseBtn.Font = Enum.Font.GothamMedium
+CloseBtn.TextSize = 24
+CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+
+CloseBtn.MouseEnter:Connect(function() 
+	Tween(CloseBtn, {BackgroundColor3 = Color3.fromRGB(255, 80, 80), BackgroundTransparency = 0.2, TextColor3 = Color3.new(1,1,1)}) 
+end)
+CloseBtn.MouseLeave:Connect(function() 
+	Tween(CloseBtn, {BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(200, 200, 200)}) 
+end)
+
+-- 2. Minimize Button (-)
+local MinBtn = Instance.new("TextButton", ControlsContainer)
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -65, 0, 0)
+MinBtn.BackgroundTransparency = 1
+MinBtn.Text = "−"
+MinBtn.Font = Enum.Font.GothamMedium
+MinBtn.TextSize = 24
+MinBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 6)
+
+MinBtn.MouseEnter:Connect(function() 
+	Tween(MinBtn, {BackgroundColor3 = Color3.fromRGB(80, 80, 100), BackgroundTransparency = 0.5, TextColor3 = Color3.new(1,1,1)}) 
+end)
+MinBtn.MouseLeave:Connect(function() 
+	Tween(MinBtn, {BackgroundTransparency = 1, TextColor3 = Color3.fromRGB(200, 200, 200)}) 
+end)
+
+-- ================= [NEW] RESIZE HANDLE (KÉO GÓC ĐỂ CHỈNH TO NHỎ) =================
+local ResizeHandle = Instance.new("ImageButton", Main)
+ResizeHandle.Size = UDim2.new(0, 20, 0, 20)
+ResizeHandle.Position = UDim2.new(1, -20, 1, -20)
+ResizeHandle.BackgroundTransparency = 1
+ResizeHandle.Image = "rbxassetid://16447953250" -- Icon góc tam giác
+ResizeHandle.ImageTransparency = 0.5
+ResizeHandle.ImageColor3 = Theme.SubText
+ResizeHandle.ZIndex = 20
+
+local isResizing = false
+local minSize = Vector2.new(450, 300) -- Kích thước tối thiểu
+
+ResizeHandle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isResizing = true
+	end
+end)
+
+ResizeHandle.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		isResizing = false
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if isResizing and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local newX = input.Position.X - Main.AbsolutePosition.X
+		local newY = input.Position.Y - Main.AbsolutePosition.Y
+		
+		-- Giới hạn kích thước tối thiểu
+		if newX < minSize.X then newX = minSize.X end
+		if newY < minSize.Y then newY = minSize.Y end
+		
+		Main.Size = UDim2.new(0, newX, 0, newY)
+	end
+end)
+
+ResizeHandle.MouseEnter:Connect(function() Tween(ResizeHandle, {ImageColor3 = Theme.Main, ImageTransparency = 0}) end)
+ResizeHandle.MouseLeave:Connect(function() Tween(ResizeHandle, {ImageColor3 = Theme.SubText, ImageTransparency = 0.5}) end)
+
+
 -- ================= SIDEBAR =================
 local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0,170,1,0)
+Sidebar.Size = UDim2.new(0, 180, 1, 0)
 Sidebar.BackgroundColor3 = Theme.Sidebar
-Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,10)
-local SidebarCover = Instance.new("Frame", Sidebar)
-SidebarCover.Size = UDim2.new(0,10,1,0)
-SidebarCover.Position = UDim2.new(1,-10,0,0)
-SidebarCover.BackgroundColor3 = Theme.Sidebar
-SidebarCover.BorderSizePixel = 0
+Sidebar.BackgroundTransparency = Theme.Sidebar_Transparency
+Sidebar.BorderSizePixel = 0
+local SideLine = Instance.new("Frame", Sidebar)
+SideLine.Size = UDim2.new(0, 1, 1, 0)
+SideLine.Position = UDim2.new(1, 0, 0, 0)
+SideLine.BackgroundColor3 = Color3.fromRGB(255,255,255)
+SideLine.BackgroundTransparency = 0.9
+SideLine.BorderSizePixel = 0
 
 local Title = Instance.new("TextLabel", Sidebar)
-Title.Size = UDim2.new(1,-20,0,40)
-Title.Position = UDim2.new(0,10,0,5)
+Title.Size = UDim2.new(1, -20, 0, 50)
+Title.Position = UDim2.new(0, 15, 0, 10)
 Title.BackgroundTransparency = 1
-Title.Text = "WINDY HUB"
+Title.Text = "WINDY HUB <font color=\"rgb(255,110,150)\">v3.1</font>"
+Title.RichText = true
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 22
-Title.TextColor3 = Theme.Main
+Title.TextColor3 = Theme.Text
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Search Bar
 local SearchFrame = Instance.new("Frame", Sidebar)
-SearchFrame.Size = UDim2.new(1,-20,0,30)
-SearchFrame.Position = UDim2.new(0,10,0,50)
+SearchFrame.Size = UDim2.new(1, -30, 0, 32)
+SearchFrame.Position = UDim2.new(0, 15, 0, 60)
 SearchFrame.BackgroundColor3 = Theme.Search
-Instance.new("UICorner", SearchFrame).CornerRadius = UDim.new(0,6)
+SearchFrame.BackgroundTransparency = Theme.Search_Transparency
+Instance.new("UICorner", SearchFrame).CornerRadius = Theme.CornerRadius -- [UPDATED]
+local SearchStroke = Instance.new("UIStroke", SearchFrame)
+SearchStroke.Color = Color3.fromRGB(255,255,255)
+SearchStroke.Transparency = 0.9
+SearchStroke.Thickness = 1
 
 local SearchIcon = Instance.new("ImageLabel", SearchFrame)
-SearchIcon.Size = UDim2.new(0,16,0,16)
-SearchIcon.Position = UDim2.new(0,8,0.5,-8)
+SearchIcon.Size = UDim2.new(0, 14, 0, 14)
+SearchIcon.Position = UDim2.new(0, 10, 0.5, -7)
 SearchIcon.BackgroundTransparency = 1
 SearchIcon.Image = "rbxassetid://3926305904"
 SearchIcon.ImageRectOffset = Vector2.new(964, 324)
@@ -121,11 +250,11 @@ SearchIcon.ImageRectSize = Vector2.new(36, 36)
 SearchIcon.ImageColor3 = Theme.SubText
 
 local SearchBox = Instance.new("TextBox", SearchFrame)
-SearchBox.Size = UDim2.new(1,-35,1,0)
-SearchBox.Position = UDim2.new(0,30,0,0)
+SearchBox.Size = UDim2.new(1, -40, 1, 0)
+SearchBox.Position = UDim2.new(0, 32, 0, 0)
 SearchBox.BackgroundTransparency = 1
 SearchBox.Text = ""
-SearchBox.PlaceholderText = "Search Tab..."
+SearchBox.PlaceholderText = "Search..."
 SearchBox.TextColor3 = Theme.Text
 SearchBox.PlaceholderColor3 = Theme.SubText
 SearchBox.Font = Enum.Font.Gotham
@@ -134,28 +263,25 @@ SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Tab Container
 local TabButtons = Instance.new("ScrollingFrame", Sidebar)
-TabButtons.Position = UDim2.new(0,0,0,90)
-TabButtons.Size = UDim2.new(1,0,1,-95)
+TabButtons.Position = UDim2.new(0, 0, 0, 105)
+TabButtons.Size = UDim2.new(1, 0, 1, -110)
 TabButtons.BackgroundTransparency = 1
-TabButtons.CanvasSize = UDim2.new(0,0,0,0)
+TabButtons.CanvasSize = UDim2.new(0, 0, 0, 0)
 TabButtons.AutomaticCanvasSize = Enum.AutomaticSize.Y
-TabButtons.ScrollBarImageTransparency = 0.8
 TabButtons.ScrollBarThickness = 2
+TabButtons.ScrollBarImageTransparency = 0.8
 TabButtons.BorderSizePixel = 0
 
 local TabLayout = Instance.new("UIListLayout", TabButtons)
-TabLayout.Padding = UDim.new(0,4)
--- [FIX] Buộc sắp xếp theo Tên (Name), vì chúng ta sẽ đặt tên là số thứ tự
-TabLayout.SortOrder = Enum.SortOrder.Name 
+TabLayout.Padding = UDim.new(0, 6)
+TabLayout.SortOrder = Enum.SortOrder.Name
 
--- Search Logic
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 	local input = SearchBox.Text:lower()
 	for _, btn in pairs(TabButtons:GetChildren()) do
 		if btn:IsA("TextButton") then
 			local label = btn:FindFirstChild("TabLabel")
 			if label then
-				-- Tìm kiếm dựa trên Text hiển thị chứ không phải tên nút
 				btn.Visible = label.Text:lower():find(input) and true or false
 			end
 		end
@@ -163,90 +289,89 @@ SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 end)
 
 -- ================= CONTENT AREA =================
+-- [UPDATED] Kích thước Content tự động co giãn khi Resize Main
 local Content = Instance.new("Frame", Main)
-Content.Position = UDim2.new(0,180,0,15)
-Content.Size = UDim2.new(1,-190,1,-30)
+Content.Position = UDim2.new(0, 195, 0, 20)
+Content.Size = UDim2.new(1, -210, 1, -40) 
 Content.BackgroundTransparency = 1
 
 local CurrentTab = nil
-local TabCountOrder = 0 -- Biến đếm thứ tự
+local TabCountOrder = 0
 
 -- ================= FUNCTIONS =================
 
--- 1. Create Tab
 function Windy:CreateTab(name, iconId)
-	TabCountOrder = TabCountOrder + 1 
-	
-	-- [FIX QUAN TRỌNG] Tạo tên ẩn dạng số: "001", "002"
-	-- Điều này ép buộc Roblox phải xếp theo thứ tự, kể cả khi nó xếp theo Alphabet
+	TabCountOrder = TabCountOrder + 1
 	local hiddenName = (TabCountOrder < 10 and "00" .. TabCountOrder) or (TabCountOrder < 100 and "0" .. TabCountOrder) or tostring(TabCountOrder)
 
 	local Btn = Instance.new("TextButton", TabButtons)
-	Btn.Size = UDim2.new(1,0,0,36)
+	Btn.Size = UDim2.new(1, -20, 0, 38)
+	Btn.Position = UDim2.new(0, 10, 0, 0)
 	Btn.Text = ""
 	Btn.BackgroundTransparency = 1
-	Btn.Name = hiddenName -- Tên thật của nút là số (để sắp xếp)
-	Btn.LayoutOrder = TabCountOrder -- Backup thêm LayoutOrder
+	Btn.BackgroundColor3 = Theme.Main
+	Btn.Name = hiddenName
+	Instance.new("UICorner", Btn).CornerRadius = Theme.CornerRadius -- [UPDATED]
 
-	local Indicator = Instance.new("Frame", Btn)
-	Indicator.Size = UDim2.new(0,4,0,16)
-	Indicator.Position = UDim2.new(0,0,0.5,-8)
-	Indicator.BackgroundColor3 = Theme.Main
-	Indicator.Visible = false
-	Instance.new("UICorner", Indicator).CornerRadius = UDim.new(0,2)
+	local BtnStroke = Instance.new("UIStroke", Btn)
+	BtnStroke.Transparency = 1
+	BtnStroke.Color = Theme.Main
+	BtnStroke.Thickness = 1
 
 	local Icon
 	local TextOffset = 15
 	if iconId then
 		Icon = Instance.new("ImageLabel", Btn)
-		Icon.Size = UDim2.new(0,20,0,20)
-		Icon.Position = UDim2.new(0,15,0.5,-10)
+		Icon.Size = UDim2.new(0, 20, 0, 20)
+		Icon.Position = UDim2.new(0, 10, 0.5, -10)
 		Icon.BackgroundTransparency = 1
 		Icon.Image = "rbxassetid://" .. tostring(iconId)
 		Icon.ImageColor3 = Theme.SubText
-		TextOffset = 45
+		TextOffset = 40
 	end
 
 	local Label = Instance.new("TextLabel", Btn)
-	Label.Name = "TabLabel" -- Đặt tên để Search Bar tìm thấy
-	Label.Size = UDim2.new(1,-TextOffset,1,0)
-	Label.Position = UDim2.new(0,TextOffset,0,0)
+	Label.Name = "TabLabel"
+	Label.Size = UDim2.new(1, -TextOffset, 1, 0)
+	Label.Position = UDim2.new(0, TextOffset, 0, 0)
 	Label.BackgroundTransparency = 1
-	Label.Text = name -- Tên hiển thị (Main Farm, Setting...)
+	Label.Text = name
 	Label.Font = Enum.Font.GothamMedium
 	Label.TextSize = 13
 	Label.TextColor3 = Theme.SubText
 	Label.TextXAlignment = Enum.TextXAlignment.Left
 
 	local Page = Instance.new("ScrollingFrame", Content)
-	Page.Size = UDim2.new(1,0,1,0)
-	Page.CanvasSize = UDim2.new(0,0,0,0)
+	Page.Size = UDim2.new(1, 0, 1, 0)
+	Page.CanvasSize = UDim2.new(0, 0, 0, 0)
 	Page.ScrollBarThickness = 2
 	Page.Visible = false
 	Page.BackgroundTransparency = 1
 	Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	Page.ScrollBarImageTransparency = 0.5
+	Page.ScrollBarImageTransparency = 0.8
 
 	local Layout = Instance.new("UIListLayout", Page)
-	Layout.Padding = UDim.new(0,8)
+	Layout.Padding = UDim.new(0, 10)
 	Layout.SortOrder = Enum.SortOrder.LayoutOrder
 
 	local function Activate()
 		if CurrentTab then
 			CurrentTab.Page.Visible = false
-			CurrentTab.Label.TextColor3 = Theme.SubText
-			CurrentTab.Indicator.Visible = false
-			if CurrentTab.Icon then CurrentTab.Icon.ImageColor3 = Theme.SubText end
-			TweenService:Create(CurrentTab.Btn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+			Tween(CurrentTab.Label, {TextColor3 = Theme.SubText})
+			Tween(CurrentTab.Btn, {BackgroundTransparency = 1})
+			Tween(CurrentTab.BtnStroke, {Transparency = 1})
+			if CurrentTab.Icon then Tween(CurrentTab.Icon, {ImageColor3 = Theme.SubText}) end
 		end
 		
 		Page.Visible = true
-		Label.TextColor3 = Theme.Text
-		Indicator.Visible = true
-		if Icon then Icon.ImageColor3 = Theme.Text end
-		TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.95, BackgroundColor3 = Theme.Main}):Play()
+		Page.CanvasPosition = Vector2.new(0,0)
 		
-		CurrentTab = {Page = Page, Label = Label, Indicator = Indicator, Btn = Btn, Icon = Icon}
+		Tween(Label, {TextColor3 = Theme.Text})
+		Tween(Btn, {BackgroundTransparency = 0.85})
+		Tween(BtnStroke, {Transparency = 0.5})
+		if Icon then Tween(Icon, {ImageColor3 = Theme.Main}) end
+		
+		CurrentTab = {Page = Page, Label = Label, Btn = Btn, BtnStroke = BtnStroke, Icon = Icon}
 	end
 
 	Btn.MouseButton1Click:Connect(Activate)
@@ -255,67 +380,79 @@ function Windy:CreateTab(name, iconId)
 	return Page
 end
 
--- 2. Add Section
 function Windy:AddSection(Page, text)
 	local SectionFrame = Instance.new("Frame", Page)
-	SectionFrame.Size = UDim2.new(1,-5,0,25)
+	SectionFrame.Size = UDim2.new(1, -5, 0, 30)
 	SectionFrame.BackgroundTransparency = 1
 	
 	local Label = Instance.new("TextLabel", SectionFrame)
-	Label.Size = UDim2.new(1,0,1,0)
+	Label.Size = UDim2.new(1, 0, 1, 0)
 	Label.BackgroundTransparency = 1
 	Label.Text = text
-	Label.TextColor3 = Theme.SectionText
+	Label.TextColor3 = Theme.Main
 	Label.Font = Enum.Font.GothamBold
 	Label.TextSize = 12
 	Label.TextXAlignment = Enum.TextXAlignment.Left
 	
-	-- Separator Line
-	local Line = Instance.new("Frame", SectionFrame)
-	Line.Size = UDim2.new(1,0,0,1)
-	Line.Position = UDim2.new(0,0,1,-2)
-	Line.BackgroundColor3 = Theme.Main
-	Line.BorderSizePixel = 0
-	
 	return SectionFrame
 end
 
--- 3. Add Button
 function Windy:AddButton(Page, text, callback)
 	local BtnFrame = Instance.new("Frame", Page)
-	BtnFrame.Size = UDim2.new(1,-5,0,38)
+	BtnFrame.Size = UDim2.new(1, -5, 0, 40)
 	BtnFrame.BackgroundColor3 = Theme.Section
-	Instance.new("UICorner", BtnFrame).CornerRadius = UDim.new(0,6)
+	BtnFrame.BackgroundTransparency = Theme.Section_Transparency
+	Instance.new("UICorner", BtnFrame).CornerRadius = Theme.CornerRadius -- [UPDATED]
+	
+	local Stroke = Instance.new("UIStroke", BtnFrame)
+	Stroke.Color = Color3.fromRGB(255,255,255)
+	Stroke.Transparency = 0.9
+	Stroke.Thickness = 1
 	
 	local Btn = Instance.new("TextButton", BtnFrame)
-	Btn.Size = UDim2.new(1,0,1,0)
+	Btn.Size = UDim2.new(1, 0, 1, 0)
 	Btn.BackgroundTransparency = 1
 	Btn.Text = text
 	Btn.TextColor3 = Theme.Text
 	Btn.Font = Enum.Font.GothamSemibold
 	Btn.TextSize = 13
 	
+	Btn.MouseEnter:Connect(function()
+		Tween(Stroke, {Transparency = 0.5, Color = Theme.Main})
+		Tween(Btn, {TextColor3 = Theme.Main})
+	end)
+	
+	Btn.MouseLeave:Connect(function()
+		Tween(Stroke, {Transparency = 0.9, Color = Color3.fromRGB(255,255,255)})
+		Tween(Btn, {TextColor3 = Theme.Text})
+	end)
+
 	Btn.MouseButton1Click:Connect(function()
-		TweenService:Create(BtnFrame, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(50,50,55)}):Play()
-		task.wait(0.1)
-		TweenService:Create(BtnFrame, TweenInfo.new(0.1), {BackgroundColor3 = Theme.Section}):Play()
+		Tween(BtnFrame, {Size = UDim2.new(1, -15, 0, 36)}, 0.05)
+		task.wait(0.05)
+		Tween(BtnFrame, {Size = UDim2.new(1, -5, 0, 40)}, 0.1)
 		callback()
 	end)
 end
 
--- 4. Add Toggle
 function Windy:AddToggle(Page, text, default, callback)
 	local state = Config.Toggles[text]
 	if state == nil then state = default end
 
 	local Frame = Instance.new("Frame", Page)
-	Frame.Size = UDim2.new(1,-5,0,38)
+	Frame.Size = UDim2.new(1, -5, 0, 40)
 	Frame.BackgroundColor3 = Theme.Section
-	Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,6)
+	Frame.BackgroundTransparency = Theme.Section_Transparency
+	Instance.new("UICorner", Frame).CornerRadius = Theme.CornerRadius -- [UPDATED]
+	
+	local Stroke = Instance.new("UIStroke", Frame)
+	Stroke.Color = Color3.fromRGB(255,255,255)
+	Stroke.Transparency = 0.9
+	Stroke.Thickness = 1
 
 	local Label = Instance.new("TextLabel", Frame)
-	Label.Size = UDim2.new(1,-60,1,0)
-	Label.Position = UDim2.new(0,12,0,0)
+	Label.Size = UDim2.new(1, -60, 1, 0)
+	Label.Position = UDim2.new(0, 15, 0, 0)
 	Label.BackgroundTransparency = 1
 	Label.Text = text
 	Label.TextColor3 = Theme.Text
@@ -324,25 +461,34 @@ function Windy:AddToggle(Page, text, default, callback)
 	Label.TextXAlignment = Enum.TextXAlignment.Left
 
 	local ToggleBtn = Instance.new("TextButton", Frame)
-	ToggleBtn.Size = UDim2.new(0,42,0,22)
-	ToggleBtn.Position = UDim2.new(1,-52,0.5,-11)
+	ToggleBtn.Size = UDim2.new(0, 44, 0, 24)
+	ToggleBtn.Position = UDim2.new(1, -55, 0.5, -12)
 	ToggleBtn.Text = ""
-	ToggleBtn.BackgroundColor3 = Color3.fromRGB(60,60,65)
-	Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1,0)
+	ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+	Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
 
 	local Circle = Instance.new("Frame", ToggleBtn)
-	Circle.Size = UDim2.new(0,18,0,18)
-	Circle.Position = UDim2.new(0,2,0.5,-9)
-	Circle.BackgroundColor3 = Color3.fromRGB(200,200,200)
-	Instance.new("UICorner", Circle).CornerRadius = UDim.new(1,0)
+	Circle.Size = UDim2.new(0, 20, 0, 20)
+	Circle.Position = UDim2.new(0, 2, 0.5, -10)
+	Circle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+	Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+	
+	local Glow = Instance.new("UIStroke", Circle)
+	Glow.Thickness = 2
+	Glow.Transparency = 1
+	Glow.Color = Theme.Main
 
 	local function Refresh()
 		if state then
-			TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Theme.Main}):Play()
-			TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(1,-20,0.5,-9)}):Play()
+			Tween(ToggleBtn, {BackgroundColor3 = Theme.Main})
+			Tween(Circle, {Position = UDim2.new(1, -22, 0.5, -10), BackgroundColor3 = Color3.fromRGB(255,255,255)})
+			Tween(Glow, {Transparency = 0.6})
+			Tween(Stroke, {Color = Theme.Main, Transparency = 0.7})
 		else
-			TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60,60,65)}):Play()
-			TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0,2,0.5,-9)}):Play()
+			Tween(ToggleBtn, {BackgroundColor3 = Color3.fromRGB(40, 40, 50)})
+			Tween(Circle, {Position = UDim2.new(0, 2, 0.5, -10), BackgroundColor3 = Color3.fromRGB(150,150,150)})
+			Tween(Glow, {Transparency = 1})
+			Tween(Stroke, {Color = Color3.fromRGB(255,255,255), Transparency = 0.9})
 		end
 		Config.Toggles[text] = state
 		SaveConfig()
@@ -356,20 +502,25 @@ function Windy:AddToggle(Page, text, default, callback)
 	end)
 end
 
--- 5. Add Dropdown
 function Windy:AddDropdown(Page, text, options, default, callback)
 	local isDropdownOpen = false
 	local currentOption = default or options[1] or "Select..."
 	
-	local OptionHeight = 30
-	local ClosedHeight = 38
-	local OpenHeight = ClosedHeight + (#options * OptionHeight) + 10
+	local OptionHeight = 32
+	local ClosedHeight = 40
+	local OpenHeight = ClosedHeight + (#options * OptionHeight) + 6
 
 	local DropFrame = Instance.new("Frame", Page)
 	DropFrame.Size = UDim2.new(1, -5, 0, ClosedHeight)
 	DropFrame.BackgroundColor3 = Theme.Section
+	DropFrame.BackgroundTransparency = Theme.Section_Transparency
 	DropFrame.ClipsDescendants = true
-	Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0, 6)
+	Instance.new("UICorner", DropFrame).CornerRadius = Theme.CornerRadius -- [UPDATED]
+	
+	local Stroke = Instance.new("UIStroke", DropFrame)
+	Stroke.Color = Color3.fromRGB(255,255,255)
+	Stroke.Transparency = 0.9
+	Stroke.Thickness = 1
 
 	local HeaderBtn = Instance.new("TextButton", DropFrame)
 	HeaderBtn.Size = UDim2.new(1, 0, 0, ClosedHeight)
@@ -378,9 +529,10 @@ function Windy:AddDropdown(Page, text, options, default, callback)
 	
 	local Title = Instance.new("TextLabel", HeaderBtn)
 	Title.Size = UDim2.new(1, -40, 1, 0)
-	Title.Position = UDim2.new(0, 12, 0, 0)
+	Title.Position = UDim2.new(0, 15, 0, 0)
 	Title.BackgroundTransparency = 1
-	Title.Text = text .. ": " .. tostring(currentOption)
+	Title.Text = text .. ": <font color=\"rgb(255,110,150)\">" .. tostring(currentOption) .. "</font>"
+	Title.RichText = true
 	Title.TextColor3 = Theme.Text
 	Title.Font = Enum.Font.Gotham
 	Title.TextSize = 13
@@ -388,7 +540,7 @@ function Windy:AddDropdown(Page, text, options, default, callback)
 
 	local Arrow = Instance.new("ImageLabel", HeaderBtn)
 	Arrow.Size = UDim2.new(0, 20, 0, 20)
-	Arrow.Position = UDim2.new(1, -30, 0.5, -10)
+	Arrow.Position = UDim2.new(1, -35, 0.5, -10)
 	Arrow.BackgroundTransparency = 1
 	Arrow.Image = "rbxassetid://6034818372"
 	Arrow.ImageColor3 = Theme.SubText
@@ -400,15 +552,18 @@ function Windy:AddDropdown(Page, text, options, default, callback)
 	
 	local OptionLayout = Instance.new("UIListLayout", OptionContainer)
 	OptionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	OptionLayout.Padding = UDim.new(0,0)
 	
 	local function ToggleDropdown()
 		isDropdownOpen = not isDropdownOpen
 		if isDropdownOpen then
-			TweenService:Create(DropFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -5, 0, OpenHeight)}):Play()
-			TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 180}):Play()
+			Tween(DropFrame, {Size = UDim2.new(1, -5, 0, OpenHeight)}, 0.35, Enum.EasingStyle.Quart)
+			Tween(Arrow, {Rotation = 180})
+			Tween(Stroke, {Color = Theme.Main, Transparency = 0.6})
 		else
-			TweenService:Create(DropFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -5, 0, ClosedHeight)}):Play()
-			TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 0}):Play()
+			Tween(DropFrame, {Size = UDim2.new(1, -5, 0, ClosedHeight)}, 0.3, Enum.EasingStyle.Quart)
+			Tween(Arrow, {Rotation = 0})
+			Tween(Stroke, {Color = Color3.fromRGB(255,255,255), Transparency = 0.9})
 		end
 	end
 	
@@ -424,62 +579,89 @@ function Windy:AddDropdown(Page, text, options, default, callback)
 		OptBtn.TextSize = 12
 		
 		OptBtn.MouseEnter:Connect(function()
-			TweenService:Create(OptBtn, TweenInfo.new(0.2), {TextColor3 = Theme.Main}):Play()
+			Tween(OptBtn, {TextColor3 = Theme.Main, BackgroundTransparency = 0.9, BackgroundColor3 = Theme.Main})
 		end)
 		OptBtn.MouseLeave:Connect(function()
 			if opt ~= currentOption then
-				TweenService:Create(OptBtn, TweenInfo.new(0.2), {TextColor3 = Theme.SubText}):Play()
+				Tween(OptBtn, {TextColor3 = Theme.SubText, BackgroundTransparency = 1})
 			end
 		end)
 
 		OptBtn.MouseButton1Click:Connect(function()
 			currentOption = opt
-			Title.Text = text .. ": " .. tostring(currentOption)
+			Title.Text = text .. ": <font color=\"rgb(255,110,150)\">" .. tostring(currentOption) .. "</font>"
 			callback(opt)
 			ToggleDropdown()
 		end)
 	end
 end
 
--- ================= GUI TOGGLE (Hide/Show) =================
+-- ================= GUI TOGGLE LOGIC =================
 local GUI_VISIBLE = true
-
-local function ToggleGUI(state)
-	GUI_VISIBLE = state
-	if GUI_VISIBLE then
-		Main.Visible = true
-		TweenService:Create(Main,TweenInfo.new(0.3),{BackgroundTransparency = 0}):Play()
-	else
-		Main.Visible = false 
-	end
-end
 
 -- Float Button
 local FloatBtn = Instance.new("TextButton", ScreenGui)
-FloatBtn.Size = UDim2.new(0,40,0,40)
-FloatBtn.Position = UDim2.new(0,20,0.5,-20)
+FloatBtn.Size = UDim2.new(0, 50, 0, 50)
+FloatBtn.Position = UDim2.new(0, 30, 0.5, -25)
 FloatBtn.BackgroundColor3 = Theme.Main
 FloatBtn.Text = ""
 FloatBtn.ZIndex = 999
-Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1,0)
+Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1, 0)
+
+local FloatStroke = Instance.new("UIStroke", FloatBtn)
+FloatStroke.Thickness = 2
+FloatStroke.Color = Color3.fromRGB(255,255,255)
+FloatStroke.Transparency = 0.5
+
 local FIcon = Instance.new("ImageLabel", FloatBtn)
-FIcon.Size = UDim2.new(0,24,0,24)
-FIcon.Position = UDim2.new(0.5,-12,0.5,-12)
+FIcon.Size = UDim2.new(0, 28, 0, 28)
+FIcon.Position = UDim2.new(0.5, -14, 0.5, -14)
 FIcon.BackgroundTransparency = 1
 FIcon.Image = "rbxassetid://3926305904"
 FIcon.ImageRectOffset = Vector2.new(324, 124)
 FIcon.ImageRectSize = Vector2.new(36, 36)
 
+local function ToggleGUI(state)
+	GUI_VISIBLE = state
+	if GUI_VISIBLE then
+		Main.Visible = true
+		Tween(Main, {GroupTransparency = 0}, 0.3)
+		Tween(FloatBtn, {BackgroundTransparency = 1, TextTransparency = 1}, 0.3)
+		Tween(FloatStroke, {Transparency = 1}, 0.3)
+		Tween(FIcon, {ImageTransparency = 1}, 0.3)
+		FloatBtn.Visible = false
+	else
+		-- Thu nhỏ
+		Tween(Main, {GroupTransparency = 1}, 0.2)
+		task.wait(0.2)
+		if not GUI_VISIBLE then Main.Visible = false end
+		
+		FloatBtn.Visible = true
+		Tween(FloatBtn, {BackgroundTransparency = 0}, 0.3)
+		Tween(FloatStroke, {Transparency = 0.5}, 0.3)
+		Tween(FIcon, {ImageTransparency = 0}, 0.3)
+	end
+end
+
+-- Hook Events cho nút Close/Min
+CloseBtn.MouseButton1Click:Connect(function()
+	ToggleGUI(false)
+end)
+
+MinBtn.MouseButton1Click:Connect(function()
+	ToggleGUI(false)
+end)
+
 FloatBtn.MouseButton1Click:Connect(function()
-	ToggleGUI(not Main.Visible)
+	ToggleGUI(true)
 end)
 
 -- Keybind
 local ToggleKey = Enum.KeyCode[Config.Keybind] or Enum.KeyCode.RightControl
-UIS.InputBegan:Connect(function(i,gp)
+UIS.InputBegan:Connect(function(i, gp)
 	if gp then return end
 	if i.KeyCode == ToggleKey then
-		ToggleGUI(not Main.Visible)
+		ToggleGUI(not GUI_VISIBLE)
 	end
 end)
 
