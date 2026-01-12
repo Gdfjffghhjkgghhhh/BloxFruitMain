@@ -1,6 +1,6 @@
 --// WindyUI v2.5 FINAL FIX
 --// Stable Hub Library (No Bug)
-
+--ddđ
 local Windy = {}
 
 -- Services
@@ -95,11 +95,20 @@ Title.TextSize = 20
 Title.TextColor3 = Theme.Text
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
-local TabButtons = Instance.new("Frame", Sidebar)
+local TabButtons = Instance.new("ScrollingFrame", Sidebar)
 TabButtons.Position = UDim2.new(0,0,0,60)
 TabButtons.Size = UDim2.new(1,0,1,-60)
 TabButtons.BackgroundTransparency = 1
-Instance.new("UIListLayout", TabButtons).Padding = UDim.new(0,6)
+
+TabButtons.CanvasSize = UDim2.new(0,0,0,0)
+TabButtons.AutomaticCanvasSize = Enum.AutomaticSize.Y
+TabButtons.ScrollBarImageTransparency = 0.4
+TabButtons.ScrollBarThickness = 4
+TabButtons.BorderSizePixel = 0
+
+local TabLayout = Instance.new("UIListLayout", TabButtons)
+TabLayout.Padding = UDim.new(0,6)
+
 
 -- ================= CONTENT =================
 local Content = Instance.new("Frame", Main)
