@@ -216,5 +216,16 @@ function Windy:AddToggle(Page,text,default,callback)
 		Refresh()
 	end)
 end
+-- ================= TOGGLE GUI (KEYBIND) =================
+local GUI_ENABLED = true
+local TOGGLE_KEY = Enum.KeyCode.RightControl -- đổi Insert nếu muốn
+
+UIS.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.KeyCode == TOGGLE_KEY then
+		GUI_ENABLED = not GUI_ENABLED
+		ScreenGui.Enabled = GUI_ENABLED
+	end
+end)
 
 return Windy
