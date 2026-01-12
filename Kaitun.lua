@@ -664,5 +664,50 @@ UIS.InputBegan:Connect(function(i, gp)
 		ToggleGUI(not GUI_VISIBLE)
 	end
 end)
+-- Player Profile Section (Bottom Sidebar)
+local ProfileFrame = Instance.new("Frame", Sidebar)
+ProfileFrame.Size = UDim2.new(1, -20, 0, 50)
+ProfileFrame.Position = UDim2.new(0, 10, 1, -60)
+ProfileFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+ProfileFrame.BackgroundTransparency = 0.6
+Instance.new("UICorner", ProfileFrame).CornerRadius = UDim.new(0, 8)
 
+local Avatar = Instance.new("ImageLabel", ProfileFrame)
+Avatar.Size = UDim2.new(0, 34, 0, 34)
+Avatar.Position = UDim2.new(0, 8, 0.5, -17)
+Avatar.BackgroundTransparency = 1
+-- Lấy ảnh Avatar người chơi
+Avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="..game.Players.LocalPlayer.UserId.."&width=420&height=420&format=png"
+Instance.new("UICorner", Avatar).CornerRadius = UDim.new(1, 0)
+
+local NameTag = Instance.new("TextLabel", ProfileFrame)
+NameTag.Size = UDim2.new(1, -60, 0, 18)
+NameTag.Position = UDim2.new(0, 50, 0, 8)
+NameTag.BackgroundTransparency = 1
+NameTag.Text = game.Players.LocalPlayer.DisplayName
+NameTag.Font = Enum.Font.GothamBold
+NameTag.TextColor3 = Theme.Text
+NameTag.TextSize = 13
+NameTag.TextXAlignment = Enum.TextXAlignment.Left
+
+local StatsTag = Instance.new("TextLabel", ProfileFrame)
+StatsTag.Size = UDim2.new(1, -60, 0, 15)
+StatsTag.Position = UDim2.new(0, 50, 0, 26)
+StatsTag.BackgroundTransparency = 1
+StatsTag.Text = "FPS: 60 • Ping: 50ms"
+StatsTag.Font = Enum.Font.Gotham
+StatsTag.TextColor3 = Theme.Main
+StatsTag.TextSize = 11
+StatsTag.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Script cập nhật FPS/Ping liên tục
+task.spawn(function()
+	local RunService = game:GetService("RunService")
+	local StatsService = game:GetService("Stats")
+	while task.wait(1) do
+		local fps = math.floor(1 / RunService.RenderStepped:Wait()) -- Cách tính FPS đơn giản
+		local ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
+		StatsTag.Text = "FPS: " .. fps .. " • Ping: " .. ping .. "ms"
+	end
+end)
 return Windy
