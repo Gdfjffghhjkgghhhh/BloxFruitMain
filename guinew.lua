@@ -1,15 +1,15 @@
---// WindyUI v2.6 UPDATED
---// Added: Section, Search, Tab Icon
+--// WindyUI v2.7 COMPLETE
+--// Features: Tabs (Icon+Search), Sections, Buttons, Toggles, Dropdowns
 
 local Windy = {}
 
--- Services
+-- ================= SERVICES =================
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
 
--- Remove old
+-- ================= CLEANUP OLD GUI =================
 pcall(function()
 	if CoreGui:FindFirstChild("WindyUI_V2") then
 		CoreGui:FindFirstChild("WindyUI_V2"):Destroy()
@@ -20,15 +20,15 @@ end)
 local Theme = {
 	BG = Color3.fromRGB(25,25,30),
 	Sidebar = Color3.fromRGB(20,20,25),
-	Section = Color3.fromRGB(35,35,40), -- Màu nền Button/Toggle
-	SectionText = Color3.fromRGB(255, 255, 255), -- Màu chữ Section
+	Section = Color3.fromRGB(35,35,40),       -- Nền Button/Toggle/Dropdown
+	SectionText = Color3.fromRGB(255, 255, 255),
 	Text = Color3.fromRGB(240,240,240),
 	SubText = Color3.fromRGB(150,150,150),
-	Main = Color3.fromRGB(45,120,255),
+	Main = Color3.fromRGB(45,120,255),        -- Màu chủ đạo
 	Search = Color3.fromRGB(30,30,35)
 }
 
--- ================= CONFIG =================
+-- ================= CONFIG SYSTEM =================
 local ConfigFile = "WindyUI_Config.json"
 local Config = { Toggles = {}, Keybind = "RightControl" }
 
@@ -44,12 +44,11 @@ local function SaveConfig()
 	end)
 end
 
--- ================= GUI =================
+-- ================= GUI SETUP =================
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "WindyUI_V2"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- ================= MAIN =================
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size = UDim2.new(0,600,0,400)
 Main.Position = UDim2.new(0.5,-300,0.5,-200)
@@ -58,7 +57,7 @@ Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0,10)
 
--- Drag Functionality
+-- Drag Logic
 do
 	local drag, startPos, startInput
 	Main.InputBegan:Connect(function(i)
@@ -86,10 +85,10 @@ end
 
 -- ================= SIDEBAR =================
 local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0,170,1,0) -- Tăng nhẹ size sidebar
+Sidebar.Size = UDim2.new(0,170,1,0)
 Sidebar.BackgroundColor3 = Theme.Sidebar
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0,10)
-local SidebarCover = Instance.new("Frame", Sidebar) -- Che góc tròn bên phải để liền mạch
+local SidebarCover = Instance.new("Frame", Sidebar)
 SidebarCover.Size = UDim2.new(0,10,1,0)
 SidebarCover.Position = UDim2.new(1,-10,0,0)
 SidebarCover.BackgroundColor3 = Theme.Sidebar
@@ -105,7 +104,7 @@ Title.TextSize = 22
 Title.TextColor3 = Theme.Main
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- [NEW] SEARCH BAR
+-- Search Bar
 local SearchFrame = Instance.new("Frame", Sidebar)
 SearchFrame.Size = UDim2.new(1,-20,0,30)
 SearchFrame.Position = UDim2.new(0,10,0,50)
@@ -116,7 +115,7 @@ local SearchIcon = Instance.new("ImageLabel", SearchFrame)
 SearchIcon.Size = UDim2.new(0,16,0,16)
 SearchIcon.Position = UDim2.new(0,8,0.5,-8)
 SearchIcon.BackgroundTransparency = 1
-SearchIcon.Image = "rbxassetid://3926305904" -- Search Icon
+SearchIcon.Image = "rbxassetid://3926305904"
 SearchIcon.ImageRectOffset = Vector2.new(964, 324)
 SearchIcon.ImageRectSize = Vector2.new(36, 36)
 SearchIcon.ImageColor3 = Theme.SubText
@@ -126,16 +125,16 @@ SearchBox.Size = UDim2.new(1,-35,1,0)
 SearchBox.Position = UDim2.new(0,30,0,0)
 SearchBox.BackgroundTransparency = 1
 SearchBox.Text = ""
-SearchBox.PlaceholderText = "Search..."
+SearchBox.PlaceholderText = "Search Tab..."
 SearchBox.TextColor3 = Theme.Text
 SearchBox.PlaceholderColor3 = Theme.SubText
 SearchBox.Font = Enum.Font.Gotham
 SearchBox.TextSize = 13
 SearchBox.TextXAlignment = Enum.TextXAlignment.Left
 
--- TAB CONTAINER
+-- Tab Container
 local TabButtons = Instance.new("ScrollingFrame", Sidebar)
-TabButtons.Position = UDim2.new(0,0,0,90) -- Hạ xuống để nhường chỗ cho Search
+TabButtons.Position = UDim2.new(0,0,0,90)
 TabButtons.Size = UDim2.new(1,0,1,-95)
 TabButtons.BackgroundTransparency = 1
 TabButtons.CanvasSize = UDim2.new(0,0,0,0)
@@ -154,34 +153,30 @@ SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 		if btn:IsA("TextButton") then
 			local label = btn:FindFirstChild("TabLabel")
 			if label then
-				if label.Text:lower():find(input) then
-					btn.Visible = true
-				else
-					btn.Visible = false
-				end
+				btn.Visible = label.Text:lower():find(input) and true or false
 			end
 		end
 	end
 end)
 
--- ================= CONTENT =================
+-- ================= CONTENT AREA =================
 local Content = Instance.new("Frame", Main)
 Content.Position = UDim2.new(0,180,0,15)
 Content.Size = UDim2.new(1,-190,1,-30)
 Content.BackgroundTransparency = 1
 
-local CurrentTab
+local CurrentTab = nil
 
--- ================= CREATE TAB =================
--- [UPDATED] Added Icon parameter
+-- ================= FUNCTIONS =================
+
+-- 1. Create Tab
 function Windy:CreateTab(name, iconId)
 	local Btn = Instance.new("TextButton", TabButtons)
 	Btn.Size = UDim2.new(1,0,0,36)
 	Btn.Text = ""
 	Btn.BackgroundTransparency = 1
-	Btn.Name = name -- For organization
+	Btn.Name = name -- Useful for search
 
-	-- Active Indicator (Bar bên trái)
 	local Indicator = Instance.new("Frame", Btn)
 	Indicator.Size = UDim2.new(0,4,0,16)
 	Indicator.Position = UDim2.new(0,0,0.5,-8)
@@ -191,8 +186,6 @@ function Windy:CreateTab(name, iconId)
 
 	local Icon
 	local TextOffset = 15
-
-	-- [NEW] Icon Handling
 	if iconId then
 		Icon = Instance.new("ImageLabel", Btn)
 		Icon.Size = UDim2.new(0,20,0,20)
@@ -200,7 +193,7 @@ function Windy:CreateTab(name, iconId)
 		Icon.BackgroundTransparency = 1
 		Icon.Image = "rbxassetid://" .. tostring(iconId)
 		Icon.ImageColor3 = Theme.SubText
-		TextOffset = 45 -- Đẩy chữ sang phải nếu có icon
+		TextOffset = 45
 	end
 
 	local Label = Instance.new("TextLabel", Btn)
@@ -232,33 +225,26 @@ function Windy:CreateTab(name, iconId)
 			CurrentTab.Page.Visible = false
 			CurrentTab.Label.TextColor3 = Theme.SubText
 			CurrentTab.Indicator.Visible = false
-			if CurrentTab.Icon then
-				CurrentTab.Icon.ImageColor3 = Theme.SubText
-			end
+			if CurrentTab.Icon then CurrentTab.Icon.ImageColor3 = Theme.SubText end
 			TweenService:Create(CurrentTab.Btn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
 		end
 		
 		Page.Visible = true
 		Label.TextColor3 = Theme.Text
 		Indicator.Visible = true
-		if Icon then
-			Icon.ImageColor3 = Theme.Text
-		end
+		if Icon then Icon.ImageColor3 = Theme.Text end
 		TweenService:Create(Btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.95, BackgroundColor3 = Theme.Main}):Play()
 		
 		CurrentTab = {Page = Page, Label = Label, Indicator = Indicator, Btn = Btn, Icon = Icon}
 	end
 
 	Btn.MouseButton1Click:Connect(Activate)
-	
-	-- Chọn tab đầu tiên
 	if not CurrentTab then Activate() end
 
 	return Page
 end
 
--- ================= ADD SECTION =================
--- [NEW] AddSection Function
+-- 2. Add Section
 function Windy:AddSection(Page, text)
 	local SectionFrame = Instance.new("Frame", Page)
 	SectionFrame.Size = UDim2.new(1,-5,0,25)
@@ -273,7 +259,7 @@ function Windy:AddSection(Page, text)
 	Label.TextSize = 12
 	Label.TextXAlignment = Enum.TextXAlignment.Left
 	
-	-- Kẻ dòng nhỏ dưới section (Option)
+	-- Separator Line
 	local Line = Instance.new("Frame", SectionFrame)
 	Line.Size = UDim2.new(1,0,0,1)
 	Line.Position = UDim2.new(0,0,1,-2)
@@ -283,8 +269,8 @@ function Windy:AddSection(Page, text)
 	return SectionFrame
 end
 
--- ================= BUTTON =================
-function Windy:AddButton(Page,text,callback)
+-- 3. Add Button
+function Windy:AddButton(Page, text, callback)
 	local BtnFrame = Instance.new("Frame", Page)
 	BtnFrame.Size = UDim2.new(1,-5,0,38)
 	BtnFrame.BackgroundColor3 = Theme.Section
@@ -306,8 +292,8 @@ function Windy:AddButton(Page,text,callback)
 	end)
 end
 
--- ================= TOGGLE =================
-function Windy:AddToggle(Page,text,default,callback)
+-- 4. Add Toggle
+function Windy:AddToggle(Page, text, default, callback)
 	local state = Config.Toggles[text]
 	if state == nil then state = default end
 
@@ -359,7 +345,92 @@ function Windy:AddToggle(Page,text,default,callback)
 	end)
 end
 
--- ================= GUI TOGGLE =================
+-- 5. Add Dropdown
+function Windy:AddDropdown(Page, text, options, default, callback)
+	local isDropdownOpen = false
+	local currentOption = default or options[1] or "Select..."
+	
+	local OptionHeight = 30
+	local ClosedHeight = 38
+	local OpenHeight = ClosedHeight + (#options * OptionHeight) + 10
+
+	local DropFrame = Instance.new("Frame", Page)
+	DropFrame.Size = UDim2.new(1, -5, 0, ClosedHeight)
+	DropFrame.BackgroundColor3 = Theme.Section
+	DropFrame.ClipsDescendants = true
+	Instance.new("UICorner", DropFrame).CornerRadius = UDim.new(0, 6)
+
+	local HeaderBtn = Instance.new("TextButton", DropFrame)
+	HeaderBtn.Size = UDim2.new(1, 0, 0, ClosedHeight)
+	HeaderBtn.BackgroundTransparency = 1
+	HeaderBtn.Text = ""
+	
+	local Title = Instance.new("TextLabel", HeaderBtn)
+	Title.Size = UDim2.new(1, -40, 1, 0)
+	Title.Position = UDim2.new(0, 12, 0, 0)
+	Title.BackgroundTransparency = 1
+	Title.Text = text .. ": " .. tostring(currentOption)
+	Title.TextColor3 = Theme.Text
+	Title.Font = Enum.Font.Gotham
+	Title.TextSize = 13
+	Title.TextXAlignment = Enum.TextXAlignment.Left
+
+	local Arrow = Instance.new("ImageLabel", HeaderBtn)
+	Arrow.Size = UDim2.new(0, 20, 0, 20)
+	Arrow.Position = UDim2.new(1, -30, 0.5, -10)
+	Arrow.BackgroundTransparency = 1
+	Arrow.Image = "rbxassetid://6034818372"
+	Arrow.ImageColor3 = Theme.SubText
+	
+	local OptionContainer = Instance.new("Frame", DropFrame)
+	OptionContainer.Size = UDim2.new(1, 0, 0, #options * OptionHeight)
+	OptionContainer.Position = UDim2.new(0, 0, 0, ClosedHeight)
+	OptionContainer.BackgroundTransparency = 1
+	
+	local OptionLayout = Instance.new("UIListLayout", OptionContainer)
+	OptionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	
+	local function ToggleDropdown()
+		isDropdownOpen = not isDropdownOpen
+		if isDropdownOpen then
+			TweenService:Create(DropFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -5, 0, OpenHeight)}):Play()
+			TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 180}):Play()
+		else
+			TweenService:Create(DropFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -5, 0, ClosedHeight)}):Play()
+			TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 0}):Play()
+		end
+	end
+	
+	HeaderBtn.MouseButton1Click:Connect(ToggleDropdown)
+
+	for _, opt in pairs(options) do
+		local OptBtn = Instance.new("TextButton", OptionContainer)
+		OptBtn.Size = UDim2.new(1, 0, 0, OptionHeight)
+		OptBtn.BackgroundTransparency = 1
+		OptBtn.Text = opt
+		OptBtn.TextColor3 = Theme.SubText
+		OptBtn.Font = Enum.Font.GothamMedium
+		OptBtn.TextSize = 12
+		
+		OptBtn.MouseEnter:Connect(function()
+			TweenService:Create(OptBtn, TweenInfo.new(0.2), {TextColor3 = Theme.Main}):Play()
+		end)
+		OptBtn.MouseLeave:Connect(function()
+			if opt ~= currentOption then
+				TweenService:Create(OptBtn, TweenInfo.new(0.2), {TextColor3 = Theme.SubText}):Play()
+			end
+		end)
+
+		OptBtn.MouseButton1Click:Connect(function()
+			currentOption = opt
+			Title.Text = text .. ": " .. tostring(currentOption)
+			callback(opt)
+			ToggleDropdown()
+		end)
+	end
+end
+
+-- ================= GUI TOGGLE (Hide/Show) =================
 local GUI_VISIBLE = true
 
 local function ToggleGUI(state)
@@ -367,31 +438,24 @@ local function ToggleGUI(state)
 	if GUI_VISIBLE then
 		Main.Visible = true
 		TweenService:Create(Main,TweenInfo.new(0.3),{BackgroundTransparency = 0}):Play()
-		for _,v in pairs(Main:GetDescendants()) do
-			if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("ImageLabel") then
-				-- v.TextTransparency = 0 (Simplified)
-			end
-		end
 	else
-		-- Hide animation
 		Main.Visible = false 
 	end
 end
 
--- Floating Button
+-- Float Button
 local FloatBtn = Instance.new("TextButton", ScreenGui)
-FloatBtn.Size = UDim2.new(0,40,0,40) -- Hình tròn
+FloatBtn.Size = UDim2.new(0,40,0,40)
 FloatBtn.Position = UDim2.new(0,20,0.5,-20)
 FloatBtn.BackgroundColor3 = Theme.Main
 FloatBtn.Text = ""
 FloatBtn.ZIndex = 999
 Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1,0)
--- Icon Windy
 local FIcon = Instance.new("ImageLabel", FloatBtn)
 FIcon.Size = UDim2.new(0,24,0,24)
 FIcon.Position = UDim2.new(0.5,-12,0.5,-12)
 FIcon.BackgroundTransparency = 1
-FIcon.Image = "rbxassetid://3926305904" -- Settings Icon
+FIcon.Image = "rbxassetid://3926305904"
 FIcon.ImageRectOffset = Vector2.new(324, 124)
 FIcon.ImageRectSize = Vector2.new(36, 36)
 
@@ -399,6 +463,7 @@ FloatBtn.MouseButton1Click:Connect(function()
 	ToggleGUI(not Main.Visible)
 end)
 
+-- Keybind
 local ToggleKey = Enum.KeyCode[Config.Keybind] or Enum.KeyCode.RightControl
 UIS.InputBegan:Connect(function(i,gp)
 	if gp then return end
