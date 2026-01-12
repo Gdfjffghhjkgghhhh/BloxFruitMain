@@ -1,5 +1,5 @@
---// WindyUI v2.5 FULL
---// Stable Hub Library
+--// WindyUI v2.5 FINAL FIX
+--// Stable Hub Library (No Bug)
 
 local Windy = {}
 
@@ -8,9 +8,8 @@ local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
 
--- Prevent duplicate
+-- Remove old
 pcall(function()
 	CoreGui:FindFirstChild("WindyUI_V2"):Destroy()
 end)
@@ -27,14 +26,8 @@ local Theme = {
 
 -- ================= CONFIG =================
 local ConfigFile = "WindyUI_Config.json"
-local Config = {
-	Toggles = {},
-	Dropdowns = {},
-	Sliders = {},
-	Keybind = "RightControl"
-}
+local Config = { Toggles = {}, Keybind = "RightControl" }
 
--- Load config
 pcall(function()
 	if isfile(ConfigFile) then
 		Config = HttpService:JSONDecode(readfile(ConfigFile))
@@ -47,10 +40,9 @@ local function SaveConfig()
 	end)
 end
 
--- ================= SCREEN GUI =================
-local ScreenGui = Instance.new("ScreenGui")
+-- ================= GUI =================
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "WindyUI_V2"
-ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- ================= MAIN =================
@@ -63,21 +55,21 @@ Instance.new("UICorner", Main).CornerRadius = UDim.new(0,10)
 
 -- Drag
 do
-	local dragging, startPos, startInput
+	local drag, startPos, startInput
 	Main.InputBegan:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
+			drag = true
 			startInput = i.Position
 			startPos = Main.Position
 			i.Changed:Connect(function()
 				if i.UserInputState == Enum.UserInputState.End then
-					dragging = false
+					drag = false
 				end
 			end)
 		end
 	end)
 	UIS.InputChanged:Connect(function(i)
-		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+		if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
 			local delta = i.Position - startInput
 			Main.Position = UDim2.new(
 				startPos.X.Scale, startPos.X.Offset + delta.X,
@@ -103,13 +95,11 @@ Title.TextSize = 20
 Title.TextColor3 = Theme.Text
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Tabs
 local TabButtons = Instance.new("Frame", Sidebar)
 TabButtons.Position = UDim2.new(0,0,0,60)
 TabButtons.Size = UDim2.new(1,0,1,-60)
 TabButtons.BackgroundTransparency = 1
-local TabLayout = Instance.new("UIListLayout", TabButtons)
-TabLayout.Padding = UDim.new(0,6)
+Instance.new("UIListLayout", TabButtons).Padding = UDim.new(0,6)
 
 -- ================= CONTENT =================
 local Content = Instance.new("Frame", Main)
@@ -118,44 +108,6 @@ Content.Size = UDim2.new(1,-180,1,-30)
 Content.BackgroundTransparency = 1
 
 local CurrentTab
-
--- ================= NOTIFY =================
-local NotifyHolder = Instance.new("Frame", ScreenGui)
-NotifyHolder.Size = UDim2.new(0,300,1,0)
-NotifyHolder.Position = UDim2.new(1,-310,0,10)
-NotifyHolder.BackgroundTransparency = 1
-
-local function Notify(text)
-	local Frame = Instance.new("Frame", NotifyHolder)
-	Frame.Size = UDim2.new(1,0,0,40)
-	Frame.BackgroundColor3 = Theme.Section
-	Frame.BackgroundTransparency = 0.1
-	Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,6)
-
-	local Label = Instance.new("TextLabel", Frame)
-	Label.Size = UDim2.new(1,-20,1,0)
-	Label.Position = UDim2.new(0,10,0,0)
-	Label.BackgroundTransparency = 1
-	Label.Text = text
-	Label.TextColor3 = Theme.Text
-	Label.Font = Enum.Font.Gotham
-	Label.TextSize = 14
-	Label.TextXAlignment = Enum.TextXAlignment.Left
-
-	Frame.Position = UDim2.new(1,0,0,0)
-	TweenService:Create(Frame,TweenInfo.new(0.3),{
-		Position = UDim2.new(0,0,0,0)
-	}):Play()
-
-	task.delay(2,function()
-		TweenService:Create(Frame,TweenInfo.new(0.3),{
-			Position = UDim2.new(1,0,0,0),
-			BackgroundTransparency = 1
-		}):Play()
-		task.wait(0.3)
-		Frame:Destroy()
-	end)
-end
 
 -- ================= TAB =================
 function Windy:CreateTab(name)
@@ -180,13 +132,10 @@ function Windy:CreateTab(name)
 	Page.ScrollBarThickness = 3
 	Page.Visible = false
 	Page.BackgroundTransparency = 1
+	Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 	local Layout = Instance.new("UIListLayout", Page)
 	Layout.Padding = UDim.new(0,10)
-
-	Page.ChildAdded:Connect(function()
-		Page.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 15)
-	end)
 
 	local function Activate()
 		if CurrentTab then
@@ -195,7 +144,7 @@ function Windy:CreateTab(name)
 		end
 		Page.Visible = true
 		Label.TextColor3 = Theme.Text
-		CurrentTab = {Page=Page,Label=Label}
+		CurrentTab = {Page = Page, Label = Label}
 	end
 
 	Btn.MouseButton1Click:Connect(Activate)
@@ -213,13 +162,9 @@ function Windy:AddButton(Page,text,callback)
 	Btn.TextColor3 = Theme.Text
 	Btn.Font = Enum.Font.GothamSemibold
 	Btn.TextSize = 14
-	Btn.LayoutOrder = #Page:GetChildren()
 	Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,6)
 
-	Btn.MouseButton1Click:Connect(function()
-		callback()
-		Notify(text)
-	end)
+	Btn.MouseButton1Click:Connect(callback)
 end
 
 -- ================= TOGGLE =================
@@ -230,7 +175,6 @@ function Windy:AddToggle(Page,text,default,callback)
 	local Frame = Instance.new("Frame", Page)
 	Frame.Size = UDim2.new(1,-10,0,40)
 	Frame.BackgroundColor3 = Theme.Section
-	Frame.LayoutOrder = #Page:GetChildren()
 	Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,6)
 
 	local Label = Instance.new("TextLabel", Frame)
@@ -268,51 +212,36 @@ function Windy:AddToggle(Page,text,default,callback)
 		SaveConfig()
 		callback(state)
 	end
-	Refresh()
 
+	Refresh()
 	Toggle.MouseButton1Click:Connect(function()
 		state = not state
 		Refresh()
 	end)
 end
 
--- ================= KEYBIND GUI =================
-local GUI_ENABLED = true
-local ToggleKey = Enum.KeyCode[Config.Keybind] or Enum.KeyCode.RightControl
-
-UIS.InputBegan:Connect(function(input,gp)
-	if gp then return end
-	if input.KeyCode == ToggleKey then
-		GUI_ENABLED = not GUI_ENABLED
-		ScreenGui.Enabled = GUI_ENABLED
-		Notify(GUI_ENABLED and "GUI Enabled" or "GUI Hidden")
-	end
-end)
-
--- ================= MINI BUTTON =================
-local Mini = Instance.new("TextButton", ScreenGui)
-Mini.Size = UDim2.new(0,40,0,40)
-Mini.Position = UDim2.new(0,20,0.5,-20)
-Mini.Text = "W"
-Mini.Visible = false
-Mini.BackgroundColor3 = Theme.Main
-Mini.TextColor3 = Color3.new(1,1,1)
-Mini.Font = Enum.Font.GothamBold
-Mini.TextSize = 18
-Instance.new("UICorner", Mini).CornerRadius = UDim.new(1,0)
-
-Mini.MouseButton1Click:Connect(function()
-	ScreenGui.Enabled = true
-	Mini.Visible = false
-end)
-
-ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
-	Mini.Visible = not ScreenGui.Enabled
-end)
--- ================= FLOATING TOGGLE BUTTON =================
-
+-- ================= GUI TOGGLE (FLOAT + KEYBIND) =================
 local GUI_VISIBLE = true
 
+local function ToggleGUI(state)
+	GUI_VISIBLE = state
+	if GUI_VISIBLE then
+		Main.Visible = true
+		Main.Size = UDim2.new(0,600,0,0)
+		TweenService:Create(Main,TweenInfo.new(0.35),{
+			Size = UDim2.new(0,600,0,400)
+		}):Play()
+	else
+		TweenService:Create(Main,TweenInfo.new(0.3),{
+			Size = UDim2.new(0,600,0,0)
+		}):Play()
+		task.delay(0.3,function()
+			Main.Visible = false
+		end)
+	end
+end
+
+-- Floating Button
 local FloatBtn = Instance.new("TextButton", ScreenGui)
 FloatBtn.Size = UDim2.new(0,70,0,32)
 FloatBtn.Position = UDim2.new(0,20,0.5,-16)
@@ -321,44 +250,22 @@ FloatBtn.Text = "ON"
 FloatBtn.TextColor3 = Color3.new(1,1,1)
 FloatBtn.Font = Enum.Font.GothamBold
 FloatBtn.TextSize = 14
-FloatBtn.BorderSizePixel = 0
-FloatBtn.ZIndex = 100
+FloatBtn.ZIndex = 999
 Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1,0)
-local TweenIn = TweenService:Create(
-	Main,
-	TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-	{
-		Size = UDim2.new(0,600,0,400),
-		BackgroundTransparency = 0
-	}
-)
-
-local TweenOut = TweenService:Create(
-	Main,
-	TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-	{
-		Size = UDim2.new(0,600,0,0),
-		BackgroundTransparency = 1
-	}
-)
-local function ToggleGUI(state)
-	GUI_VISIBLE = state
-
-	if GUI_VISIBLE then
-		Main.Visible = true
-		TweenIn:Play()
-		FloatBtn.Text = "ON"
-	else
-		TweenOut:Play()
-		FloatBtn.Text = "OFF"
-		task.delay(0.3,function()
-			Main.Visible = false
-		end)
-	end
-end
 
 FloatBtn.MouseButton1Click:Connect(function()
 	ToggleGUI(not GUI_VISIBLE)
+	FloatBtn.Text = GUI_VISIBLE and "ON" or "OFF"
+end)
+
+-- Keybind
+local ToggleKey = Enum.KeyCode[Config.Keybind] or Enum.KeyCode.RightControl
+UIS.InputBegan:Connect(function(i,gp)
+	if gp then return end
+	if i.KeyCode == ToggleKey then
+		ToggleGUI(not GUI_VISIBLE)
+		FloatBtn.Text = GUI_VISIBLE and "ON" or "OFF"
+	end
 end)
 
 return Windy
