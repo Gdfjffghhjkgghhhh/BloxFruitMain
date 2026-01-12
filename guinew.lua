@@ -1,5 +1,5 @@
---// WindyUI v2.7 COMPLETE
---// Features: Tabs (Icon+Search), Sections, Buttons, Toggles, Dropdowns
+--// WindyUI v2.9 FINAL SORT FIX
+--// Fix lỗi sắp xếp Alphabet bằng cách đánh số tên nút ẩn
 
 local Windy = {}
 
@@ -20,11 +20,11 @@ end)
 local Theme = {
 	BG = Color3.fromRGB(25,25,30),
 	Sidebar = Color3.fromRGB(20,20,25),
-	Section = Color3.fromRGB(35,35,40),       -- Nền Button/Toggle/Dropdown
+	Section = Color3.fromRGB(35,35,40),
 	SectionText = Color3.fromRGB(255, 255, 255),
 	Text = Color3.fromRGB(240,240,240),
 	SubText = Color3.fromRGB(150,150,150),
-	Main = Color3.fromRGB(45,120,255),        -- Màu chủ đạo
+	Main = Color3.fromRGB(45,120,255),
 	Search = Color3.fromRGB(30,30,35)
 }
 
@@ -145,6 +145,8 @@ TabButtons.BorderSizePixel = 0
 
 local TabLayout = Instance.new("UIListLayout", TabButtons)
 TabLayout.Padding = UDim.new(0,4)
+-- [FIX] Buộc sắp xếp theo Tên (Name), vì chúng ta sẽ đặt tên là số thứ tự
+TabLayout.SortOrder = Enum.SortOrder.Name 
 
 -- Search Logic
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -153,6 +155,7 @@ SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 		if btn:IsA("TextButton") then
 			local label = btn:FindFirstChild("TabLabel")
 			if label then
+				-- Tìm kiếm dựa trên Text hiển thị chứ không phải tên nút
 				btn.Visible = label.Text:lower():find(input) and true or false
 			end
 		end
@@ -166,16 +169,24 @@ Content.Size = UDim2.new(1,-190,1,-30)
 Content.BackgroundTransparency = 1
 
 local CurrentTab = nil
+local TabCountOrder = 0 -- Biến đếm thứ tự
 
 -- ================= FUNCTIONS =================
 
 -- 1. Create Tab
 function Windy:CreateTab(name, iconId)
+	TabCountOrder = TabCountOrder + 1 
+	
+	-- [FIX QUAN TRỌNG] Tạo tên ẩn dạng số: "001", "002"
+	-- Điều này ép buộc Roblox phải xếp theo thứ tự, kể cả khi nó xếp theo Alphabet
+	local hiddenName = (TabCountOrder < 10 and "00" .. TabCountOrder) or (TabCountOrder < 100 and "0" .. TabCountOrder) or tostring(TabCountOrder)
+
 	local Btn = Instance.new("TextButton", TabButtons)
 	Btn.Size = UDim2.new(1,0,0,36)
 	Btn.Text = ""
 	Btn.BackgroundTransparency = 1
-	Btn.Name = name -- Useful for search
+	Btn.Name = hiddenName -- Tên thật của nút là số (để sắp xếp)
+	Btn.LayoutOrder = TabCountOrder -- Backup thêm LayoutOrder
 
 	local Indicator = Instance.new("Frame", Btn)
 	Indicator.Size = UDim2.new(0,4,0,16)
@@ -197,11 +208,11 @@ function Windy:CreateTab(name, iconId)
 	end
 
 	local Label = Instance.new("TextLabel", Btn)
-	Label.Name = "TabLabel"
+	Label.Name = "TabLabel" -- Đặt tên để Search Bar tìm thấy
 	Label.Size = UDim2.new(1,-TextOffset,1,0)
 	Label.Position = UDim2.new(0,TextOffset,0,0)
 	Label.BackgroundTransparency = 1
-	Label.Text = name
+	Label.Text = name -- Tên hiển thị (Main Farm, Setting...)
 	Label.Font = Enum.Font.GothamMedium
 	Label.TextSize = 13
 	Label.TextColor3 = Theme.SubText
