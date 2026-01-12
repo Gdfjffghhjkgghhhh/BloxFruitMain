@@ -18,7 +18,7 @@ pcall(function()
 end)
 
 -- ================= THEME & SETTINGS =================
-local AnimeBackgroundID = "rbxassetid://13467882512" -- Ảnh nền Anime
+local AnimeBackgroundID = "rbxassetid://103052959409576" -- Ảnh nền Anime
 
 local Theme = {
 	BG = Color3.fromRGB(20, 20, 28), 
@@ -60,7 +60,7 @@ end
 
 -- ================= GUI SETUP =================
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "WindyUI_V3_Resizable"
+ScreenGui.Name = "Neon X Hub : [Blox Fruit]"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.IgnoreGuiInset = true
 
@@ -221,10 +221,10 @@ local Title = Instance.new("TextLabel", Sidebar)
 Title.Size = UDim2.new(1, -20, 0, 50)
 Title.Position = UDim2.new(0, 15, 0, 10)
 Title.BackgroundTransparency = 1
-Title.Text = "WINDY HUB <font color=\"rgb(255,110,150)\">v3.1</font>"
+Title.Text = "<font color=\"rgb(230, 212, 217)\">Windy Hub </font>"
 Title.RichText = true
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 22
+Title.TextSize = 30
 Title.TextColor3 = Theme.Text
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
