@@ -309,5 +309,56 @@ end)
 ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
 	Mini.Visible = not ScreenGui.Enabled
 end)
+-- ================= FLOATING TOGGLE BUTTON =================
+
+local GUI_VISIBLE = true
+
+local FloatBtn = Instance.new("TextButton", ScreenGui)
+FloatBtn.Size = UDim2.new(0,70,0,32)
+FloatBtn.Position = UDim2.new(0,20,0.5,-16)
+FloatBtn.BackgroundColor3 = Theme.Main
+FloatBtn.Text = "ON"
+FloatBtn.TextColor3 = Color3.new(1,1,1)
+FloatBtn.Font = Enum.Font.GothamBold
+FloatBtn.TextSize = 14
+FloatBtn.BorderSizePixel = 0
+FloatBtn.ZIndex = 100
+Instance.new("UICorner", FloatBtn).CornerRadius = UDim.new(1,0)
+local TweenIn = TweenService:Create(
+	Main,
+	TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	{
+		Size = UDim2.new(0,600,0,400),
+		BackgroundTransparency = 0
+	}
+)
+
+local TweenOut = TweenService:Create(
+	Main,
+	TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+	{
+		Size = UDim2.new(0,600,0,0),
+		BackgroundTransparency = 1
+	}
+)
+local function ToggleGUI(state)
+	GUI_VISIBLE = state
+
+	if GUI_VISIBLE then
+		Main.Visible = true
+		TweenIn:Play()
+		FloatBtn.Text = "ON"
+	else
+		TweenOut:Play()
+		FloatBtn.Text = "OFF"
+		task.delay(0.3,function()
+			Main.Visible = false
+		end)
+	end
+end
+
+FloatBtn.MouseButton1Click:Connect(function()
+	ToggleGUI(not GUI_VISIBLE)
+end)
 
 return Windy
