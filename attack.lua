@@ -19,8 +19,8 @@ local Config = {
     AttackMobs = true,
     AttackPlayers = true,
     AttackCooldown = 0.18,        -- giảm nhỏ hơn để attack cực nhanh
-    ComboResetTime = 0.3,        -- combo reset tức thì
-    MaxCombo = 5,           -- combo vô hạn
+    ComboResetTime = 0.03,        -- combo reset tức thì
+    MaxCombo = math.huge,           -- combo vô hạn
     HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
     AutoClickEnabled = true
 }
@@ -232,4 +232,4 @@ table.insert(AttackInstance.Connections, RunService.Heartbeat:Connect(function()
     AttackInstance:Attack()
 end))
 
-return FastAttack  sua r gui day k cab gui
+return FastAttack
