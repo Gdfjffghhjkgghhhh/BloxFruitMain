@@ -3,7 +3,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 --// LOCALS
 local Player = Players.LocalPlayer
@@ -21,20 +20,11 @@ local Config = {
     AttackDistance = 60,
     AttackMobs = true,
     AttackPlayers = true,
-    AttackCooldown = 0.05,    -- TỐC ĐỘ RẤT NHANH
-    AutoClickEnabled = false,
-    
-    -- Cấu hình tối ưu hiệu ứng
-    RemoveEffects = true,
-    RemoveParticles = true,    -- Tắt particle
-    RemoveTrails = true,       -- Tắt trail
-    RemoveSounds = false,      -- Giữ âm thanh để biết đang đánh
-    LightMode = true,          -- Chế độ nhẹ
+    AttackCooldown = 0.002,    -- TỐC ĐỘ CỰC NHANH (không cần animation)
     
     -- Tối ưu hiệu suất
-    MaxTargets = 10,           -- Giới hạn số mục tiêu
-    CleanupInterval = 5,       -- Giây giữa mỗi lần dọn dẹp
-    FastScan = true            -- Quét nhanh
+    MaxTargets = 10,
+    FastMode = true           -- Chế độ không animation
 }
 
 --// CLASS: FAST ATTACK
@@ -45,13 +35,11 @@ function FastAttack.new()
     local self = setmetatable({
         Debounce = 0,
         ShootDebounce = 0,
-        M1Combo = 0,
         ComboDebounce = 0,
-        LastCleanTime = 0,
         LastScanTime = 0,
         CachedTargets = {},
         
-        -- Cache các đối tượng thường dùng
+        -- Cache các folder
         EnemiesFolder = Workspace:FindFirstChild("Enemies"),
         CharactersFolder = Workspace:FindFirstChild("Characters"),
         
@@ -62,16 +50,8 @@ function FastAttack.new()
         }
     }, FastAttack)
 
-    -- Tải các hàm cần thiết một lần
+    -- Tải hit function
     task.spawn(function()
-        pcall(function()
-            local CombatController = require(ReplicatedStorage.Controllers.CombatController)
-            if CombatController and CombatController.Attack then
-                self.ShootFunction = getupvalue(CombatController.Attack, 9)
-            end
-        end)
-        
-        -- Tìm hàm hit hiệu quả hơn
         pcall(function()
             local playerScripts = Player:WaitForChild("PlayerScripts")
             for _, script in ipairs(playerScripts:GetChildren()) do
@@ -86,25 +66,6 @@ function FastAttack.new()
         end)
     end)
 
-    -- Xử lý hiệu ứng một cách tối ưu
-    if Config.RemoveEffects then
-        Workspace.DescendantAdded:Connect(function(descendant)
-            if not Config.Enabled then return end
-            
-            -- Xử lý nhanh không cần task.wait
-            if Config.RemoveParticles and descendant:IsA("ParticleEmitter") then
-                descendant.Enabled = false
-            elseif Config.RemoveTrails and descendant:IsA("Trail") then
-                descendant.Enabled = false
-            elseif descendant:IsA("Explosion") then
-                descendant.BlastPressure = 0
-                descendant.BlastRadius = 0
-            elseif descendant.Name == "DamageCounter" and Config.RemoveEffects then
-                descendant:Destroy()
-            end
-        end)
-    end
-
     return self
 end
 
@@ -113,94 +74,66 @@ function FastAttack:IsEntityAlive(model)
     return hum and hum.Health > 0
 end
 
-function FastAttack:QuickGetTargets(Character, Distance)
-    local currentTime = tick()
-    
-    -- Cache kết quả scan trong 0.1 giây để tăng hiệu suất
-    if currentTime - self.LastScanTime < 0.1 and #self.CachedTargets > 0 then
-        return self.CachedTargets, self.CachedTargets
-    end
-    
-    self.LastScanTime = currentTime
+-- Quét mục tiêu tối ưu (không cache)
+function FastAttack:GetTargetsDirect(Character, Distance)
     local Position = Character:GetPivot().Position
-    local TargetList = {} 
-    local HitPartList = {}
+    local TargetList = {}
     local count = 0
     
     Distance = Distance or Config.AttackDistance
     
-    -- Hàm quét nhanh
-    local function QuickScanFolder(Folder)
-        if not Folder then return end
-        for i = 1, #Folder:GetChildren() do
-            if count >= Config.MaxTargets then break end
-            local Enemy = Folder:GetChildren()[i]
-            if Enemy ~= Character then
-                local HRP = Enemy:FindFirstChild("HumanoidRootPart")
-                if HRP then
-                    local distance = (Position - HRP.Position).Magnitude
-                    if distance <= Distance and self:IsEntityAlive(Enemy) then
-                        count = count + 1
-                        TargetList[count] = {Enemy, HRP}
-                        HitPartList[count] = HRP
+    -- Quét Enemies
+    if Config.AttackMobs then
+        local enemies = self.EnemiesFolder or Workspace:FindFirstChild("Enemies")
+        if enemies then
+            for _, Enemy in ipairs(enemies:GetChildren()) do
+                if count >= Config.MaxTargets then break end
+                if Enemy ~= Character then
+                    local HRP = Enemy:FindFirstChild("HumanoidRootPart")
+                    if HRP then
+                        local dist = (Position - HRP.Position).Magnitude
+                        if dist <= Distance and self:IsEntityAlive(Enemy) then
+                            count = count + 1
+                            TargetList[count] = {Enemy, HRP}
+                        end
                     end
                 end
             end
         end
     end
-
-    -- Quét theo cấu hình
-    if Config.AttackMobs then
-        QuickScanFolder(self.EnemiesFolder or Workspace:FindFirstChild("Enemies"))
-    end
+    
+    -- Quét Players
     if Config.AttackPlayers and count < Config.MaxTargets then
-        QuickScanFolder(self.CharactersFolder or Workspace:FindFirstChild("Characters"))
-    end
-    
-    -- Cache kết quả
-    self.CachedTargets = TargetList
-    return TargetList, HitPartList
-end
-
--- Hàm dọn dẹp tối ưu
-function FastAttack:OptimizedCleanup()
-    if not Config.RemoveEffects then return end
-    if tick() - self.LastCleanTime < Config.CleanupInterval then return end
-    self.LastCleanTime = tick()
-    
-    -- Chỉ dọn khi có nhiều hiệu ứng
-    local descendantCount = #Workspace:GetDescendants()
-    if descendantCount < 500 then return end -- Không dọn nếu ít hiệu ứng
-    
-    for _, v in ipairs(Workspace:GetDescendants()) do
-        if v:IsA("ParticleEmitter") and Config.RemoveParticles then
-            v.Enabled = false
-        elseif v:IsA("Trail") and Config.RemoveTrails then
-            v.Enabled = false
-        elseif v.Name == "DamageCounter" then
-            v:Destroy()
-        elseif v:IsA("Beam") then
-            v.Enabled = false
+        local chars = self.CharactersFolder or Workspace:FindFirstChild("Characters")
+        if chars then
+            for _, Enemy in ipairs(chars:GetChildren()) do
+                if count >= Config.MaxTargets then break end
+                if Enemy ~= Character then
+                    local HRP = Enemy:FindFirstChild("HumanoidRootPart")
+                    if HRP then
+                        local dist = (Position - HRP.Position).Magnitude
+                        if dist <= Distance and self:IsEntityAlive(Enemy) then
+                            count = count + 1
+                            TargetList[count] = {Enemy, HRP}
+                        end
+                    end
+                end
+            end
         end
     end
+    
+    return TargetList
 end
 
--- Melee attack tối ưu
-function FastAttack:FastMeleeAttack(Character)
-    local Targets = self:QuickGetTargets(Character)
+-- MELEE ATTACK DIRECT (không animation)
+function FastAttack:DirectMeleeAttack(Character)
+    local Targets = self:GetTargetsDirect(Character)
     if #Targets == 0 then return end
     
-    -- Gửi input nhanh hơn
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-    task.spawn(function()
-        task.wait(0.01)
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-    end)
-    
-    -- Fire server với delay nhỏ
+    -- Gửi attack trực tiếp (không click)
     RegisterAttack:FireServer(Config.AttackCooldown)
     
-    -- Gửi hit tới tất cả mục tiêu
+    -- Gửi hit trực tiếp tới tất cả targets
     for _, Data in ipairs(Targets) do
         local EnemyRoot = Data[2]
         if self.HitFunction then
@@ -211,55 +144,50 @@ function FastAttack:FastMeleeAttack(Character)
     end
 end
 
--- Gun attack tối ưu
-function FastAttack:FastGunAttack(Character)
-    local Targets = self:QuickGetTargets(Character, 100)
-    for _, t in ipairs(Targets) do
-        self:ShootInTarget(t[2].Position)
-    end
-end
-
--- Fruit attack tối ưu
-function FastAttack:FastFruitAttack(Character, Equipped)
-    local Targets = self:QuickGetTargets(Character)
-    if Targets[1] then
-        local direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
-        Equipped.LeftClickRemote:FireServer(direction, 1)
-    end
-end
-
-function FastAttack:ShootInTarget(TargetPosition)
-    local Character = Player.Character
+-- GUN ATTACK DIRECT (không animation)
+function FastAttack:DirectGunAttack(Character)
+    local Targets = self:GetTargetsDirect(Character, 100)
+    if #Targets == 0 then return end
+    
     local Equipped = Character:FindFirstChildOfClass("Tool")
     if not Equipped or Equipped.ToolTip ~= "Gun" then return end
     
     local ShootType = self.SpecialShoots[Equipped.Name] or "Normal"
     
     if ShootType == "Position" or (ShootType == "TAP" and Equipped:FindFirstChild("RemoteEvent")) then
-        -- Bắn đặc biệt
-        if ShootType == "TAP" then 
-            Equipped.RemoteEvent:FireServer("TAP", TargetPosition)
-        else 
-            ShootGunEvent:FireServer(TargetPosition) 
+        -- Bắn đặc biệt trực tiếp
+        for _, t in ipairs(Targets) do
+            if ShootType == "TAP" then 
+                Equipped.RemoteEvent:FireServer("TAP", t[2].Position)
+            else 
+                ShootGunEvent:FireServer(t[2].Position) 
+            end
         end
     else
-        -- Bắn thường với input nhanh
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-        task.spawn(function()
-            task.wait(0.01)
-            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-        end)
+        -- Bắn thường trực tiếp
+        for _, t in ipairs(Targets) do
+            ShootGunEvent:FireServer(t[2].Position)
+        end
     end
 end
 
--- Hàm update chính tối ưu
-function FastAttack:OptimizedUpdate()
-    if not Config.Enabled then return end
+-- FRUIT ATTACK DIRECT (không animation)
+function FastAttack:DirectFruitAttack(Character)
+    local Equipped = Character:FindFirstChildOfClass("Tool")
+    if not Equipped or Equipped.ToolTip ~= "Blox Fruit" then return end
+    if not Equipped:FindFirstChild("LeftClickRemote") then return end
     
-    -- Dọn dẹp định kỳ
-    if Config.LightMode then
-        self:OptimizedCleanup()
-    end
+    local Targets = self:GetTargetsDirect(Character)
+    if #Targets == 0 then return end
+    
+    -- Gửi hit trực tiếp tới target đầu tiên
+    local direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
+    Equipped.LeftClickRemote:FireServer(direction, 1)
+end
+
+-- UPDATE DIRECT (không animation)
+function FastAttack:DirectUpdate()
+    if not Config.Enabled then return end
     
     local Character = Player.Character
     if not Character then return end
@@ -273,25 +201,25 @@ function FastAttack:OptimizedUpdate()
     local ToolTip = Equipped.ToolTip
     local currentTime = tick()
     
-    -- Melee/Sword attack rất nhanh
+    -- MELEE/SWORD - ATTACK DIRECT
     if ToolTip == "Melee" or ToolTip == "Sword" then
         if currentTime - self.Debounce >= Config.AttackCooldown then
             self.Debounce = currentTime
-            self:FastMeleeAttack(Character)
+            self:DirectMeleeAttack(Character)
         end
     
-    -- Gun attack
+    -- GUN - ATTACK DIRECT
     elseif ToolTip == "Gun" then
-        if currentTime - self.ShootDebounce >= 0.05 then  -- Tăng tốc bắn súng
+        if currentTime - self.ShootDebounce >= 0.02 then
             self.ShootDebounce = currentTime
-            self:FastGunAttack(Character)
+            self:DirectGunAttack(Character)
         end
     
-    -- Fruit attack
-    elseif ToolTip == "Blox Fruit" and Equipped:FindFirstChild("LeftClickRemote") then
-        if currentTime - self.ComboDebounce >= 0.05 then  -- Tăng tốc trái ác quỷ
+    -- FRUIT - ATTACK DIRECT
+    elseif ToolTip == "Blox Fruit" then
+        if currentTime - self.ComboDebounce >= 0.02 then
             self.ComboDebounce = currentTime
-            self:FastFruitAttack(Character, Equipped)
+            self:DirectFruitAttack(Character)
         end
     end
 end
@@ -299,10 +227,10 @@ end
 --// INITIALIZE
 local MyAttack = FastAttack.new()
 
--- Sử dụng RenderStepped để cập nhật nhanh hơn
-RunService.RenderStepped:Connect(function(deltaTime)
-    MyAttack:OptimizedUpdate()
+-- Chạy với tốc độ cao nhất
+RunService.Heartbeat:Connect(function()
+    MyAttack:DirectUpdate()
 end)
 
-print("⚡ Fast Attack v2: Tối ưu hóa - Tốc độ cực nhanh + Giảm lag tối đa")
-print("⚙️ Cấu hình: Cooldown = " .. Config.AttackCooldown .. "s | Light Mode = " .. tostring(Config.LightMode))
+print("⚡ DIRECT ATTACK: Đã xóa animation và auto click")
+print("⚙️ Tấn công trực tiếp - Tốc độ: " .. Config.AttackCooldown .. "s")
