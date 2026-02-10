@@ -31,7 +31,7 @@ local Config = {
     BringSpeed = 0.5,
     TeleportMode = false, -- CHẾ ĐỘ TELEPORT THAY VÌ KÉO
     KeepMobsBelow = true, -- LUÔN GIỮ MOB DƯỚI CHÂN
-    HeightDifference = 3, -- MOB THẤP HƠN PLAYER BAO NHIÊU STUD
+    HeightDifference = 0, -- MOB THẤP HƠN PLAYER BAO NHIÊU STUD
     RotationRadius = 10, -- BÁN KÍNH VÒNG TRÒN XUNG QUANH PLAYER
     SnapToGround = true -- TỰ ĐỘNG SNAP XUỐNG MẶT ĐẤT
 }
