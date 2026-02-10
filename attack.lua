@@ -22,21 +22,26 @@ local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 --====================================================
 local Config = {
     Bring = true,
-    BringDistance = 350,
+    BringDistance = 200,
     AttackDistance = 70,
-    AttackCooldown = 0.0001,
+    AttackCooldown = 0.001,
     ComboResetTime = 0.03,
     AutoClickEnabled = true,
-    MaxTargets = 5,
-    KeepMobsOnGround = true,
-    MobHeightOffset = -5,
-    BringSpeed = 1 -- Tốc độ kéo mob (0.1-1.0)
+    MaxTargets = 15,
+    BringSpeed = 0.5,
+    TeleportMode = false, -- CHẾ ĐỘ TELEPORT THAY VÌ KÉO
+    KeepMobsBelow = true, -- LUÔN GIỮ MOB DƯỚI CHÂN
+    HeightDifference = 3, -- MOB THẤP HƠN PLAYER BAO NHIÊU STUD
+    RotationRadius = 10, -- BÁN KÍNH VÒNG TRÒN XUNG QUANH PLAYER
+    SnapToGround = true -- TỰ ĐỘNG SNAP XUỐNG MẶT ĐẤT
 }
 
 --====================================================
 -- GLOBAL
 --====================================================
 local PosMon = nil
+local LastGroundCheck = 0
+local GroundY = nil
 
 pcall(function()
     sethiddenproperty(Player, "SimulationRadius", math.huge)
@@ -53,7 +58,9 @@ function FastAttack.new()
     return setmetatable({
         ComboDebounce = 0,
         M1Combo = 0,
-        LastShoot = 0
+        LastShoot = 0,
+        MobPositions = {},
+        RotationAngle = 0
     }, FastAttack)
 end
 
@@ -65,6 +72,29 @@ function FastAttack:IsAlive(model)
     return hum and hum.Health > 0
 end
 
+function FastAttack:GetGroundHeight(position)
+    -- Dùng raycast để tìm độ cao mặt đất
+    local rayOrigin = Vector3.new(position.X, position.Y + 100, position.Z)
+    local rayDirection = Vector3.new(0, -200, 0)
+    local ray = Ray.new(rayOrigin, rayDirection)
+    
+    local ignoreList = {Player.Character}
+    local hit, hitPosition = Workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+    
+    if hit then
+        return hitPosition.Y + 2 -- Thêm 2 stud để mob đứng trên mặt đất
+    end
+    
+    return position.Y
+end
+
+function FastAttack:SnapToGroundPosition(position)
+    if not Config.SnapToGround then return position end
+    
+    local groundY = self:GetGroundHeight(position)
+    return Vector3.new(position.X, groundY, position.Z)
+end
+
 --====================================================
 -- UPDATE POSMON
 --====================================================
@@ -72,11 +102,17 @@ RunService.Heartbeat:Connect(function()
     local char = Player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         PosMon = char.HumanoidRootPart.Position
+        
+        -- Update ground height mỗi 0.5 giây
+        if tick() - LastGroundCheck > 0.5 then
+            GroundY = FastAttack:GetGroundHeight(PosMon)
+            LastGroundCheck = tick()
+        end
     end
 end)
 
 --====================================================
--- BRING MOB (AOE) - FIXED VERSION
+-- BRING MOB - FIXED VERSION (KHÔNG BAY LÊN TRỜI)
 --====================================================
 function FastAttack:BringEnemy()
     if not Config.Bring or not PosMon then return end
@@ -87,7 +123,16 @@ function FastAttack:BringEnemy()
     local playerHrp = char:FindFirstChild("HumanoidRootPart")
     if not playerHrp then return end
 
-    for _, mob in ipairs(Workspace.Enemies:GetChildren()) do
+    -- Tăng góc xoay cho vòng tròn
+    self.RotationAngle = self.RotationAngle + 0.05
+    
+    -- Lấy danh sách mob
+    local mobs = Workspace.Enemies:GetChildren()
+    local count = 0
+    
+    for i, mob in ipairs(mobs) do
+        if count >= Config.MaxTargets then break end
+        
         local hum = mob:FindFirstChild("Humanoid")
         local hrp = mob:FindFirstChild("HumanoidRootPart")
 
@@ -95,48 +140,41 @@ function FastAttack:BringEnemy()
             local distance = (hrp.Position - PosMon).Magnitude
             
             if distance <= Config.BringDistance then
-                -- Disable physics để mob không bay lên
+                count = count + 1
+                
+                -- KHÔNG disable collision - GIỮ MOB ĐỨNG VỮNG
                 for _, part in ipairs(mob:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        part.CanCollide = false
-                        part.Massless = true
-                        part.Velocity = Vector3.zero
-                        part.RotVelocity = Vector3.zero
+                        part.CanCollide = true -- GIỮ COLLISION
+                        part.Massless = false  -- GIỮ KHỐI LƯỢNG
                     end
                 end
 
                 hum.JumpPower = 0
+                hum.PlatformStand = false
                 
-                -- Tính toán vị trí target
+                -- Tính toán vị trí mục tiêu
                 local targetPos
-                if Config.KeepMobsOnGround then
-                    -- Giữ mob dưới chân player với offset
+                
+                if Config.KeepMobsBelow then
+                    -- Mob luôn ở DƯỚI chân player
                     targetPos = Vector3.new(
                         playerHrp.Position.X,
-                        playerHrp.Position.Y + Config.MobHeightOffset,
+                        (GroundY or playerHrp.Position.Y) - Config.HeightDifference,
                         playerHrp.Position.Z
                     )
-                    
-                    -- Đảm bảo mob không xuống quá thấp (giữ trên mặt đất)
-                    local ray = Ray.new(Vector3.new(targetPos.X, targetPos.Y + 50, targetPos.Z), Vector3.new(0, -100, 0))
-                    local hit, position = Workspace:FindPartOnRayWithIgnoreList(ray, {char, mob})
-                    
-                    if hit then
-                        -- Nếu mob xuống quá thấp, đưa lên trên mặt đất 2 stud
-                        targetPos = Vector3.new(targetPos.X, math.max(position.Y + 2, targetPos.Y), targetPos.Z)
-                    end
                 else
-                    -- Giữ mob ở độ cao hiện tại
+                    -- Giữ mob ở độ cao mặt đất
                     targetPos = Vector3.new(
                         playerHrp.Position.X,
-                        hrp.Position.Y,
+                        self:GetGroundHeight(playerHrp.Position) + 1,
                         playerHrp.Position.Z
                     )
                 end
                 
-                -- Tạo một vòng tròn xung quanh player để mob không dồn vào 1 điểm
-                local angle = tick() * 2 + (_ * 0.5)  -- Tạo chuyển động xoay
-                local radius = math.min(distance * 0.1, 15)  -- Bán kính tối đa 15 stud
+                -- Phân bố mob theo vòng tròn
+                local angle = self.RotationAngle + (i * (math.pi * 2 / math.min(#mobs, Config.MaxTargets)))
+                local radius = Config.RotationRadius + (i % 3) * 2 -- Thêm variation
                 
                 targetPos = Vector3.new(
                     targetPos.X + math.cos(angle) * radius,
@@ -144,19 +182,40 @@ function FastAttack:BringEnemy()
                     targetPos.Z + math.sin(angle) * radius
                 )
                 
-                -- Di chuyển mượt mà đến target position
-                local currentPos = hrp.Position
-                local direction = (targetPos - currentPos)
-                local moveDistance = math.min(direction.Magnitude, Config.BringSpeed * 30)
-                
-                if moveDistance > 0.5 then
-                    local newPos = currentPos + direction.Unit * moveDistance
-                    hrp.CFrame = CFrame.new(newPos, newPos + playerHrp.CFrame.LookVector)
+                -- Snap xuống mặt đất
+                if Config.SnapToGround then
+                    targetPos = self:SnapToGroundPosition(targetPos)
                 end
                 
-                -- Reset mob về tư thế đứng
-                hum.PlatformStand = false
+                if Config.TeleportMode then
+                    -- TELEPORT TRỰC TIẾP - KHÔNG DÙNG LERP
+                    hrp.CFrame = CFrame.new(targetPos)
+                else
+                    -- Di chuyển từ từ NHƯNG LUÔN GIỮ Ở MẶT ĐẤT
+                    local currentPos = hrp.Position
+                    local newPos = Vector3.new(
+                        targetPos.X,
+                        math.max(targetPos.Y, self:GetGroundHeight(targetPos)), -- KHÔNG BAO GIỜ Ở TRÊN MẶT ĐẤT
+                        targetPos.Z
+                    )
+                    
+                    local distanceToMove = (newPos - currentPos).Magnitude
+                    if distanceToMove > 5 then
+                        hrp.Velocity = (newPos - currentPos).Unit * Config.BringSpeed * 50
+                    else
+                        hrp.Velocity = Vector3.zero
+                        hrp.CFrame = CFrame.new(newPos)
+                    end
+                end
+                
+                -- Đảm bảo mob không bay lên
+                hrp.AssemblyLinearVelocity = Vector3.new(0, -10, 0) -- Lực hút xuống
+                
+                -- Reset state của humanoid
                 hum:ChangeState(Enum.HumanoidStateType.Running)
+                
+                -- Lưu vị trí mob
+                self.MobPositions[mob] = targetPos
             end
         end
     end
@@ -239,32 +298,27 @@ function FastAttack:Attack()
 end
 
 --====================================================
--- VISUAL EFFECT (TUỲ CHỌN)
+-- GROUND STABILIZER (GIỮ MOB TRÊN MẶT ĐẤT)
 --====================================================
-function FastAttack:CreateVisualRing()
-    if not Player.Character then return end
+function FastAttack:GroundStabilizer()
+    if not PosMon then return end
     
-    local hrp = Player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Tạo một vòng tròn để hiển thị phạm vi kéo mob
-    local ring = Instance.new("Part")
-    ring.Anchored = true
-    ring.CanCollide = false
-    ring.Material = EnumMaterial.Neon
-    ring.Color = Color3.fromRGB(255, 50, 50)
-    ring.Transparency = 0.7
-    ring.Size = Vector3.new(1, 0.2, 1)
-    ring.Shape = Enum.PartType.Cylinder
-    
-    local mesh = Instance.new("SpecialMesh", ring)
-    mesh.MeshType = Enum.MeshType.Cylinder
-    mesh.Scale = Vector3.new(Config.BringDistance * 2, 0.1, Config.BringDistance * 2)
-    
-    ring.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(math.rad(90), 0, 0)
-    ring.Parent = Workspace
-    
-    game:GetService("Debris"):AddItem(ring, 0.1)
+    for _, mob in ipairs(Workspace.Enemies:GetChildren()) do
+        local hrp = mob:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            -- Kiểm tra nếu mob đang ở quá cao
+            local groundHeight = self:GetGroundHeight(hrp.Position)
+            if hrp.Position.Y > groundHeight + 5 then
+                -- Kéo mob xuống mặt đất
+                hrp.CFrame = CFrame.new(
+                    hrp.Position.X,
+                    groundHeight + 2,
+                    hrp.Position.Z
+                )
+                hrp.Velocity = Vector3.new(hrp.Velocity.X, -50, hrp.Velocity.Z)
+            end
+        end
+    end
 end
 
 --====================================================
@@ -276,11 +330,7 @@ local AttackInstance = FastAttack.new()
 RunService.Heartbeat:Connect(function()
     AttackInstance:BringEnemy()
     AttackInstance:Attack()
-    
-    -- Hiển thị visual ring mỗi 0.5 giây (tuỳ chọn)
-    if tick() % 0.5 < 0.016 then
-        AttackInstance:CreateVisualRing()
-    end
+    AttackInstance:GroundStabilizer() -- THÊM STABILIZER
 end)
 
 -- Anti-AFK
@@ -289,17 +339,21 @@ local lastInput = tick()
 
 RunService.Heartbeat:Connect(function()
     if tick() - lastInput > 20 then
-        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, nil)
-        task.wait(0.1)
-        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, nil)
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.W, false, nil)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, nil)
         lastInput = tick()
     end
 end)
 
-print("Fast Attack Script Loaded Successfully!")
-print("Config:")
-for key, value in pairs(Config) do
-    print(string.format("  %s: %s", key, tostring(value)))
-end
+-- Debug info
+spawn(function()
+    while task.wait(1) do
+        if PosMon and GroundY then
+            print(string.format("Player Y: %.1f | Ground Y: %.1f | Difference: %.1f", 
+                PosMon.Y, GroundY, PosMon.Y - GroundY))
+        end
+    end
+end)
 
 return FastAttack
