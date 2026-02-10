@@ -15,19 +15,18 @@ local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Net = Modules:WaitForChild("Net")
 local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
 local RegisterHit = Net:WaitForChild("RE/RegisterHit")
-local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 
 --====================================================
 -- CONFIG
 --====================================================
 local Config = {
     Bring = true,
+    MaxMobs = 4,              -- 🔥 GOM TỐI ĐA 4 CON
     BringDistance = 350,
     AttackDistance = 70,
     AttackCooldown = 0.0001,
-    ComboResetTime = 0.03,
     AutoClickEnabled = true,
-    MaxTargets = 15 -- giới hạn số mob đánh (chống kick)
+    CircleRadius = 6          -- bán kính xếp tròn
 }
 
 --====================================================
@@ -61,6 +60,25 @@ function FastAttack:IsAlive(model)
 end
 
 --====================================================
+-- LẤY TÊN QUÁI THEO QUEST
+--====================================================
+function FastAttack:GetQuestMobName()
+    local gui = Player.PlayerGui:FindFirstChild("Main")
+    if not gui then return nil end
+
+    local quest = gui:FindFirstChild("Quest")
+    if not quest then return nil end
+
+    local title = quest:FindFirstChild("QuestTitle")
+    if title and title.Text then
+        -- Ví dụ: "Defeat 8 Bandits (0/8)"
+        local name = title.Text:match("Defeat%s+(.+)%s+%(")
+        return name
+    end
+    return nil
+end
+
+--====================================================
 -- UPDATE POSMON
 --====================================================
 RunService.Heartbeat:Connect(function()
@@ -71,55 +89,82 @@ RunService.Heartbeat:Connect(function()
 end)
 
 --====================================================
--- BRING MOB (AOE)
+-- BRING MOB (MAX 4 - GOM TRÒN - CÙNG QUEST)
 --====================================================
 function FastAttack:BringEnemy()
     if not Config.Bring or not PosMon then return end
 
+    local QuestMob = self:GetQuestMobName()
+    if not QuestMob then return end
+
+    local selected = {}
+
+    -- chọn tối đa 4 quái cùng quest
     for _, mob in ipairs(Workspace.Enemies:GetChildren()) do
+        if #selected >= Config.MaxMobs then break end
+
         local hum = mob:FindFirstChild("Humanoid")
         local hrp = mob:FindFirstChild("HumanoidRootPart")
 
-        if hum and hrp and hum.Health > 0 then
+        if hum and hrp and hum.Health > 0 and mob.Name:find(QuestMob) then
             if (hrp.Position - PosMon).Magnitude <= Config.BringDistance then
-
-                for _, part in ipairs(mob:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                        part.Massless = true
-                        part.Velocity = Vector3.zero
-                        part.RotVelocity = Vector3.zero
-                    end
-                end
-
-                hum.WalkSpeed = 0
-                hum.JumpPower = 0
-                hum.PlatformStand = true
-
-                hrp.CFrame = hrp.CFrame:Lerp(
-                    CFrame.new(PosMon + Vector3.new(0,2,0)),
-                    0.35
-                )
+                table.insert(selected, mob)
             end
         end
+    end
+
+    -- xếp vòng tròn
+    for i, mob in ipairs(selected) do
+        local hum = mob.Humanoid
+        local hrp = mob.HumanoidRootPart
+
+        for _, part in ipairs(mob:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+                part.Massless = true
+            end
+        end
+
+        hum.WalkSpeed = 0
+        hum.JumpPower = 0
+        hum.AutoRotate = false
+
+        local angle = (math.pi * 2 / #selected) * (i - 1)
+        local offset = Vector3.new(
+            math.cos(angle) * Config.CircleRadius,
+            0,
+            math.sin(angle) * Config.CircleRadius
+        )
+
+        local groundY = hrp.Position.Y
+        local targetPos = Vector3.new(
+            PosMon.X + offset.X,
+            groundY,
+            PosMon.Z + offset.Z
+        )
+
+        hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(targetPos), 0.35)
     end
 end
 
 --====================================================
--- GET ALL MOBS IN RANGE (AOE)
+-- GET HITS (CHỈ 4 CON)
 --====================================================
 function FastAttack:GetBladeHits(Character, Distance)
     local Hits = {}
     Distance = Distance or Config.AttackDistance
     local Pos = Character:GetPivot().Position
+    local QuestMob = self:GetQuestMobName()
+
+    if not QuestMob then return Hits end
 
     for _, mob in ipairs(Workspace.Enemies:GetChildren()) do
-        if #Hits >= Config.MaxTargets then break end
+        if #Hits >= Config.MaxMobs then break end
 
         local hum = mob:FindFirstChild("Humanoid")
         local hrp = mob:FindFirstChild("HumanoidRootPart")
 
-        if hum and hrp and hum.Health > 0 then
+        if hum and hrp and hum.Health > 0 and mob.Name:find(QuestMob) then
             if (hrp.Position - Pos).Magnitude <= Distance then
                 table.insert(Hits, {mob, hrp})
             end
@@ -129,16 +174,8 @@ function FastAttack:GetBladeHits(Character, Distance)
     return Hits
 end
 
-function FastAttack:GetCombo()
-    local combo = (tick() - self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0
-    combo += 1
-    self.M1Combo = combo
-    self.ComboDebounce = tick()
-    return combo
-end
-
 --====================================================
--- ATTACK AOE
+-- FAST ATTACK AOE (4 CON)
 --====================================================
 function FastAttack:UseNormalClick(Character)
     local Hits = self:GetBladeHits(Character)
@@ -151,12 +188,6 @@ function FastAttack:UseNormalClick(Character)
     end
 end
 
-function FastAttack:ShootInTarget(pos)
-    if tick() - (self.LastShoot or 0) < 0.0001 then return end
-    ShootGunEvent:FireServer(pos)
-    self.LastShoot = tick()
-end
-
 function FastAttack:Attack()
     if not Config.AutoClickEnabled then return end
 
@@ -167,18 +198,9 @@ function FastAttack:Attack()
     if not tool then return end
 
     local tip = tool.ToolTip
-    if not table.find({"Melee","Sword","Gun","Blox Fruit"}, tip) then return end
+    if not table.find({"Melee","Sword","Blox Fruit"}, tip) then return end
 
-    self:GetCombo()
-
-    if tip == "Gun" then
-        local Targets = self:GetBladeHits(char, 120)
-        for _, t in ipairs(Targets) do
-            self:ShootInTarget(t[2].Position)
-        end
-    else
-        self:UseNormalClick(char)
-    end
+    self:UseNormalClick(char)
 end
 
 --====================================================
