@@ -1,13 +1,16 @@
---// SERVICES
+--====================================================
+-- SERVICES
+--====================================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local Player = Players.LocalPlayer
 
---// MODULES & REMOTES
+--====================================================
+-- REMOTES
+--====================================================
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Net = Modules:WaitForChild("Net")
 local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
@@ -18,16 +21,17 @@ local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 -- CONFIG
 --====================================================
 local Config = {
-    Bring = true,                 -- bật / tắt gom
-    BringDistance = 300,
-    AttackDistance = 65,
+    Bring = true,
+    BringDistance = 350,
+    AttackDistance = 70,
     AttackCooldown = 0.0001,
     ComboResetTime = 0.03,
-    AutoClickEnabled = true
+    AutoClickEnabled = true,
+    MaxTargets = 15 -- giới hạn số mob đánh (chống kick)
 }
 
 --====================================================
--- GLOBAL VAR
+-- GLOBAL
 --====================================================
 local PosMon = nil
 
@@ -42,22 +46,10 @@ local FastAttack = {}
 FastAttack.__index = FastAttack
 
 function FastAttack.new()
-    local self = setmetatable({
+    return setmetatable({
         ComboDebounce = 0,
-        M1Combo = 0,
-        LockedTarget = nil
+        M1Combo = 0
     }, FastAttack)
-
-    pcall(function()
-        self.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
-        self.ShootFunction = getupvalue(require(ReplicatedStorage.Controllers.CombatController).Attack, 9)
-        local LS = Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript")
-        if LS and getsenv then
-            self.HitFunction = getsenv(LS)._G.SendHitsToServer
-        end
-    end)
-
-    return self
 end
 
 --====================================================
@@ -69,7 +61,7 @@ function FastAttack:IsAlive(model)
 end
 
 --====================================================
--- UPDATE POSMON (VỊ TRÍ GOM)
+-- UPDATE POSMON
 --====================================================
 RunService.Heartbeat:Connect(function()
     local char = Player.Character
@@ -79,7 +71,7 @@ RunService.Heartbeat:Connect(function()
 end)
 
 --====================================================
--- BRING MOB (GẮN TRONG FAST)
+-- BRING MOB (AOE)
 --====================================================
 function FastAttack:BringEnemy()
     if not Config.Bring or not PosMon then return end
@@ -88,7 +80,7 @@ function FastAttack:BringEnemy()
         local hum = mob:FindFirstChild("Humanoid")
         local hrp = mob:FindFirstChild("HumanoidRootPart")
 
-        if hum and hrp and hum.Health > 0 and isnetworkowner(hrp) then
+        if hum and hrp and hum.Health > 0 then
             if (hrp.Position - PosMon).Magnitude <= Config.BringDistance then
 
                 for _, part in ipairs(mob:GetDescendants()) do
@@ -114,33 +106,27 @@ function FastAttack:BringEnemy()
 end
 
 --====================================================
--- LOCK 1 MOB GẦN POSMON NHẤT
+-- GET ALL MOBS IN RANGE (AOE)
 --====================================================
-function FastAttack:GetLockedTarget(Distance)
-    if not PosMon then return nil end
+function FastAttack:GetBladeHits(Character, Distance)
+    local Hits = {}
     Distance = Distance or Config.AttackDistance
+    local Pos = Character:GetPivot().Position
 
-    local Closest, MinDist = nil, math.huge
     for _, mob in ipairs(Workspace.Enemies:GetChildren()) do
+        if #Hits >= Config.MaxTargets then break end
+
         local hum = mob:FindFirstChild("Humanoid")
         local hrp = mob:FindFirstChild("HumanoidRootPart")
+
         if hum and hrp and hum.Health > 0 then
-            local d = (hrp.Position - PosMon).Magnitude
-            if d <= Distance and d < MinDist then
-                MinDist = d
-                Closest = hrp
+            if (hrp.Position - Pos).Magnitude <= Distance then
+                table.insert(Hits, {mob, hrp})
             end
         end
     end
 
-    self.LockedTarget = Closest
-    return Closest
-end
-
-function FastAttack:GetBladeHits()
-    local Target = self:GetLockedTarget()
-    if not Target then return {} end
-    return { {Target.Parent, Target} }
+    return Hits
 end
 
 function FastAttack:GetCombo()
@@ -152,19 +138,16 @@ function FastAttack:GetCombo()
 end
 
 --====================================================
--- ATTACK
+-- ATTACK AOE
 --====================================================
 function FastAttack:UseNormalClick(Character)
-    local Hits = self:GetBladeHits()
-    if not Hits[1] then return end
+    local Hits = self:GetBladeHits(Character)
+    if #Hits == 0 then return end
 
-    local TargetRoot = Hits[1][2]
     RegisterAttack:FireServer(Config.AttackCooldown)
 
-    if self.CombatFlags and self.HitFunction then
-        self.HitFunction(TargetRoot, Hits)
-    else
-        RegisterHit:FireServer(TargetRoot, Hits)
+    for _, hit in ipairs(Hits) do
+        RegisterHit:FireServer(hit[2], Hits)
     end
 end
 
@@ -189,9 +172,9 @@ function FastAttack:Attack()
     self:GetCombo()
 
     if tip == "Gun" then
-        local Target = self:GetLockedTarget(120)
-        if Target then
-            self:ShootInTarget(Target.Position)
+        local Targets = self:GetBladeHits(char, 120)
+        for _, t in ipairs(Targets) do
+            self:ShootInTarget(t[2].Position)
         end
     else
         self:UseNormalClick(char)
@@ -199,7 +182,7 @@ function FastAttack:Attack()
 end
 
 --====================================================
--- START LOOP
+-- START
 --====================================================
 local AttackInstance = FastAttack.new()
 
