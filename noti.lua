@@ -1,5 +1,4 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/JoinTeam.lua"))()
 do
   ply = game.Players
   plr = ply.LocalPlayer
@@ -1727,63 +1726,105 @@ spawn(function()
     local plr = game.Players.LocalPlayer
     local replicated = game:GetService("ReplicatedStorage")
     local ws = game:GetService("Workspace")
-    local Root = plr.Character:WaitForChild("HumanoidRootPart")
 
     while task.wait(Sec or 0.2) do
         if _G.Level then
-            pcall(function()
-                local questGui = plr:WaitForChild("PlayerGui"):WaitForChild("Main"):WaitForChild("Quest")
+            local ok, err = pcall(function()
+
+                -- FIX ROOT (KHÔNG BỊ CŨ SAU KHI QUA ĐẢO)
+                local Character = plr.Character or plr.CharacterAdded:Wait()
+                local Root = Character:WaitForChild("HumanoidRootPart")
+
+                local questGui = plr.PlayerGui.Main.Quest
+
+                -- LẤY QUEST DATA
                 local q = QuestNeta()
                 if not q or not q[1] then return end
 
-                local questMobName, questID, questIndex, mobPos, questDisplay, questPos =
-                    q[1], q[2], q[3], q[4], q[5], q[6]
+                local questMobName = q[1]
+                local questID       = q[2]
+                local questIndex    = q[3]
+                local mobPos        = q[4]
+                local questDisplay  = q[5]
+                local questPos      = q[6]
 
+                if not questPos or not mobPos then return end
+
+                -- TÊN QUEST ĐANG NHẬN
                 local questTitle = ""
-                if questGui:FindFirstChild("Container") and questGui.Container:FindFirstChild("QuestTitle") then
+                if questGui.Visible
+                    and questGui:FindFirstChild("Container")
+                    and questGui.Container:FindFirstChild("QuestTitle") then
                     questTitle = questGui.Container.QuestTitle.Title.Text
                 end
+
+                ------------------------------------------------
+                -- NHẬN QUEST
+                ------------------------------------------------
                 if not questGui.Visible or not string.find(questTitle, questDisplay or "") then
                     replicated.Remotes.CommF_:InvokeServer("AbandonQuest")
                     task.wait(0.25)
-                    _tp(questPos)
-                    repeat
-                        task.wait()
-                    until (Root.Position - questPos.Position).Magnitude <= 6
+
+                    if (Root.Position - questPos.Position).Magnitude > 50 then
+                        _tp(questPos)
+                        return
+                    end
+
                     replicated.Remotes.CommF_:InvokeServer("StartQuest", questIndex, questID)
+                    task.wait(0.5)
                     return
                 end
+
+                ------------------------------------------------
+                -- ĐÁNH QUÁI
+                ------------------------------------------------
                 local foundMob = false
+
                 for _, mob in pairs(ws.Enemies:GetChildren()) do
                     if mob.Name == questMobName and Attack.Alive(mob) then
-                        foundMob = true
                         local mobRoot = mob:FindFirstChild("HumanoidRootPart")
                         if not mobRoot then continue end
 
+                        foundMob = true
                         repeat
                             task.wait()
                             if not _G.Level or not mob.Parent or mob.Humanoid.Health <= 0 then break end
 
                             local dist = (Root.Position - mobRoot.Position).Magnitude
-                            if dist > 250 then
-                                _tp(mobRoot.CFrame * CFrame.new(0, 40, 0))
-                            elseif dist > 30 then
-                                Root.CFrame = Root.CFrame:Lerp(mobRoot.CFrame * CFrame.new(0, 20, 0), 0.25)
+                            if dist <= 350 then
+                                Root.CFrame =
+                                    mobRoot.CFrame
+                                    * CFrame.new(0, 15, 0)
+                                    * CFrame.Angles(math.rad(-90), 0, 0)
+                                Root.Velocity = Vector3.new(0,0,0)
+                            else
+                                _tp(mobRoot.CFrame)
                             end
+
                             Attack.Kill(mob, _G.Level)
                         until mob.Humanoid.Health <= 0 or not mob.Parent
+
                         break
                     end
                 end
+
+                ------------------------------------------------
+                -- KHÔNG CÓ QUÁI → VỀ BÃI
+                ------------------------------------------------
                 if not foundMob then
-                    _tp(mobPos)
-                    task.wait(0.5)
-                    local spawnMob = ws.Enemies:FindFirstChild(questMobName)
-                    if spawnMob and spawnMob:FindFirstChild("HumanoidRootPart") then
-                        _tp(spawnMob.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                    if (Root.Position - mobPos.Position).Magnitude > 350 then
+                        _tp(mobPos)
+                    else
+                        Root.CFrame = mobPos * CFrame.new(0, 50, 0)
+                        Root.Velocity = Vector3.new(0,0,0)
                     end
                 end
+
             end)
+
+            if not ok then
+                warn("AUTO FARM ERROR:", err)
+            end
         end
     end
 end)
@@ -2142,11 +2183,102 @@ end)
 if not _G.MobIndex then _G.MobIndex = 1 end
 
 spawn(function()
-    -- Hàm xóa lực hút trái đất để nhân vật di chuyển bình thường
+    -- Biến để kiểm soát tween
+    local isTweening = false
+    local lastTweenTime = 0
+    local tweenCooldown = 5 -- Giây
+    
+    -- Hàm xóa lực hút trái đất
     local function RemoveAntiGravity(root)
         if root and root:FindFirstChild("AntiGravity") then
             root.AntiGravity:Destroy()
         end
+    end
+    
+    -- Hàm bay đến vị trí với Tween ngẫu nhiên
+    local function TweenToPosition(position, randomOffset)
+        local player = game.Players.LocalPlayer
+        local root = player.Character and player.Character:FindFirstFirstChild("HumanoidRootPart")
+        if not root then return end
+        
+        isTweening = true
+        
+        -- Xóa AntiGravity trước khi bay
+        RemoveAntiGravity(root)
+        
+        -- Tạo offset ngẫu nhiên
+        local offset = Vector3.new(
+            math.random(-randomOffset, randomOffset),
+            math.random(10, 30), -- Bay cao hơn một chút
+            math.random(-randomOffset, randomOffset)
+        )
+        
+        local targetPos = position + offset
+        local distance = (root.Position - targetPos).Magnitude
+        
+        -- Tính thời gian bay dựa trên khoảng cách
+        local tweenTime = math.min(3, distance / 150) -- Tối đa 3 giây
+        
+        -- Tạo TweenInfo với easing ngẫu nhiên
+        local easingStyle = Enum.EasingStyle[{"Linear", "Quad", "Sine", "Back", "Bounce"}[math.random(1,5)]]
+        local tweenInfo = TweenInfo.new(
+            tweenTime,
+            easingStyle,
+            Enum.EasingDirection.Out,
+            0,
+            false,
+            0
+        )
+        
+        -- Tạo tween
+        local tween = game:GetService("TweenService"):Create(
+            root,
+            tweenInfo,
+            {CFrame = CFrame.new(targetPos)}
+        )
+        
+        tween:Play()
+        
+        -- Chờ tween hoàn thành hoặc bị hủy
+        local completed = false
+        local connection
+        connection = tween.Completed:Connect(function()
+            completed = true
+            if connection then connection:Disconnect() end
+        end)
+        
+        -- Timeout cho tween
+        local startTime = tick()
+        repeat
+            task.wait()
+            if not _G.AutoFarm_Bone then 
+                tween:Cancel()
+                break
+            end
+        until completed or tick() - startTime > tweenTime + 2
+        
+        isTweening = false
+        lastTweenTime = tick()
+    end
+    
+    -- Hàm kiểm tra và bay đến đảo nếu ở xa
+    local function CheckAndGoToIsland()
+        local player = game.Players.LocalPlayer
+        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return false end
+        
+        -- Vị trí đảo Haunted
+        local hauntedIslandPos = Vector3.new(-9516.99316, 172.017181, 6078.46533)
+        local distanceToIsland = (root.Position - hauntedIslandPos).Magnitude
+        
+        -- Nếu ở quá xa (>500 studs) và không đang tween
+        if distanceToIsland > 500 and not isTweening and tick() - lastTweenTime > tweenCooldown then
+            print("Đang ở xa đảo, bay đến đảo...")
+            TweenToPosition(hauntedIslandPos, 50)
+            return true
+        end
+        
+        return false
     end
 
     while task.wait() do 
@@ -2159,28 +2291,40 @@ spawn(function()
                 local BonesTable = {"Reborn Skeleton", "Living Zombie", "Demonic Soul", "Posessed Mummy"}
                 
                 if not root then return end
+                
+                -- Kiểm tra và bay đến đảo nếu ở xa
+                if CheckAndGoToIsland() then
+                    task.wait(1) -- Chờ 1 giây sau khi bay
+                    return
+                end
+                
                 local CurrentTargetName = BonesTable[_G.MobIndex]
                 local bone = GetConnectionEnemies({CurrentTargetName})
                 
                 -- /// LOGIC NHẬN QUEST ///
                 if _G.AcceptQuestC and not questUI.Visible then
                      local questPos = CFrame.new(-9516.99316,172.017181,6078.46533)
-                     -- Nếu đang dùng AntiGravity thì xóa đi để bay đi nhận quest
                      RemoveAntiGravity(root)
                      
-                     if (questPos.Position - root.Position).Magnitude > 50 then
-                          _tp(questPos)
-                          return 
-                     else
-                          local randomQuest = math.random(1, 4)
-                          local questData = {
+                     local distanceToQuest = (questPos.Position - root.Position).Magnitude
+                     
+                     -- Nếu cách xa quest và không đang tween
+                     if distanceToQuest > 150 and not isTweening and tick() - lastTweenTime > tweenCooldown then
+                         print("Bay đến nhận quest...")
+                         TweenToPosition(questPos.Position, 20)
+                         task.wait(0.5)
+                     end
+                     
+                     if distanceToQuest <= 50 then
+                         local randomQuest = math.random(1, 4)
+                         local questData = {
                             [1] = {"StartQuest", "HauntedQuest2", 2},
                             [2] = {"StartQuest", "HauntedQuest2", 1},
                             [3] = {"StartQuest", "HauntedQuest1", 1},
                             [4] = {"StartQuest", "HauntedQuest1", 2}
-                          }                    
-                          game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
-                          task.wait(0.5)
+                         }                    
+                         game.ReplicatedStorage.Remotes.CommF_:InvokeServer(unpack(questData[randomQuest]))
+                         task.wait(0.5)
                      end
                 end
 
@@ -2197,24 +2341,45 @@ spawn(function()
                                 
                                 -- Nếu khoảng cách nhỏ hơn 350 (Đang ở trên đảo Haunted)
                                 if dist < 350 then
-                                    -- 1. Set vị trí trên đầu quái (cao 25 stud cho an toàn), nhìn xuống đất
-                                    root.CFrame = enemyRoot.CFrame * CFrame.new(0, 25, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                                    -- Kiểm tra nếu đang bay thì dừng
+                                    if isTweening then
+                                        -- Hủy tween hiện tại
+                                        game:GetService("TweenService"):GetTweens(root)[1]:Cancel()
+                                        isTweening = false
+                                    end
+                                    
+                                    -- 1. Set vị trí trên đầu quái
+                                    local targetCFrame = enemyRoot.CFrame * CFrame.new(
+                                        math.random(-5, 5), -- Offset ngẫu nhiên X
+                                        math.random(20, 30), -- Offset cao hơn
+                                        math.random(-5, 5)  -- Offset ngẫu nhiên Z
+                                    )
+                                    
+                                    -- Di chuyển mượt mà hơn
+                                    root.CFrame = root.CFrame:Lerp(targetCFrame, 0.3)
                                     
                                     -- 2. TẠO ANTI-GRAVITY (CHỐNG RỚT)
                                     if not root:FindFirstChild("AntiGravity") then
                                         local bv = Instance.new("BodyVelocity")
                                         bv.Name = "AntiGravity"
                                         bv.Parent = root
-                                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge) -- Lực vô cực
-                                        bv.Velocity = Vector3.new(0, 0, 0) -- Giữ đứng yên
+                                        bv.MaxForce = Vector3.new(0, 9.8 * 196.25, 0) -- Chỉ chống trọng lực
+                                        bv.Velocity = Vector3.new(0, 0, 0)
                                     end
                                     
-                                    -- 3. Đánh quái (Vẫn gọi hàm Attack nhưng nhân vật đã bị khóa vị trí ở trên)
+                                    -- 3. Đánh quái
                                     Attack.Kill(bone, _G.AutoFarm_Bone) 
                                 else
-                                    -- Nếu ở xa quá thì xóa AntiGravity để dùng hàm bay mặc định
+                                    -- Nếu ở xa quá thì xóa AntiGravity
                                     RemoveAntiGravity(root)
-                                    Attack.Kill(bone, _G.AutoFarm_Bone) 
+                                    
+                                    -- Bay đến quái nếu cách xa
+                                    if dist > 100 and not isTweening and tick() - lastTweenTime > tweenCooldown then
+                                        print("Bay đến quái...")
+                                        TweenToPosition(enemyRoot.Position, 15)
+                                    else
+                                        Attack.Kill(bone, _G.AutoFarm_Bone)
+                                    end
                                 end
                             end
                         else
@@ -2222,11 +2387,31 @@ spawn(function()
                         end
                     until not _G.AutoFarm_Bone or bone.Humanoid.Health <= 0 or not bone.Parent or (_G.AcceptQuestC and not questUI.Visible)
                     
-                    -- Sau khi quái chết, xóa AntiGravity ngay để không bị kẹt
+                    -- Sau khi quái chết
                     RemoveAntiGravity(root)
+                    
+                    -- Random nhảy sang vị trí khác sau khi giết quái
+                    if math.random(1, 3) == 1 and not isTweening and tick() - lastTweenTime > tweenCooldown then
+                        local randomPos = Vector3.new(
+                            math.random(-9600, -9400),
+                            200,
+                            math.random(5900, 6200)
+                        )
+                        TweenToPosition(randomPos, 30)
+                    end
                 else
-                    -- Không có quái cũng xóa AntiGravity
+                    -- Không có quái
                     RemoveAntiGravity(root)
+                    
+                    -- Nếu không tìm thấy quái, bay random trong khu vực
+                    if not isTweening and tick() - lastTweenTime > tweenCooldown then
+                        local searchPos = Vector3.new(
+                            math.random(-9550, -9450),
+                            180,
+                            math.random(6000, 6150)
+                        )
+                        TweenToPosition(searchPos, 40)
+                    end
 
                     _G.MobIndex = _G.MobIndex + 1
                     
@@ -2238,10 +2423,18 @@ spawn(function()
                 end
             end)
         else
-            -- Nếu tắt AutoFarm thì xóa ngay lập tức
+            -- Nếu tắt AutoFarm
             local player = game.Players.LocalPlayer
             local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if root then RemoveAntiGravity(root) end
+            if root then 
+                RemoveAntiGravity(root)
+                -- Hủy tween nếu đang bay
+                local tweens = game:GetService("TweenService"):GetTweens(root)
+                for _, tween in ipairs(tweens) do
+                    tween:Cancel()
+                end
+                isTweening = false
+            end
         end
     end
 end)
