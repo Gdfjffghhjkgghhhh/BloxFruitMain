@@ -18,7 +18,7 @@ local RegHit = Net:WaitForChild("RE/RegisterHit")
 local Config = {
     Dist = 120,
     -- Điểm ngọt (Sweet Spot): Server thường nhận ~30-40 hit/s ổn định nhất.
-    MaxBatch = 80, 
+    MaxBatch = 100, 
     BypassDetection = true
 }
 
