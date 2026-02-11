@@ -197,74 +197,81 @@ local plr = game.Players.LocalPlayer
 
 BringEnemy = function()
     if not _B or not PosMon then return end
-
+    
     pcall(function()
         sethiddenproperty(plr, "SimulationRadius", math.huge)
     end)
 
-    RotateAngle += 0.05
-
-    local count = 0
-
     task.defer(function()
         for _, v in ipairs(workspace.Enemies:GetChildren()) do
-            if count >= MAX_MOB then break end
-
             local hum = v:FindFirstChild("Humanoid")
-            local hrp = v:FindFirstChild("HumanoidRootPart")
-
+            local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
+            
             if hum and hrp and hum.Health > 0 then
-                if (hrp.Position - PosMon).Magnitude <= 300
-                and isnetworkowner(hrp) then
-
-                    count += 1
-
-                    -- Tắt physics lỗi
+                local dist = (hrp.Position - PosMon).Magnitude
+                if dist <= 300 and isnetworkowner(hrp) then
+                    
+                    -- Apply anti-ghost measures
                     for _, part in ipairs(v:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CanCollide = false
+                            part.Anchored = false
                             part.Massless = true
-                            part.AssemblyLinearVelocity = Vector3.zero
-                            part.AssemblyAngularVelocity = Vector3.zero
+                            part.Velocity = Vector3.new(0, 0, 0)
+                            part.RotVelocity = Vector3.new(0, 0, 0)
                         end
                     end
-
-                    hum.WalkSpeed = 0
-                    hum.JumpPower = 0
-                    hum.AutoRotate = false
-                    hum.PlatformStand = false
-
+                    
+                    hum.WalkSpeed, hum.JumpPower = 0, 0
+                    hum.PlatformStand = true
+                    hum.AutoRotate = false -- Ngăn không cho quay tự động
+                    
                     local anim = hum:FindFirstChildOfClass("Animator")
-                    if anim then anim:Destroy() end
-
-                    -- BodyPosition giữ quái
-                    local bp = hrp:FindFirstChild("BringBP")
-                    if not bp then
-                        bp = Instance.new("BodyPosition")
-                        bp.Name = "BringBP"
-                        bp.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-                        bp.P = 20000
-                        bp.D = 1200
-                        bp.Parent = hrp
+                    if anim then anim.Parent = nil end
+                    
+                    -- Kiểm tra và đảm bảo quái vật không ở dưới đất
+                    local targetPosition
+                    local raycastParams = RaycastParams.new()
+                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    raycastParams.FilterDescendantsInstances = {v}
+                    
+                    -- Kiểm tra xem PosMon có ở dưới đất không
+                    local rayOrigin = Vector3.new(PosMon.X, PosMon.Y + 10, PosMon.Z)
+                    local rayDirection = Vector3.new(0, -100, 0)
+                    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+                    
+                    if raycastResult then
+                        -- Nếu có đất bên dưới, đặt quái vật cao hơn mặt đất
+                        targetPosition = raycastResult.Position + Vector3.new(0, 5, 0)
+                    else
+                        -- Nếu không có đất, sử dụng vị trí hiện tại của quái vật (giữ nguyên độ cao)
+                        targetPosition = Vector3.new(PosMon.X, hrp.Position.Y, PosMon.Z)
                     end
-
-                    -- ✨ OFFSET XOAY VÒNG
-                    local angle = RotateAngle + (count * (math.pi * 2 / MAX_MOB))
-                    local offset = Vector3.new(
-                        math.cos(angle) * RADIUS,
-                        5,
-                        math.sin(angle) * RADIUS
-                    )
-
-                    bp.Position = PosMon + offset
-
-                    hrp.CFrame = CFrame.new(hrp.Position, PosMon)
+                    
+                    -- Smooth teleport với nội suy tuyến tính
+                    local startPos = hrp.Position
+                    local steps = 5
+                    
+                    for i = 1, steps do
+                        if isnetworkowner(hrp) then
+                            local alpha = i / steps
+                            local lerpedPos = startPos:Lerp(targetPosition, alpha)
+                            hrp.CFrame = CFrame.new(lerpedPos)
+                            task.wait(0.03)
+                        else
+                            break
+                        end
+                    end
+                    
+                    -- Đảm bảo vị trí cuối cùng chính xác
+                    if isnetworkowner(hrp) then
+                        hrp.CFrame = CFrame.new(targetPosition)
+                    end
                 end
             end
         end
     end)
 end
-
 Useskills = function(weapon, skill)
   if weapon == "Melee" then
     weaponSc("Melee")
@@ -7801,4 +7808,3 @@ task.spawn(function()
   end)
 end)
 Window:SelectTab(1)
-
