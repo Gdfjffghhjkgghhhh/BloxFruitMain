@@ -3468,55 +3468,6 @@ spawn(function()
   end
 end)
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-
-local Player = Players.LocalPlayer
-local CommF = ReplicatedStorage.Remotes.CommF_
-
--- Equip Buddha
-local function EquipBuddha()
-    local char = Player.Character
-    if not char or not char:FindFirstChild("Humanoid") then return false end
-
-    for _, tool in pairs(Player.Backpack:GetChildren()) do
-        if tool:IsA("Tool") and tool.Name:lower():find("buddha") then
-            char.Humanoid:EquipTool(tool)
-            return true
-        end
-    end
-    return false
-end
-
-local BuddhaZToggle = Tabs.Settings:AddToggle("BuddhaZ", {
-    Title = "Auto Z Buddha",
-    Description = "Fast Farming",
-    Default = false
-})
-
-BuddhaZToggle:OnChanged(function(Value)
-    if not Value then return end
-
-    task.spawn(function()
-        pcall(function()
-
-            EquipBuddha()
-            task.wait(0.25)
-
-            CommF:InvokeServer("ActivateAbility", "Buddha")
-            task.wait(0.25)
-
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Z, false, game)
-            task.wait(0.05)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Z, false, game)
-        end)
-
-        task.wait(0.4)
-        Fluent.Options.BuddhaZ:SetValue(false)
-    end)
-end)
-
 local Bringmob = Tabs.Settings:AddToggle("Bringmob", {Title = "Bring Mobs", Description = "", Default = true})
 Bringmob:OnChanged(function(Value)
   _B = Value
