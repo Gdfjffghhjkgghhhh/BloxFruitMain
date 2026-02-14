@@ -193,118 +193,55 @@ statsSetings = function(Num, value)
     end
   end
 end
-local plr = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
--- Hàm kiểm tra network ownership an toàn cho executor thiếu isnetworkowner
-local function isPartNetworkOwner(part)
-    local success, result = pcall(isnetworkowner, part)
-    if success then
-        return result
-    else
-        -- Nếu executor không hỗ trợ isnetworkowner, giả định là true (có thể gây lỗi nhưng vẫn chạy)
-        return true
-    end
-end
+local plr = Players.LocalPlayer
 
--- Hàm raycast tương thích (dùng cả Raycast mới và FindPartOnRay cũ)
-local function raycastGround(position, ignoreInstance)
-    local rayStart = Vector3.new(position.X, position.Y + 10, position.Z)
-    local rayDir = Vector3.new(0, -100, 0)
-    
-    -- Thử dùng RaycastParams + workspace:Raycast (phiên bản mới)
-    local success, result = pcall(function()
-        local params = RaycastParams.new()
-        params.FilterType = Enum.RaycastFilterType.Blacklist
-        params.FilterDescendantsInstances = {ignoreInstance}
-        return workspace:Raycast(rayStart, rayDir, params)
-    end)
-    
-    if success and result then
-        return result.Position, result.Instance
-    else
-        -- Fallback sang FindPartOnRay (cũ)
-        local ignoreList = {ignoreInstance}
-        local ray = Ray.new(rayStart, rayDir)
-        local part, point = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
-        if part then
-            return point, part
-        end
-    end
-    return nil
-end
+-- PosMon = Vector3 (vị trí gom)
+-- _B = true / false (toggle)
 
-BringEnemy = function()
+function BringEnemy()
     if not _B or not PosMon then return end
-    
-    -- Thử tăng SimulationRadius (nếu executor hỗ trợ sethiddenproperty)
-    pcall(function()
-        if sethiddenproperty then
-            sethiddenproperty(plr, "SimulationRadius", math.huge)
-        end
-    end)
 
-    -- Dùng spawn thay cho task.defer để tương thích rộng hơn
-    spawn(function()
-        for _, v in ipairs(workspace.Enemies:GetChildren()) do
-            local hum = v:FindFirstChild("Humanoid")
-            local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
-            
-            if hum and hrp and hum.Health > 0 then
-                local dist = (hrp.Position - PosMon).Magnitude
-                if dist <= 300 and isPartNetworkOwner(hrp) then
-                    
-                    -- Vô hiệu hóa các phần vật lý để tránh ghost
-                    for _, part in ipairs(v:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                            part.Anchored = false
-                            part.Massless = true
-                            part.Velocity = Vector3.new(0, 0, 0)
-                            part.RotVelocity = Vector3.new(0, 0, 0)
-                        end
-                    end
-                    
-                    hum.WalkSpeed, hum.JumpPower = 0, 0
-                    hum.PlatformStand = true
-                    hum.AutoRotate = false
-                    
-                    local anim = hum:FindFirstChildOfClass("Animator")
-                    if anim then anim.Parent = nil end
-                    
-                    -- Xác định vị trí đích (trên mặt đất nếu có)
-                    local targetPosition
-                    local groundPoint = raycastGround(PosMon, v)
-                    
-                    if groundPoint then
-                        targetPosition = groundPoint + Vector3.new(0, 5, 0)
-                    else
-                        targetPosition = Vector3.new(PosMon.X, hrp.Position.Y, PosMon.Z)
-                    end
-                    
-                    -- Di chuyển mượt (lerp) với vòng lặp thay thế task.wait bằng wait()
-                    local startPos = hrp.Position
-                    local steps = 5
-                    
-                    for i = 1, steps do
-                        if isPartNetworkOwner(hrp) then
-                            local alpha = i / steps
-                            local lerpedPos = startPos:Lerp(targetPosition, alpha)
-                            hrp.CFrame = CFrame.new(lerpedPos)
-                            wait(0.03)
-                        else
-                            break
-                        end
-                    end
-                    
-                    -- Đặt chính xác vị trí cuối
-                    if isPartNetworkOwner(hrp) then
-                        hrp.CFrame = CFrame.new(targetPosition)
+    for _, v in ipairs(workspace.Enemies:GetChildren()) do
+        local hum = v:FindFirstChildOfClass("Humanoid")
+        local hrp = v:FindFirstChild("HumanoidRootPart")
+
+        if hum and hrp and hum.Health > 0 then
+            local dist = (hrp.Position - PosMon).Magnitude
+            if dist <= 300 then
+
+                -- 🔒 Khóa trạng thái quái
+                hum.WalkSpeed = 0
+                hum.JumpPower = 0
+                hum.AutoRotate = false
+                hum.PlatformStand = true
+
+                -- 🧱 Fix ghost / bay
+                for _, part in ipairs(v:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                        part.Massless = true
+                        part.Velocity = Vector3.zero
+                        part.RotVelocity = Vector3.zero
                     end
                 end
+
+                -- 📌 Đặt quái ĐÚNG DƯỚI ĐẤT
+                local targetCF = CFrame.new(
+                    PosMon.X,
+                    PosMon.Y + 2, -- nhích nhẹ lên cho khỏi kẹt đất
+                    PosMon.Z
+                )
+
+                -- 🚶 Teleport mượt – không cần network owner
+                hrp.CFrame = hrp.CFrame:Lerp(targetCF, 0.35)
             end
         end
-    end)
+    end
 end
+
 Useskills = function(weapon, skill)
   if weapon == "Melee" then
     weaponSc("Melee")
@@ -7803,3 +7740,4 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
