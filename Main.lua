@@ -195,75 +195,127 @@ statsSetings = function(Num, value)
 end
 
 local plr = game.Players.LocalPlayer
-local character = plr.Character or plr.CharacterAdded:Wait()
-local hrpChar = character:WaitForChild("HumanoidRootPart")
+local char = plr.Character
+local rootPart = char and char:FindFirstChild("HumanoidRootPart")
 
--- Tạo một Part tạm để làm "mồi" kéo quái
-local function createAttachPart()
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(1,1,1)
-    part.Anchored = true
-    part.CanCollide = false
-    part.Transparency = 1
-    part.Parent = workspace
-    return part
+-- Hàm kiểm tra network ownership an toàn
+local function isNetworkOwner(part)
+    if not part then return false end
+    local success, result = pcall(isnetworkowner, part)
+    if success then return result end
+    -- Nếu executor không hỗ trợ, giả định là true (có thể gây lỗi nhưng vẫn thử)
+    return true
 end
 
-BringEnemy = function()
-    if not _B or not PosMon then return end
+-- Hàm set network ownership nếu executor hỗ trợ
+local function setNetworkOwner(part, player)
+    if not part or not player then return end
+    -- Thử các hàm phổ biến
+    pcall(setnetworkowner, part, player)
+    pcall(function() part:SetNetworkOwner(player) end)
+end
 
-    -- Tạo hoặc lấy Part tạm
-    local attachPart = workspace:FindFirstChild("BringEnemyPart") or createAttachPart()
-    attachPart.Name = "BringEnemyPart"
-    attachPart.CFrame = CFrame.new(PosMon.X, PosMon.Y + 5, PosMon.Z)
+-- Hàm raycast tìm mặt đất (tương thích)
+local function getGroundPosition(pos, ignoreInstance)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = ignoreInstance and {ignoreInstance} or {}
+    
+    local result = workspace:Raycast(pos + Vector3.new(0, 10, 0), Vector3.new(0, -200, 0), params)
+    if result then
+        return result.Position
+    end
+    
+    -- Fallback: dùng FindPartOnRay nếu Raycast không hoạt động
+    local ignoreList = ignoreInstance and {ignoreInstance} or {}
+    local ray = Ray.new(pos + Vector3.new(0, 10, 0), Vector3.new(0, -200, 0))
+    local part, point = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+    if part then
+        return point
+    end
+    -- Trả về vị trí gốc với Y = 0 nếu không tìm thấy
+    return Vector3.new(pos.X, 0, pos.Z)
+end
 
-    for _, v in ipairs(workspace.Enemies:GetChildren()) do
-        local hum = v:FindFirstChild("Humanoid")
-        local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
-        if hum and hrp and hum.Health > 0 then
-            local dist = (hrp.Position - PosMon).Magnitude
-            if dist <= 300 then
-                -- Vô hiệu hóa chuyển động
+BringEnemy = function(targetPos)
+    -- Xác định vị trí đích
+    targetPos = targetPos or PosMon or (rootPart and rootPart.Position)
+    if not targetPos then
+        warn("BringEnemy: missing target position")
+        return
+    end
+    
+    -- Tăng simulation radius để có thể kéo quái xa
+    pcall(sethiddenproperty, plr, "SimulationRadius", math.huge)
+    
+    local enemies = workspace:FindFirstChild("Enemies")
+    if not enemies then return end
+    
+    -- Xử lý từng quái bằng coroutine để chạy song song
+    spawn(function()
+        for _, v in ipairs(enemies:GetChildren()) do
+            coroutine.wrap(function()
+                local hum = v:FindFirstChild("Humanoid")
+                local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
+                if not (hum and hrp and hum.Health > 0) then return end
+                
+                -- Kiểm tra khoảng cách
+                local dist = (hrp.Position - targetPos).Magnitude
+                if dist > 300 then return end
+                
+                -- Đảm bảo network ownership trước khi move
+                if not isNetworkOwner(hrp) then
+                    setNetworkOwner(hrp, plr)
+                    wait(0.1)  -- Chờ ownership chuyển
+                end
+                
+                -- Nếu vẫn không có quyền, bỏ qua
+                if not isNetworkOwner(hrp) then return end
+                
+                -- Vô hiệu hóa vật lý và animation
+                for _, part in ipairs(v:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                        part.Anchored = false
+                        part.Massless = true
+                        part.Velocity = Vector3.new(0, 0, 0)
+                        part.RotVelocity = Vector3.new(0, 0, 0)
+                    end
+                end
+                
                 hum.WalkSpeed = 0
                 hum.JumpPower = 0
                 hum.PlatformStand = true
                 hum.AutoRotate = false
-                if hum:FindFirstChildOfClass("Animator") then
-                    hum:FindFirstChildOfClass("Animator"):Destroy()
+                
+                local animator = hum:FindFirstChildOfClass("Animator")
+                if animator then animator:Destroy() end
+                
+                -- Tính vị trí đích trên mặt đất
+                local groundPos = getGroundPosition(targetPos, v)
+                local finalPos = groundPos + Vector3.new(0, 5, 0)  -- Nâng lên 5 stud để khỏi lún
+                
+                -- Di chuyển mượt bằng lerp (dùng CFrame)
+                local startCF = hrp.CFrame
+                local steps = 15  -- Tăng số bước cho mượt hơn
+                for i = 1, steps do
+                    if not isNetworkOwner(hrp) then break end
+                    local alpha = i / steps
+                    local newPos = startCF.Position:Lerp(finalPos, alpha)
+                    hrp.CFrame = CFrame.new(newPos)
+                    wait(0.02)  -- Tương đương 20ms
                 end
-
-                -- Tắt vật lý các part
-                for _, part in ipairs(v:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Velocity, part.RotVelocity = Vector3.new(0,0,0), Vector3.new(0,0,0)
-                        part.CanCollide = false
-                    end
+                
+                -- Đặt chính xác vị trí cuối
+                if isNetworkOwner(hrp) then
+                    hrp.CFrame = CFrame.new(finalPos)
                 end
-
-                -- Gắn quái vào attachPart bằng Weld
-                local weld = Instance.new("Weld")
-                weld.Part0 = attachPart
-                weld.Part1 = hrp
-                weld.C0 = CFrame.new(0,0,0)
-                weld.C1 = hrp.CFrame:toObjectSpace(attachPart.CFrame):inverse() -- giữ nguyên vị trí tương đối hiện tại
-                weld.Parent = attachPart
-
-                -- Sau khi weld, quái sẽ dính vào attachPart, và khi attachPart di chuyển, quái cũng di chuyển theo
-                -- Di chuyển attachPart về vị trí đích (có thể dùng lerp đơn giản)
-                local targetPos = PosMon + Vector3.new(0,5,0)
-                local startPos = attachPart.Position
-                for i = 1, 10 do
-                    attachPart.CFrame = CFrame.new(startPos:Lerp(targetPos, i/10))
-                    wait(0.03)
-                end
-                attachPart.CFrame = CFrame.new(targetPos)
-
-                -- Xoá weld sau khi kéo xong (tuỳ chọn)
-                wait(0.5)
-                weld:Destroy()
-            end
+            end)()
+            
+            -- Nghỉ giữa các lần xử lý quái để tránh lag
+            wait(0.03)
         end
-    end
+    end)
 end
 
 Useskills = function(weapon, skill)
@@ -7764,5 +7816,6 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
 
 
