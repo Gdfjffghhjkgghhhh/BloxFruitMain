@@ -193,50 +193,74 @@ statsSetings = function(Num, value)
     end
   end
 end
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
-local plr = Players.LocalPlayer
+local plr = game.Players.LocalPlayer
+local character = plr.Character or plr.CharacterAdded:Wait()
+local hrpChar = character:WaitForChild("HumanoidRootPart")
 
--- PosMon = Vector3 (vị trí gom)
--- _B = true / false (toggle)
+-- Tạo một Part tạm để làm "mồi" kéo quái
+local function createAttachPart()
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(1,1,1)
+    part.Anchored = true
+    part.CanCollide = false
+    part.Transparency = 1
+    part.Parent = workspace
+    return part
+end
 
-function BringEnemy()
+BringEnemy = function()
     if not _B or not PosMon then return end
 
-    for _, v in ipairs(workspace.Enemies:GetChildren()) do
-        local hum = v:FindFirstChildOfClass("Humanoid")
-        local hrp = v:FindFirstChild("HumanoidRootPart")
+    -- Tạo hoặc lấy Part tạm
+    local attachPart = workspace:FindFirstChild("BringEnemyPart") or createAttachPart()
+    attachPart.Name = "BringEnemyPart"
+    attachPart.CFrame = CFrame.new(PosMon.X, PosMon.Y + 5, PosMon.Z)
 
+    for _, v in ipairs(workspace.Enemies:GetChildren()) do
+        local hum = v:FindFirstChild("Humanoid")
+        local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
         if hum and hrp and hum.Health > 0 then
             local dist = (hrp.Position - PosMon).Magnitude
             if dist <= 300 then
-
-                -- 🔒 Khóa trạng thái quái
+                -- Vô hiệu hóa chuyển động
                 hum.WalkSpeed = 0
                 hum.JumpPower = 0
-                hum.AutoRotate = false
                 hum.PlatformStand = true
+                hum.AutoRotate = false
+                if hum:FindFirstChildOfClass("Animator") then
+                    hum:FindFirstChildOfClass("Animator"):Destroy()
+                end
 
-                -- 🧱 Fix ghost / bay
-                for _, part in ipairs(v:GetChildren()) do
+                -- Tắt vật lý các part
+                for _, part in ipairs(v:GetDescendants()) do
                     if part:IsA("BasePart") then
+                        part.Velocity, part.RotVelocity = Vector3.new(0,0,0), Vector3.new(0,0,0)
                         part.CanCollide = false
-                        part.Massless = true
-                        part.Velocity = Vector3.zero
-                        part.RotVelocity = Vector3.zero
                     end
                 end
 
-                -- 📌 Đặt quái ĐÚNG DƯỚI ĐẤT
-                local targetCF = CFrame.new(
-                    PosMon.X,
-                    PosMon.Y + 2, -- nhích nhẹ lên cho khỏi kẹt đất
-                    PosMon.Z
-                )
+                -- Gắn quái vào attachPart bằng Weld
+                local weld = Instance.new("Weld")
+                weld.Part0 = attachPart
+                weld.Part1 = hrp
+                weld.C0 = CFrame.new(0,0,0)
+                weld.C1 = hrp.CFrame:toObjectSpace(attachPart.CFrame):inverse() -- giữ nguyên vị trí tương đối hiện tại
+                weld.Parent = attachPart
 
-                -- 🚶 Teleport mượt – không cần network owner
-                hrp.CFrame = hrp.CFrame:Lerp(targetCF, 0.35)
+                -- Sau khi weld, quái sẽ dính vào attachPart, và khi attachPart di chuyển, quái cũng di chuyển theo
+                -- Di chuyển attachPart về vị trí đích (có thể dùng lerp đơn giản)
+                local targetPos = PosMon + Vector3.new(0,5,0)
+                local startPos = attachPart.Position
+                for i = 1, 10 do
+                    attachPart.CFrame = CFrame.new(startPos:Lerp(targetPos, i/10))
+                    wait(0.03)
+                end
+                attachPart.CFrame = CFrame.new(targetPos)
+
+                -- Xoá weld sau khi kéo xong (tuỳ chọn)
+                wait(0.5)
+                weld:Destroy()
             end
         end
     end
@@ -7740,4 +7764,5 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
 
