@@ -1,3 +1,4 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/JoinTeam.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
 do
   ply = game.Players
@@ -193,131 +194,85 @@ statsSetings = function(Num, value)
     end
   end
 end
-
 local plr = game.Players.LocalPlayer
-local char = plr.Character
-local rootPart = char and char:FindFirstChild("HumanoidRootPart")
 
--- Hàm kiểm tra network ownership an toàn
-local function isNetworkOwner(part)
-    if not part then return false end
-    local success, result = pcall(isnetworkowner, part)
-    if success then return result end
-    -- Nếu executor không hỗ trợ, giả định là true (có thể gây lỗi nhưng vẫn thử)
-    return true
-end
+BringEnemy = function()
+    if not _B or not PosMon then return end
+    
+    pcall(function()
+        sethiddenproperty(plr, "SimulationRadius", math.huge)
+    end)
 
--- Hàm set network ownership nếu executor hỗ trợ
-local function setNetworkOwner(part, player)
-    if not part or not player then return end
-    -- Thử các hàm phổ biến
-    pcall(setnetworkowner, part, player)
-    pcall(function() part:SetNetworkOwner(player) end)
-end
-
--- Hàm raycast tìm mặt đất (tương thích)
-local function getGroundPosition(pos, ignoreInstance)
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.FilterDescendantsInstances = ignoreInstance and {ignoreInstance} or {}
-    
-    local result = workspace:Raycast(pos + Vector3.new(0, 10, 0), Vector3.new(0, -200, 0), params)
-    if result then
-        return result.Position
-    end
-    
-    -- Fallback: dùng FindPartOnRay nếu Raycast không hoạt động
-    local ignoreList = ignoreInstance and {ignoreInstance} or {}
-    local ray = Ray.new(pos + Vector3.new(0, 10, 0), Vector3.new(0, -200, 0))
-    local part, point = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
-    if part then
-        return point
-    end
-    -- Trả về vị trí gốc với Y = 0 nếu không tìm thấy
-    return Vector3.new(pos.X, 0, pos.Z)
-end
-
-BringEnemy = function(targetPos)
-    -- Xác định vị trí đích
-    targetPos = targetPos or PosMon or (rootPart and rootPart.Position)
-    if not targetPos then
-        warn("BringEnemy: missing target position")
-        return
-    end
-    
-    -- Tăng simulation radius để có thể kéo quái xa
-    pcall(sethiddenproperty, plr, "SimulationRadius", math.huge)
-    
-    local enemies = workspace:FindFirstChild("Enemies")
-    if not enemies then return end
-    
-    -- Xử lý từng quái bằng coroutine để chạy song song
-    spawn(function()
-        for _, v in ipairs(enemies:GetChildren()) do
-            coroutine.wrap(function()
-                local hum = v:FindFirstChild("Humanoid")
-                local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
-                if not (hum and hrp and hum.Health > 0) then return end
-                
-                -- Kiểm tra khoảng cách
-                local dist = (hrp.Position - targetPos).Magnitude
-                if dist > 300 then return end
-                
-                -- Đảm bảo network ownership trước khi move
-                if not isNetworkOwner(hrp) then
-                    setNetworkOwner(hrp, plr)
-                    wait(0.1)  -- Chờ ownership chuyển
-                end
-                
-                -- Nếu vẫn không có quyền, bỏ qua
-                if not isNetworkOwner(hrp) then return end
-                
-                -- Vô hiệu hóa vật lý và animation
-                for _, part in ipairs(v:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                        part.Anchored = false
-                        part.Massless = true
-                        part.Velocity = Vector3.new(0, 0, 0)
-                        part.RotVelocity = Vector3.new(0, 0, 0)
+    task.defer(function()
+        for _, v in ipairs(workspace.Enemies:GetChildren()) do
+            local hum = v:FindFirstChild("Humanoid")
+            local hrp = v:FindFirstChild("HumanoidRootPart") or v.PrimaryPart
+            
+            if hum and hrp and hum.Health > 0 then
+                local dist = (hrp.Position - PosMon).Magnitude
+                if dist <= 300 and isnetworkowner(hrp) then
+                    
+                    -- Apply anti-ghost measures
+                    for _, part in ipairs(v:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                            part.Anchored = false
+                            part.Massless = true
+                            part.Velocity = Vector3.new(0, 0, 0)
+                            part.RotVelocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                    
+                    hum.WalkSpeed, hum.JumpPower = 0, 0
+                    hum.PlatformStand = true
+                    hum.AutoRotate = false -- Ngăn không cho quay tự động
+                    
+                    local anim = hum:FindFirstChildOfClass("Animator")
+                    if anim then anim.Parent = nil end
+                    
+                    -- Kiểm tra và đảm bảo quái vật không ở dưới đất
+                    local targetPosition
+                    local raycastParams = RaycastParams.new()
+                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    raycastParams.FilterDescendantsInstances = {v}
+                    
+                    -- Kiểm tra xem PosMon có ở dưới đất không
+                    local rayOrigin = Vector3.new(PosMon.X, PosMon.Y + 10, PosMon.Z)
+                    local rayDirection = Vector3.new(0, -100, 0)
+                    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+                    
+                    if raycastResult then
+                        -- Nếu có đất bên dưới, đặt quái vật cao hơn mặt đất
+                        targetPosition = raycastResult.Position + Vector3.new(0, 5, 0)
+                    else
+                        -- Nếu không có đất, sử dụng vị trí hiện tại của quái vật (giữ nguyên độ cao)
+                        targetPosition = Vector3.new(PosMon.X, hrp.Position.Y, PosMon.Z)
+                    end
+                    
+                    -- Smooth teleport với nội suy tuyến tính
+                    local startPos = hrp.Position
+                    local steps = 5
+                    
+                    for i = 1, steps do
+                        if isnetworkowner(hrp) then
+                            local alpha = i / steps
+                            local lerpedPos = startPos:Lerp(targetPosition, alpha)
+                            hrp.CFrame = CFrame.new(lerpedPos)
+                            task.wait(0.03)
+                        else
+                            break
+                        end
+                    end
+                    
+                    -- Đảm bảo vị trí cuối cùng chính xác
+                    if isnetworkowner(hrp) then
+                        hrp.CFrame = CFrame.new(targetPosition)
                     end
                 end
-                
-                hum.WalkSpeed = 0
-                hum.JumpPower = 0
-                hum.PlatformStand = true
-                hum.AutoRotate = false
-                
-                local animator = hum:FindFirstChildOfClass("Animator")
-                if animator then animator:Destroy() end
-                
-                -- Tính vị trí đích trên mặt đất
-                local groundPos = getGroundPosition(targetPos, v)
-                local finalPos = groundPos + Vector3.new(0, 5, 0)  -- Nâng lên 5 stud để khỏi lún
-                
-                -- Di chuyển mượt bằng lerp (dùng CFrame)
-                local startCF = hrp.CFrame
-                local steps = 15  -- Tăng số bước cho mượt hơn
-                for i = 1, steps do
-                    if not isNetworkOwner(hrp) then break end
-                    local alpha = i / steps
-                    local newPos = startCF.Position:Lerp(finalPos, alpha)
-                    hrp.CFrame = CFrame.new(newPos)
-                    wait(0.02)  -- Tương đương 20ms
-                end
-                
-                -- Đặt chính xác vị trí cuối
-                if isNetworkOwner(hrp) then
-                    hrp.CFrame = CFrame.new(finalPos)
-                end
-            end)()
-            
-            -- Nghỉ giữa các lần xử lý quái để tránh lag
-            wait(0.03)
+            end
         end
     end)
 end
-
 Useskills = function(weapon, skill)
   if weapon == "Melee" then
     weaponSc("Melee")
@@ -3512,6 +3467,55 @@ spawn(function()
       end
     end)
   end
+end)
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local Player = Players.LocalPlayer
+local CommF = ReplicatedStorage.Remotes.CommF_
+
+-- Equip Buddha
+local function EquipBuddha()
+    local char = Player.Character
+    if not char or not char:FindFirstChild("Humanoid") then return false end
+
+    for _, tool in pairs(Player.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool.Name:lower():find("buddha") then
+            char.Humanoid:EquipTool(tool)
+            return true
+        end
+    end
+    return false
+end
+
+local BuddhaZToggle = Tabs.Settings:AddToggle("BuddhaZ", {
+    Title = "Auto Z Buddha",
+    Description = "Fast Farming",
+    Default = false
+})
+
+BuddhaZToggle:OnChanged(function(Value)
+    if not Value then return end
+
+    task.spawn(function()
+        pcall(function()
+
+            EquipBuddha()
+            task.wait(0.25)
+
+            CommF:InvokeServer("ActivateAbility", "Buddha")
+            task.wait(0.25)
+
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Z, false, game)
+            task.wait(0.05)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Z, false, game)
+        end)
+
+        task.wait(0.4)
+        Fluent.Options.BuddhaZ:SetValue(false)
+    end)
 end)
 
 local Bringmob = Tabs.Settings:AddToggle("Bringmob", {Title = "Bring Mobs", Description = "", Default = true})
@@ -7816,6 +7820,3 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
-
-
-
