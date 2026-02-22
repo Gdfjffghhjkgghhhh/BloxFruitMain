@@ -25,8 +25,8 @@ local Config = {
     AttackPlayers = true,
     
     -- Tối ưu: 100-150 hits/sec thay vì 200 (giảm lag đáng kể)
-    HitsPerSecond = 300,
-    SpamMultiplier = 100,  -- Giảm từ 5 xuống 3 (giảm spam overhead)
+    HitsPerSecond = 150,
+    SpamMultiplier = 5,  -- Giảm từ 5 xuống 3 (giảm spam overhead)
     
     -- Cache timing
     TargetUpdateInterval = 0,  -- Update targets mỗi 0.1s thay vì mỗi frame
