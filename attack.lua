@@ -1,60 +1,14 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/WbmxHubNew/refs/heads/main/UnBanFastAttack.lua"))()
-local function GetBladeHits()
-    local targets = {}
-    local function GetDistance(v)
-        return (v.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-    end
-    
-    for _, part in pairs({game.Workspace.Enemies, game.Workspace.Characters}) do
-        for _, v in pairs(part:GetChildren()) do
-            if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Head") and v:FindFirstChild("Humanoid") then
-                if GetDistance(v.HumanoidRootPart) < 60 then
-                    table.insert(targets, v)
-                end
-            end
-        end
-    end
-
-    return targets
-end
-
-local function AttackAll()
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-    if not character then return end
-
-    local equippedWeapon = character:FindFirstChild("EquippedWeapon")
-    if not equippedWeapon then return end
-
-
-    local enemies = GetBladeHits()
-    if #enemies > 0 then
-        local netModule = game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Net")
-        netModule:WaitForChild("RE/RegisterAttack"):FireServer(-math.huge)
-        
-        local args = {nil, {}}
-        for i, v in pairs(enemies) do
-            if not args[1] then
-                args[1] = v.Head
-            end
-            args[2][i] = {v, v.HumanoidRootPart}
-        end
-        
-        netModule:WaitForChild("RE/RegisterHit"):FireServer(unpack(args))
-    end
-end
-
-spawn(function()
-    while task.wait() do AttackAll() end
-end)
-
+--// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+-- Wait for modules
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Net = Modules:WaitForChild("Net")
 local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
@@ -62,282 +16,387 @@ local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
 
+--// ULTRA SPEED CONFIG - 300+ HITS/SECOND
 local Config = {
-    AttackDistance = 65,
+    Enabled = true,
+    AttackDistance = 80,
+    GunDistance = 200,
     AttackMobs = true,
     AttackPlayers = true,
-    AttackCooldown = 0.05,
-    ComboResetTime = 0.01,
-    MaxCombo = 4,
-    HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
-    AutoClickEnabled = true
+    
+    -- TỐC ĐỘ CỰC NHANH
+    HitsPerSecond = 300,
+    SpamMultiplier = 8,  -- Tăng từ 5 lên 8
+    FastClick = true,    -- Bật click nhanh
 }
 
-local FastAttack = {}
-FastAttack.__index = FastAttack
+--// SPEED SYSTEM
+local SpeedAttack = {
+    HitCount = 0,
+    StartTime = tick(),
+    Targets = {},
+    LastAttack = 0,
+    
+    -- Function cache
+    ShootFunc = nil,
+    HitFunc = nil,
+    CombatFlags = nil,
+    FruitRemote = nil,
+}
 
-function FastAttack.new()
-    local self = setmetatable({
-        Debounce = 0,
-        ComboDebounce = 0,
-        ShootDebounce = 0,
-        M1Combo = 0,
-        EnemyRootPart = nil,
-        Connections = {},
-        Overheat = {Dragonstorm = {MaxOverheat = 3, Cooldown = 0, TotalOverheat = 0, Distance = 350, Shooting = false}},
-        ShootsPerTarget = {["Dual Flintlock"] = 2},
-        SpecialShoots = {["Skull Guitar"] = "TAP", ["Bazooka"] = "Position", ["Cannon"] = "Position", ["Dragonstorm"] = "Overheat"}
-    }, FastAttack)
+--// INIT FUNCTIONS
+local function InitFunctions()
+    pcall(function()
+        SpeedAttack.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
+    end)
     
     pcall(function()
-        self.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
-        self.ShootFunction = getupvalue(require(ReplicatedStorage.Controllers.CombatController).Attack, 9)
-        local LocalScript = Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript")
-        if LocalScript and getsenv then
-            self.HitFunction = getsenv(LocalScript)._G.SendHitsToServer
+        local CombatController = ReplicatedStorage.Controllers.CombatController
+        if CombatController then
+            SpeedAttack.ShootFunc = getupvalue(require(CombatController).Attack, 9)
         end
     end)
     
-    return self
+    pcall(function()
+        local LocalScript = Player.PlayerScripts:FindFirstChildOfClass("LocalScript")
+        if LocalScript and getsenv then
+            local env = getsenv(LocalScript)
+            if env and env._G and env._G.SendHitsToServer then
+                SpeedAttack.HitFunc = env._G.SendHitsToServer
+            end
+        end
+    end)
 end
 
-function FastAttack:IsEntityAlive(entity)
-    local humanoid = entity and entity:FindFirstChild("Humanoid")
-    return humanoid and humanoid.Health > 0
-end
-
-function FastAttack:CheckStun(Character, Humanoid, ToolTip)
-    local Stun = Character:FindFirstChild("Stun")
-    local Busy = Character:FindFirstChild("Busy")
-    if Humanoid.Sit and (ToolTip == "Sword" or ToolTip == "Melee" or ToolTip == "Blox Fruit") then
-        return false
-    elseif Stun and Stun.Value > 0 or Busy and Busy.Value then
-        return false
-    end
-    return true
-end
-
-function FastAttack:GetBladeHits(Character, Distance)
-    local Position = Character:GetPivot().Position
-    local BladeHits = {}
-    Distance = Distance or Config.AttackDistance
+--// GET ALL TARGETS INSTANTLY (Optimized)
+local function GetAllTargets()
+    if not Character or not Character.PrimaryPart then return {} end
     
-    local function ProcessTargets(Folder, CanAttack)
-        for _, Enemy in ipairs(Folder:GetChildren()) do
-            if Enemy ~= Character and self:IsEntityAlive(Enemy) then
-                local BasePart = Enemy:FindFirstChild(Config.HitboxLimbs[math.random(#Config.HitboxLimbs)]) or Enemy:FindFirstChild("HumanoidRootPart")
-                if BasePart and (Position - BasePart.Position).Magnitude <= Distance then
-                    if not self.EnemyRootPart then
-                        self.EnemyRootPart = BasePart
-                    else
-                        table.insert(BladeHits, {Enemy, BasePart})
+    local Pos = Character.PrimaryPart.Position
+    local AllTargets = {}
+    local DistSq = Config.AttackDistance * Config.AttackDistance
+    
+    -- Get Mobs (optimized)
+    if Config.AttackMobs then
+        for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
+            local humanoid = enemy:FindFirstChild("Humanoid")
+            local hrp = enemy:FindFirstChild("HumanoidRootPart")
+            
+            if humanoid and humanoid.Health > 0 and hrp then
+                local delta = hrp.Position - Pos
+                if delta.X*delta.X + delta.Y*delta.Y + delta.Z*delta.Z <= DistSq then
+                    table.insert(AllTargets, {enemy, hrp})
+                end
+            end
+        end
+    end
+    
+    -- Get Players (optimized)
+    if Config.AttackPlayers then
+        for _, enemy in pairs(Workspace.Characters:GetChildren()) do
+            if enemy ~= Character then
+                local humanoid = enemy:FindFirstChild("Humanoid")
+                local hrp = enemy:FindFirstChild("HumanoidRootPart")
+                
+                if humanoid and humanoid.Health > 0 and hrp then
+                    local delta = hrp.Position - Pos
+                    if delta.X*delta.X + delta.Y*delta.Y + delta.Z*delta.Z <= DistSq then
+                        table.insert(AllTargets, {enemy, hrp})
                     end
                 end
             end
         end
     end
     
-    if Config.AttackMobs then ProcessTargets(Workspace.Enemies) end
-    if Config.AttackPlayers then ProcessTargets(Workspace.Characters, true) end
-    
-    return BladeHits
+    return AllTargets
 end
 
-function FastAttack:GetClosestEnemy(Character, Distance)
-    local BladeHits = self:GetBladeHits(Character, Distance)
-    local Closest, MinDistance = nil, math.huge
+--// GET GUN TARGETS (Optimized)
+local function GetGunTargets()
+    if not Character or not Character.PrimaryPart then return {} end
     
-    for _, Hit in ipairs(BladeHits) do
-        local Magnitude = (Character:GetPivot().Position - Hit[2].Position).Magnitude
-        if Magnitude < MinDistance then
-            MinDistance = Magnitude
-            Closest = Hit[2]
+    local Pos = Character.PrimaryPart.Position
+    local Targets = {}
+    local DistSq = Config.GunDistance * Config.GunDistance
+    
+    if Config.AttackMobs then
+        for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
+            local humanoid = enemy:FindFirstChild("Humanoid")
+            local hrp = enemy:FindFirstChild("HumanoidRootPart")
+            
+            if humanoid and humanoid.Health > 0 and hrp then
+                local delta = hrp.Position - Pos
+                if delta.X*delta.X + delta.Y*delta.Y + delta.Z*delta.Z <= DistSq then
+                    table.insert(Targets, hrp)
+                end
+            end
         end
     end
-    return Closest
-end
-
-function FastAttack:GetCombo()
-    local Combo = (tick() - self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0
-    Combo = Combo >= Config.MaxCombo and 1 or Combo + 1
-    self.ComboDebounce = tick()
-    self.M1Combo = Combo
-    return Combo
-end
-
-function FastAttack:ShootInTarget(TargetPosition)
-    local Character = Player.Character
-    if not self:IsEntityAlive(Character) then return end
     
-    local Equipped = Character:FindFirstChildOfClass("Tool")
-    if not Equipped or Equipped.ToolTip ~= "Gun" then return end
-    
-    local Cooldown = Equipped:FindFirstChild("Cooldown") and Equipped.Cooldown.Value or 0.3
-    if (tick() - self.ShootDebounce) < Cooldown then return end
-    
-    local ShootType = self.SpecialShoots[Equipped.Name] or "Normal"
-    if ShootType == "Position" or (ShootType == "TAP" and Equipped:FindFirstChild("RemoteEvent")) then
-        Equipped:SetAttribute("LocalTotalShots", (Equipped:GetAttribute("LocalTotalShots") or 0) + 1)
-        GunValidator:FireServer(self:GetValidator2())
-        
-        if ShootType == "TAP" then
-            Equipped.RemoteEvent:FireServer("TAP", TargetPosition)
-        else
-            ShootGunEvent:FireServer(TargetPosition)
+    if Config.AttackPlayers then
+        for _, enemy in pairs(Workspace.Characters:GetChildren()) do
+            if enemy ~= Character then
+                local humanoid = enemy:FindFirstChild("Humanoid")
+                local hrp = enemy:FindFirstChild("HumanoidRootPart")
+                
+                if humanoid and humanoid.Health > 0 and hrp then
+                    local delta = hrp.Position - Pos
+                    if delta.X*delta.X + delta.Y*delta.Y + delta.Z*delta.Z <= DistSq then
+                        table.insert(Targets, hrp)
+                    end
+                end
+            end
         end
-        self.ShootDebounce = tick()
-    else
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-        task.wait(0.05)
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
-        self.ShootDebounce = tick()
     end
+    
+    return Targets
 end
 
-function FastAttack:GetValidator2()
-    local v1 = getupvalue(self.ShootFunction, 15)
-    local v2 = getupvalue(self.ShootFunction, 13)
-    local v3 = getupvalue(self.ShootFunction, 16)
-    local v4 = getupvalue(self.ShootFunction, 17)
-    local v5 = getupvalue(self.ShootFunction, 14)
-    local v6 = getupvalue(self.ShootFunction, 12)
-    local v7 = getupvalue(self.ShootFunction, 18)
+--// CHECK IF CAN ATTACK
+local function CanAttack()
+    if not Character or not Character.PrimaryPart then return false end
+    if not Humanoid or Humanoid.Health <= 0 then return false end
     
-    local v8 = v6 * v2
-    local v9 = (v5 * v2 + v6 * v1) % v3
-    v9 = (v9 * v3 + v8) % v4
-    v5 = math.floor(v9 / v3)
-    v6 = v9 - v5 * v3
-    v7 = v7 + 1
+    local Stun = Character:FindFirstChild("Stun")
+    local Busy = Character:FindFirstChild("Busy")
     
-    setupvalue(self.ShootFunction, 15, v1)
-    setupvalue(self.ShootFunction, 13, v2)
-    setupvalue(self.ShootFunction, 16, v3)
-    setupvalue(self.ShootFunction, 17, v4)
-    setupvalue(self.ShootFunction, 14, v5)
-    setupvalue(self.ShootFunction, 12, v6)
-    setupvalue(self.ShootFunction, 18, v7)
+    if Humanoid.Sit then return false end
+    if Stun and Stun.Value > 0 then return false end
+    if Busy and Busy.Value then return false end
     
-    return math.floor(v9 / v4 * 16777215), v7
+    return true
 end
 
-function FastAttack:UseNormalClick(Character, Humanoid, Cooldown)
-    self.EnemyRootPart = nil
-    local BladeHits = self:GetBladeHits(Character)
+--// SPAM MELEE ATTACKS - ULTRA FAST
+local function SpamMeleeAttacks()
+    if not CanAttack() then return end
     
-    if self.EnemyRootPart then
-        RegisterAttack:FireServer(Cooldown)
-        if self.CombatFlags and self.HitFunction then
-            self.HitFunction(self.EnemyRootPart, BladeHits)
-        else
-            RegisterHit:FireServer(self.EnemyRootPart, BladeHits)
-        end
+    local Targets = GetAllTargets()
+    if #Targets == 0 then return end
+    
+    -- SPAM NHIỀU HƠN
+    for spam = 1, Config.SpamMultiplier do
+        task.spawn(function()
+            pcall(function()
+                RegisterAttack:FireServer(0)
+                
+                if SpeedAttack.CombatFlags and SpeedAttack.HitFunc then
+                    SpeedAttack.HitFunc(Targets[1][2], Targets)
+                else
+                    RegisterHit:FireServer(Targets[1][2], Targets)
+                end
+                
+                -- Gửi thêm 1 lần nữa để tăng tốc
+                RegisterHit:FireServer(Targets[1][2], Targets)
+                
+                SpeedAttack.HitCount = SpeedAttack.HitCount + 1
+            end)
+        end)
     end
 end
 
-function FastAttack:UseFruitM1(Character, Equipped, Combo)
-    local Targets = self:GetBladeHits(Character)
-    if not Targets[1] then return end
+--// GET VALIDATOR FOR GUN
+local function GetValidator()
+    if not SpeedAttack.ShootFunc then return 0, 0 end
     
-    local Direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
-    Equipped.LeftClickRemote:FireServer(Direction, Combo)
+    local success, v1, v2 = pcall(function()
+        local v1 = getupvalue(SpeedAttack.ShootFunc, 15)
+        local v2 = getupvalue(SpeedAttack.ShootFunc, 13)
+        local v3 = getupvalue(SpeedAttack.ShootFunc, 16)
+        local v4 = getupvalue(SpeedAttack.ShootFunc, 17)
+        local v5 = getupvalue(SpeedAttack.ShootFunc, 14)
+        local v6 = getupvalue(SpeedAttack.ShootFunc, 12)
+        local v7 = getupvalue(SpeedAttack.ShootFunc, 18)
+
+        local v8 = v6 * v2
+        local v9 = (v5 * v2 + v6 * v1) % v3
+        v9 = (v9 * v3 + v8) % v4
+        v5 = math.floor(v9 / v3)
+        v6 = v9 - v5 * v3
+        v7 = v7 + 1
+
+        setupvalue(SpeedAttack.ShootFunc, 15, v1)
+        setupvalue(SpeedAttack.ShootFunc, 13, v2)
+        setupvalue(SpeedAttack.ShootFunc, 16, v3)
+        setupvalue(SpeedAttack.ShootFunc, 17, v4)
+        setupvalue(SpeedAttack.ShootFunc, 14, v5)
+        setupvalue(SpeedAttack.ShootFunc, 12, v6)
+        setupvalue(SpeedAttack.ShootFunc, 18, v7)
+
+        return math.floor(v9 / v4 * 16777215), v7
+    end)
+    
+    if success then return v1, v2 end
+    return 0, 0
 end
 
-function FastAttack:Attack()
-    if not Config.AutoClickEnabled or (tick() - self.Debounce) < Config.AttackCooldown then return end
-    local Character = Player.Character
-    if not Character or not self:IsEntityAlive(Character) then return end
+--// SPAM GUN SHOOTS
+local function SpamGunShoots()
+    if not CanAttack() then return end
     
-    local Humanoid = Character.Humanoid
-    local Equipped = Character:FindFirstChildOfClass("Tool")
-    if not Equipped then return end
+    local Tool = Character:FindFirstChildOfClass("Tool")
+    if not Tool or Tool.ToolTip ~= "Gun" then return end
     
-    local ToolTip = Equipped.ToolTip
-    if not table.find({"Melee", "Blox Fruit", "Sword", "Gun"}, ToolTip) then return end
+    local Targets = GetGunTargets()
+    if #Targets == 0 then return end
     
-    local Cooldown = Equipped:FindFirstChild("Cooldown") and Equipped.Cooldown.Value or Config.AttackCooldown
-    if not self:CheckStun(Character, Humanoid, ToolTip) then return end
-    
-    local Combo = self:GetCombo()
-    Cooldown = Cooldown + (Combo >= Config.MaxCombo and 0.05 or 0)
-    self.Debounce = Combo >= Config.MaxCombo and ToolTip ~= "Gun" and (tick() + 0.05) or tick()
-    
-    if ToolTip == "Blox Fruit" and Equipped:FindFirstChild("LeftClickRemote") then
-        self:UseFruitM1(Character, Equipped, Combo)
-    elseif ToolTip == "Gun" then
-        local Target = self:GetClosestEnemy(Character, 120)
-        if Target then
-            self:ShootInTarget(Target.Position)
-        end
-    else
-        self:UseNormalClick(Character, Humanoid, Cooldown)
-    end
-end
-
-local AttackInstance = FastAttack.new()
-table.insert(AttackInstance.Connections, RunService.Stepped:Connect(function()
-    AttackInstance:Attack()
-end))
-
-for _, v in pairs(getgc(true)) do
-    if typeof(v) == "function" and iscclosure(v) then
-        local name = debug.getinfo(v).name
-        if name == "Attack" or name == "attack" or name == "RegisterHit" then
-            hookfunction(v, function(...)
-                AttackInstance:Attack()
-                return v(...)
+    -- SPAM NHIỀU HƠN
+    for spam = 1, Config.SpamMultiplier do
+        for _, target in ipairs(Targets) do
+            task.spawn(function()
+                pcall(function()
+                    Tool:SetAttribute("LocalTotalShots", (Tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                    GunValidator:FireServer(GetValidator())
+                    
+                    if Tool.Name == "Bazooka" or Tool.Name == "Cannon" then
+                        ShootGunEvent:FireServer(target.Position)
+                    elseif Tool.Name == "Skull Guitar" and Tool:FindFirstChild("RemoteEvent") then
+                        Tool.RemoteEvent:FireServer("TAP", target.Position)
+                    else
+                        ShootGunEvent:FireServer(target.Position)
+                    end
+                    
+                    SpeedAttack.HitCount = SpeedAttack.HitCount + 1
+                end)
             end)
         end
     end
 end
----Fast 2 ---
-local Modules = game.ReplicatedStorage.Modules
-local Net = Modules.Net
-local Register_Hit, Register_Attack = Net:WaitForChild("RE/RegisterHit"), Net:WaitForChild("RE/RegisterAttack")
-local Funcs = {}
-function GetAllBladeHits()
-    bladehits = {}
-    for _, v in pairs(workspace.Enemies:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 
-        and (v.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= 65 then
-            table.insert(bladehits, v)
+
+--// SPAM FRUIT M1 (FIXED - Cải thiện)
+local function SpamFruitM1()
+    if not CanAttack() then return end
+    
+    local Tool = Character:FindFirstChildOfClass("Tool")
+    if not Tool or Tool.ToolTip ~= "Blox Fruit" then return end
+    
+    local Targets = GetAllTargets()
+    if #Targets == 0 then return end
+    
+    -- TÌM REMOTE PHÙ HỢP
+    local Remote = Tool:FindFirstChild("LeftClickRemote") or 
+                   Tool:FindFirstChild("RemoteEvent") or
+                   Tool:FindFirstChild("MouseButton1ClickEvent")
+    
+    if not Remote then return end
+    
+    local TargetPos = Targets[1][2].Position
+    local MyPos = Character.PrimaryPart.Position
+    local Direction = (TargetPos - MyPos).Unit
+    
+    -- SPAM FRUIT ATTACKS - NHIỀU PHƯƠNG THỨC
+    for spam = 1, Config.SpamMultiplier do
+        task.spawn(function()
+            pcall(function()
+                -- Phương thức 1: LeftClickRemote với Direction
+                if Remote.Name == "LeftClickRemote" then
+                    Remote:FireServer(Direction, spam)
+                    Remote:FireServer(Direction)
+                    
+                -- Phương thức 2: RemoteEvent
+                elseif Remote.Name == "RemoteEvent" then
+                    Remote:FireServer("TAP", TargetPos)
+                    Remote:FireServer("MouseButton1Click", TargetPos)
+                    
+                -- Phương thức 3: MouseButton1Click
+                else
+                    Remote:FireServer(TargetPos)
+                    Remote:FireServer(Direction)
+                end
+                
+                -- Thử gửi thêm với RegisterAttack
+                RegisterAttack:FireServer(0)
+                
+                SpeedAttack.HitCount = SpeedAttack.HitCount + 1
+            end)
+        end)
+        
+        -- Thêm delay nhỏ giữa các lần spam để tránh rate limit
+        if spam % 3 == 0 then
+            task.wait()
         end
     end
-    return bladehits
 end
-function Getplayerhit()
-    bladehits = {}
-    for _, v in pairs(workspace.Characters:GetChildren()) do
-        if v.Name ~= game.Players.LocalPlayer.Name and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 
-        and (v.HumanoidRootPart.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude <= 65 then
-            table.insert(bladehits, v)
+
+--// MAIN ATTACK LOOP (Optimized)
+local function MainAttack()
+    if not Config.Enabled then return end
+    
+    local Tool = Character and Character:FindFirstChildOfClass("Tool")
+    if not Tool then return end
+    
+    local ToolTip = Tool.ToolTip
+    
+    if ToolTip == "Melee" or ToolTip == "Sword" then
+        SpamMeleeAttacks()
+    elseif ToolTip == "Gun" then
+        SpamGunShoots()
+    elseif ToolTip == "Blox Fruit" then
+        SpamFruitM1()
+    end
+end
+
+--// HIT COUNTER
+task.spawn(function()
+    while task.wait(1) do
+        local elapsed = tick() - SpeedAttack.StartTime
+        local hps = math.floor(SpeedAttack.HitCount / elapsed)
+        print(string.format("⚡ Hits/Sec: %d | Total: %d | Elapsed: %.1fs", hps, SpeedAttack.HitCount, elapsed))
+    end
+end)
+
+--// CHARACTER UPDATE
+Player.CharacterAdded:Connect(function(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+    task.wait(0.5)
+    InitFunctions()
+end)
+
+--// INITIALIZE
+InitFunctions()
+
+--// ULTRA SPEED LOOPS - TĂNG CƯỜNG
+-- Loop 1: RenderStepped (60+ times/sec)
+RunService.RenderStepped:Connect(function()
+    MainAttack()
+end)
+
+-- Loop 2: Heartbeat (60+ times/sec)  
+RunService.Heartbeat:Connect(function()
+    MainAttack()
+end)
+
+-- Loop 3: Stepped (Physics step)
+RunService.Stepped:Connect(function()
+    MainAttack()
+end)
+
+-- Loop 4: ULTRA FAST SPAM LOOP
+task.spawn(function()
+    while task.wait() do
+        MainAttack()
+        MainAttack()
+        MainAttack()  -- Triple call thay vì double
+    end
+end)
+
+-- Loop 5: BACKUP SPAM (tăng cường)
+task.spawn(function()
+    while task.wait() do
+        for i = 1, 5 do  -- Tăng từ 3 lên 5
+            task.spawn(MainAttack)
         end
     end
-    return bladehits
-end
-function Funcs:Attack()
-    local bladehits = {}
-    for r,v in pairs(GetAllBladeHits()) do
-        table.insert(bladehits, v)
-    end
-    for r,v in pairs(Getplayerhit()) do
-        table.insert(bladehits, v)
-    end
-    if #bladehits == 0 then return end
-    local args = {
-        [1] = nil;
-        [2] = {},
-        [4] = "078da341"
-    }
-    for r, v in pairs(bladehits) do
-        Register_Attack:FireServer(0)
-        if not args[1] then
-            args[1] = v.Head
+end)
+
+-- Loop 6: HYPER SPAM (MỚI)
+task.spawn(function()
+    while task.wait() do
+        for i = 1, 3 do
+            task.defer(MainAttack)
         end
-        args[2][r] = {
-            [1] = v,
-            [2] = v.HumanoidRootPart
-        }
     end
-    Register_Hit:FireServer(unpack(args))
-end
+end)
+
+return SpeedAttack
