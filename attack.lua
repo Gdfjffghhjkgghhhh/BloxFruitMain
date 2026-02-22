@@ -16,7 +16,7 @@ local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
 
---// ULTRA SPEED CONFIG - 300+ HITS/SECOND
+--// OPTIMIZED CONFIG - GIẢM LAG NHƯNG VẪN NHANH
 local Config = {
     Enabled = true,
     AttackDistance = 80,
@@ -24,24 +24,26 @@ local Config = {
     AttackMobs = true,
     AttackPlayers = true,
     
-    -- TỐC ĐỘ CỰC NHANH
-    HitsPerSecond = 300,
-    SpamMultiplier = 8,  -- Tăng từ 5 lên 8
-    FastClick = true,    -- Bật click nhanh
+    -- Tối ưu: 100-150 hits/sec thay vì 200 (giảm lag đáng kể)
+    HitsPerSecond = 120,
+    SpamMultiplier = 3,  -- Giảm từ 5 xuống 3 (giảm spam overhead)
+    
+    -- Cache timing
+    TargetUpdateInterval = 0.1,  -- Update targets mỗi 0.1s thay vì mỗi frame
+    LastTargetUpdate = 0,
 }
 
 --// SPEED SYSTEM
 local SpeedAttack = {
     HitCount = 0,
     StartTime = tick(),
-    Targets = {},
-    LastAttack = 0,
+    CachedTargets = {},  -- Cache targets
+    CachedGunTargets = {},
     
     -- Function cache
     ShootFunc = nil,
     HitFunc = nil,
     CombatFlags = nil,
-    FruitRemote = nil,
 }
 
 --// INIT FUNCTIONS
@@ -68,30 +70,39 @@ local function InitFunctions()
     end)
 end
 
---// GET ALL TARGETS INSTANTLY (Optimized)
-local function GetAllTargets()
-    if not Character or not Character.PrimaryPart then return {} end
+--// OPTIMIZED TARGET GETTING - CHỈ UPDATE KHI CẦN
+local function UpdateTargets()
+    local now = tick()
+    if now - Config.LastTargetUpdate < Config.TargetUpdateInterval then
+        return  -- Dùng cache
+    end
+    
+    Config.LastTargetUpdate = now
+    
+    if not Character or not Character.PrimaryPart then 
+        SpeedAttack.CachedTargets = {}
+        return 
+    end
     
     local Pos = Character.PrimaryPart.Position
     local AllTargets = {}
-    local DistSq = Config.AttackDistance * Config.AttackDistance
     
-    -- Get Mobs (optimized)
+    -- Get Mobs
     if Config.AttackMobs then
         for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
             local humanoid = enemy:FindFirstChild("Humanoid")
             local hrp = enemy:FindFirstChild("HumanoidRootPart")
             
             if humanoid and humanoid.Health > 0 and hrp then
-                local delta = hrp.Position - Pos
-                if delta.X*delta.X + delta.Y*delta.Y + delta.Z*delta.Z <= DistSq then
-                    table.insert(AllTargets, {enemy, hrp})
+                local distance = (Pos - hrp.Position).Magnitude
+                if distance <= Config.AttackDistance then
+                    table.insert(AllTargets, {enemy, hrp, distance})
                 end
             end
         end
     end
     
-    -- Get Players (optimized)
+    -- Get Players
     if Config.AttackPlayers then
         for _, enemy in pairs(Workspace.Characters:GetChildren()) do
             if enemy ~= Character then
@@ -99,25 +110,35 @@ local function GetAllTargets()
                 local hrp = enemy:FindFirstChild("HumanoidRootPart")
                 
                 if humanoid and humanoid.Health > 0 and hrp then
-                    local delta = hrp.Position - Pos
-                    if delta.X*delta.X + delta.Y*delta.Y + delta.Z*delta.Z <= DistSq then
-                        table.insert(AllTargets, {enemy, hrp})
+                    local distance = (Pos - hrp.Position).Magnitude
+                    if distance <= Config.AttackDistance then
+                        table.insert(AllTargets, {enemy, hrp, distance})
                     end
                 end
             end
         end
     end
     
-    return AllTargets
+    -- Sort by distance (gần nhất trước)
+    table.sort(AllTargets, function(a, b) return a[3] < b[3] end)
+    
+    SpeedAttack.CachedTargets = AllTargets
 end
 
---// GET GUN TARGETS (Optimized)
-local function GetGunTargets()
-    if not Character or not Character.PrimaryPart then return {} end
+--// UPDATE GUN TARGETS
+local function UpdateGunTargets()
+    local now = tick()
+    if now - Config.LastTargetUpdate < Config.TargetUpdateInterval then
+        return
+    end
+    
+    if not Character or not Character.PrimaryPart then 
+        SpeedAttack.CachedGunTargets = {}
+        return 
+    end
     
     local Pos = Character.PrimaryPart.Position
     local Targets = {}
-    local DistSq = Config.GunDistance * Config.GunDistance
     
     if Config.AttackMobs then
         for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
@@ -125,8 +146,7 @@ local function GetGunTargets()
             local hrp = enemy:FindFirstChild("HumanoidRootPart")
             
             if humanoid and humanoid.Health > 0 and hrp then
-                local delta = hrp.Position - Pos
-                if delta.X*delta.X + delta.Y*delta.Y + delta.Z*delta.Z <= DistSq then
+                if (Pos - hrp.Position).Magnitude <= Config.GunDistance then
                     table.insert(Targets, hrp)
                 end
             end
@@ -140,8 +160,7 @@ local function GetGunTargets()
                 local hrp = enemy:FindFirstChild("HumanoidRootPart")
                 
                 if humanoid and humanoid.Health > 0 and hrp then
-                    local delta = hrp.Position - Pos
-                    if delta.X*delta.X + delta.Y*delta.Y + delta.Z*delta.Z <= DistSq then
+                    if (Pos - hrp.Position).Magnitude <= Config.GunDistance then
                         table.insert(Targets, hrp)
                     end
                 end
@@ -149,7 +168,7 @@ local function GetGunTargets()
         end
     end
     
-    return Targets
+    SpeedAttack.CachedGunTargets = Targets
 end
 
 --// CHECK IF CAN ATTACK
@@ -167,30 +186,26 @@ local function CanAttack()
     return true
 end
 
---// SPAM MELEE ATTACKS - ULTRA FAST
+--// OPTIMIZED MELEE ATTACKS
 local function SpamMeleeAttacks()
     if not CanAttack() then return end
     
-    local Targets = GetAllTargets()
-    if #Targets == 0 then return end
+    UpdateTargets()  -- Update cache nếu cần
     
-    -- SPAM NHIỀU HƠN
+    if #SpeedAttack.CachedTargets == 0 then return end
+    
+    -- Chỉ spam số lượng vừa phải
     for spam = 1, Config.SpamMultiplier do
-        task.spawn(function()
-            pcall(function()
-                RegisterAttack:FireServer(0)
-                
-                if SpeedAttack.CombatFlags and SpeedAttack.HitFunc then
-                    SpeedAttack.HitFunc(Targets[1][2], Targets)
-                else
-                    RegisterHit:FireServer(Targets[1][2], Targets)
-                end
-                
-                -- Gửi thêm 1 lần nữa để tăng tốc
-                RegisterHit:FireServer(Targets[1][2], Targets)
-                
-                SpeedAttack.HitCount = SpeedAttack.HitCount + 1
-            end)
+        pcall(function()
+            RegisterAttack:FireServer(0)
+            
+            if SpeedAttack.CombatFlags and SpeedAttack.HitFunc then
+                SpeedAttack.HitFunc(SpeedAttack.CachedTargets[1][2], SpeedAttack.CachedTargets)
+            else
+                RegisterHit:FireServer(SpeedAttack.CachedTargets[1][2], SpeedAttack.CachedTargets)
+            end
+            
+            SpeedAttack.HitCount = SpeedAttack.HitCount + 1
         end)
     end
 end
@@ -230,95 +245,63 @@ local function GetValidator()
     return 0, 0
 end
 
---// SPAM GUN SHOOTS
+--// OPTIMIZED GUN SHOOTS
 local function SpamGunShoots()
     if not CanAttack() then return end
     
     local Tool = Character:FindFirstChildOfClass("Tool")
     if not Tool or Tool.ToolTip ~= "Gun" then return end
     
-    local Targets = GetGunTargets()
-    if #Targets == 0 then return end
+    UpdateGunTargets()
     
-    -- SPAM NHIỀU HƠN
-    for spam = 1, Config.SpamMultiplier do
-        for _, target in ipairs(Targets) do
-            task.spawn(function()
-                pcall(function()
-                    Tool:SetAttribute("LocalTotalShots", (Tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                    GunValidator:FireServer(GetValidator())
-                    
-                    if Tool.Name == "Bazooka" or Tool.Name == "Cannon" then
-                        ShootGunEvent:FireServer(target.Position)
-                    elseif Tool.Name == "Skull Guitar" and Tool:FindFirstChild("RemoteEvent") then
-                        Tool.RemoteEvent:FireServer("TAP", target.Position)
-                    else
-                        ShootGunEvent:FireServer(target.Position)
-                    end
-                    
-                    SpeedAttack.HitCount = SpeedAttack.HitCount + 1
-                end)
+    if #SpeedAttack.CachedGunTargets == 0 then return end
+    
+    -- Giảm spam, tăng hiệu quả
+    for spam = 1, math.min(Config.SpamMultiplier, 2) do
+        for i = 1, math.min(#SpeedAttack.CachedGunTargets, 3) do  -- Chỉ shoot 3 targets gần nhất
+            local target = SpeedAttack.CachedGunTargets[i]
+            pcall(function()
+                Tool:SetAttribute("LocalTotalShots", (Tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                GunValidator:FireServer(GetValidator())
+                
+                if Tool.Name == "Bazooka" or Tool.Name == "Cannon" then
+                    ShootGunEvent:FireServer(target.Position)
+                elseif Tool.Name == "Skull Guitar" and Tool:FindFirstChild("RemoteEvent") then
+                    Tool.RemoteEvent:FireServer("TAP", target.Position)
+                else
+                    ShootGunEvent:FireServer(target.Position)
+                end
+                
+                SpeedAttack.HitCount = SpeedAttack.HitCount + 1
             end)
         end
     end
 end
 
---// SPAM FRUIT M1 (FIXED - Cải thiện)
+--// OPTIMIZED FRUIT M1
 local function SpamFruitM1()
     if not CanAttack() then return end
     
     local Tool = Character:FindFirstChildOfClass("Tool")
     if not Tool or Tool.ToolTip ~= "Blox Fruit" then return end
+    if not Tool:FindFirstChild("LeftClickRemote") then return end
     
-    local Targets = GetAllTargets()
-    if #Targets == 0 then return end
+    UpdateTargets()
     
-    -- TÌM REMOTE PHÙ HỢP
-    local Remote = Tool:FindFirstChild("LeftClickRemote") or 
-                   Tool:FindFirstChild("RemoteEvent") or
-                   Tool:FindFirstChild("MouseButton1ClickEvent")
+    if #SpeedAttack.CachedTargets == 0 then return end
     
-    if not Remote then return end
+    local Direction = (SpeedAttack.CachedTargets[1][2].Position - Character.PrimaryPart.Position).Unit
     
-    local TargetPos = Targets[1][2].Position
-    local MyPos = Character.PrimaryPart.Position
-    local Direction = (TargetPos - MyPos).Unit
-    
-    -- SPAM FRUIT ATTACKS - NHIỀU PHƯƠNG THỨC
+    -- Spam vừa phải
     for spam = 1, Config.SpamMultiplier do
-        task.spawn(function()
-            pcall(function()
-                -- Phương thức 1: LeftClickRemote với Direction
-                if Remote.Name == "LeftClickRemote" then
-                    Remote:FireServer(Direction, spam)
-                    Remote:FireServer(Direction)
-                    
-                -- Phương thức 2: RemoteEvent
-                elseif Remote.Name == "RemoteEvent" then
-                    Remote:FireServer("TAP", TargetPos)
-                    Remote:FireServer("MouseButton1Click", TargetPos)
-                    
-                -- Phương thức 3: MouseButton1Click
-                else
-                    Remote:FireServer(TargetPos)
-                    Remote:FireServer(Direction)
-                end
-                
-                -- Thử gửi thêm với RegisterAttack
-                RegisterAttack:FireServer(0)
-                
-                SpeedAttack.HitCount = SpeedAttack.HitCount + 1
-            end)
+        pcall(function()
+            Tool.LeftClickRemote:FireServer(Direction, spam)
+            SpeedAttack.HitCount = SpeedAttack.HitCount + 1
         end)
-        
-        -- Thêm delay nhỏ giữa các lần spam để tránh rate limit
-        if spam % 3 == 0 then
-            task.wait()
-        end
     end
 end
 
---// MAIN ATTACK LOOP (Optimized)
+--// MAIN ATTACK LOOP
 local function MainAttack()
     if not Config.Enabled then return end
     
@@ -341,7 +324,7 @@ task.spawn(function()
     while task.wait(1) do
         local elapsed = tick() - SpeedAttack.StartTime
         local hps = math.floor(SpeedAttack.HitCount / elapsed)
-        print(string.format("⚡ Hits/Sec: %d | Total: %d | Elapsed: %.1fs", hps, SpeedAttack.HitCount, elapsed))
+        print(string.format("⚡ Hits/Sec: %d | Total: %d | Lag: OPTIMIZED", hps, SpeedAttack.HitCount))
     end
 end)
 
@@ -356,47 +339,31 @@ end)
 --// INITIALIZE
 InitFunctions()
 
---// ULTRA SPEED LOOPS - TĂNG CƯỜNG
--- Loop 1: RenderStepped (60+ times/sec)
-RunService.RenderStepped:Connect(function()
-    MainAttack()
-end)
-
--- Loop 2: Heartbeat (60+ times/sec)  
+--// OPTIMIZED LOOPS - CHỈ 2 LOOPS THAY VÌ 5
+-- Loop 1: Heartbeat (Ổn định nhất, ít lag nhất)
+local LastAttack = 0
 RunService.Heartbeat:Connect(function()
-    MainAttack()
-end)
-
--- Loop 3: Stepped (Physics step)
-RunService.Stepped:Connect(function()
-    MainAttack()
-end)
-
--- Loop 4: ULTRA FAST SPAM LOOP
-task.spawn(function()
-    while task.wait() do
+    local now = tick()
+    if now - LastAttack >= (1 / Config.HitsPerSecond) then
+        LastAttack = now
         MainAttack()
+    end
+end)
+
+-- Loop 2: FAST LOOP nhưng có delay nhỏ để không spam quá
+task.spawn(function()
+    while task.wait(0.005) do  -- ~200 FPS, không quá nhanh
         MainAttack()
-        MainAttack()  -- Triple call thay vì double
     end
 end)
 
--- Loop 5: BACKUP SPAM (tăng cường)
-task.spawn(function()
-    while task.wait() do
-        for i = 1, 5 do  -- Tăng từ 3 lên 5
-            task.spawn(MainAttack)
-        end
-    end
-end)
-
--- Loop 6: HYPER SPAM (MỚI)
-task.spawn(function()
-    while task.wait() do
-        for i = 1, 3 do
-            task.defer(MainAttack)
-        end
-    end
-end)
+--// NOTIFY
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("⚡ OPTIMIZED FAST ATTACK")
+print("⚡ Target: " .. Config.HitsPerSecond .. " HITS/SECOND")
+print("⚡ Spam Multiplier: x" .. Config.SpamMultiplier)
+print("⚡ Loops: 2 OPTIMIZED (GIẢM LAG)")
+print("⚡ Cache: ENABLED")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 return SpeedAttack
