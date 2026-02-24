@@ -1,5 +1,19 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/JoinTeam.lua"))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local lp = Players.LocalPlayer
+
+local chooseTeam = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+
+if not lp.Team or lp.Team.Name ~= "Marines" then
+    pcall(function()
+        chooseTeam:InvokeServer("SetTeam", "Marines")
+    end)
+end
+
 do
   ply = game.Players
   plr = ply.LocalPlayer
@@ -7820,3 +7834,4 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
