@@ -21,8 +21,8 @@ local Config = {
     GunDistance = 120,
     AttackMobs = true,
     AttackPlayers = true,
-    AttackCooldown = 0.18,
-    ComboResetTime = 0.3,
+    AttackCooldown = 0.018,
+    ComboResetTime = 0,
     AutoClickEnabled = true,
 }
 
