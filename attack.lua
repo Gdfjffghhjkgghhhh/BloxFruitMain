@@ -1,4 +1,4 @@
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/WbmxHubNew/refs/heads/main/UnBanFastAttack.lua"))()
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,7 +18,7 @@ local Config = {
     AttackMobs = true,
     AttackPlayers = true,
     AutoClickEnabled = true,      
-    MeleeMultiplier = 4,         
+    MeleeMultiplier = 3,         
     ComboResetTime = 0.001
 }
 
@@ -181,5 +181,3 @@ table.insert(AttackInstance.Connections, RunService.Heartbeat:Connect(function()
     AttackInstance:Attack()
 end))
 
-print("✅ FAST ATTACK NO GUI LOADED - Melee đang đánh (" .. Config.MeleeMultiplier .. "x)")
-print("   Để tắt: đổi AutoClickEnabled = false trong Config")
