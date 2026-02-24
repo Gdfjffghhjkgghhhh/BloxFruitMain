@@ -14,11 +14,11 @@ local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
 
 local Config = {
-    AttackDistance = 65,
+    AttackDistance = 95,
     AttackMobs = true,
     AttackPlayers = true,
     AutoClickEnabled = true,      
-    MeleeMultiplier = 5,         
+    MeleeMultiplier = 4,         
     ComboResetTime = 0.001
 }
 
