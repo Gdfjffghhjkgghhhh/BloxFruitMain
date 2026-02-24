@@ -24,13 +24,13 @@ local Config = {
 
 -- FAKE VALIDATOR
 local ValidatorCounter = 0
-local ValidatorSeed = math.floor(tick() * 1337) % 16777215
-local function GetFakeValidator2()
-    ValidatorCounter = ValidatorCounter + 1
-    local hash = math.floor((ValidatorSeed + ValidatorCounter * 0xDEADBEEF) % 16777215)
-    return hash, ValidatorCounter
-end
+local ValidatorSeed = math.floor(os.clock() * 1337) % 16777216
 
+local function GetFakeValidator2()
+    ValidatorCounter += 1
+    local hash = (ValidatorSeed + ValidatorCounter * 1103515245) % 16777216
+    return hash
+end
 local FastAttack = {}
 FastAttack.__index = FastAttack
 
