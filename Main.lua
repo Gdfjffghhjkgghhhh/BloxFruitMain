@@ -1509,12 +1509,14 @@ end
 			[6] = PosQ
 		}
 	end
-local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/WbmxHubNew/refs/heads/main/guihub.lua"))()
+local Fluent = loadstring(game:HttpGet('https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua'))()
+loadstring(game:HttpGet('https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua'))()
+loadstring(game:HttpGet('https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua'))()
 local Window = Fluent:CreateWindow({
     Title="Neon X Hub [ Blox Fruit ]",
     SubTitle="By Mnhat",
     TabWidth=150, 
-    Theme="Arctic",
+    Theme="Darker",
     Acrylic=false,
     Size=UDim2.fromOffset(460, 350), 
     MinimizeKey=Enum.KeyCode.End
@@ -7819,5 +7821,6 @@ local function GetEnemiesInRange(character, range)
 end
 
 Window:SelectTab(1)
+
 
 
