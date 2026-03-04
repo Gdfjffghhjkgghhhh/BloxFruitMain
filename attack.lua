@@ -1,11 +1,9 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/WbmxHubNew/refs/heads/main/UnBanFastAttack.lua"))()
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Player = Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
 
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Net = Modules:WaitForChild("Net")
@@ -13,8 +11,9 @@ local Net = Modules:WaitForChild("Net")
 local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
 local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 
-local AttackDistance = 120
-local HitMultiplier = 12
+-- CONFIG
+local AttackDistance = 200
+local HitMultiplier = 3
 
 local function Alive(entity)
     local hum = entity:FindFirstChild("Humanoid")
@@ -23,6 +22,7 @@ end
 
 local function GetTargets()
     local targets = {}
+
     local char = Player.Character
     if not char then return targets end
 
@@ -31,6 +31,7 @@ local function GetTargets()
 
     local pos = root.Position
 
+    -- MOBS
     for _,v in ipairs(Workspace.Enemies:GetChildren()) do
         local hrp = v:FindFirstChild("HumanoidRootPart")
         if hrp and Alive(v) then
@@ -40,6 +41,7 @@ local function GetTargets()
         end
     end
 
+    -- PLAYERS
     for _,plr in ipairs(Players:GetPlayers()) do
         if plr ~= Player and plr.Character then
             local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
@@ -54,7 +56,7 @@ local function GetTargets()
     return targets
 end
 
-local function FastAttack()
+local function UltraAttack()
     local char = Player.Character
     if not char then return end
 
@@ -64,22 +66,25 @@ local function FastAttack()
     local targets = GetTargets()
     if #targets == 0 then return end
 
+    -- REGISTER ATTACK
     pcall(function()
         RegisterAttack:FireServer(0)
     end)
 
-    for i = 1,HitMultiplier do
-        for _,t in ipairs(targets) do
+    -- SPAM HITS
+    for i = 1, HitMultiplier do
+        for _,target in ipairs(targets) do
             pcall(function()
-                RegisterHit:FireServer(t[2],targets)
+                RegisterHit:FireServer(target[2],targets)
             end)
         end
     end
 end
 
+-- LOOP ULTRA FAST
 task.spawn(function()
     while true do
-        FastAttack()
-        task.wait()
+        UltraAttack()
+        task.wait(0)
     end
 end)
