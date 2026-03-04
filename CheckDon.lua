@@ -18,11 +18,11 @@ local CFG = {
     MaskChar = "*",
     MinStars = 5,         
 
-    Size = UDim2.fromOffset(720, 220),
-    Position = UDim2.new(0.5, 0, 0.08, 0), -- giữa trên
+   Size = UDim2.fromOffset(540, 180),
+    Position = UDim2.new(0.5, 0, 0.05, 0), -- giữa trên
 
     CornerRadius = 15,    -- bo góc ít
-    BorderThickness = 3,  -- viền trắng mỏng
+    BorderThickness = 2,  -- viền trắng mỏng
     BorderColor = Color3.fromRGB(255,255,255),
 
     InnerColor = Color3.fromRGB(0,255,255), -- xanh ngọc
@@ -246,3 +246,37 @@ getgenv().NeonNameCardAPI = {
         end
     end
 }
+
+getgenv().CheckDonAPI = getgenv().CheckDonAPI or {}
+
+function getgenv().CheckDonAPI.SetPrefix(prefix)
+    CFG.MainTextPrefix = tostring(prefix or "Tên : ")
+    NameLabel.Text = CFG.MainTextPrefix .. maskName(game.Players.LocalPlayer.Name)
+end
+
+function getgenv().CheckDonAPI.SetBottomText(text)
+    CFG.BottomText = tostring(text or "")
+    Bottom.Text = CFG.BottomText
+end
+
+function getgenv().CheckDonAPI.SetTopTitles(left, mid, right)
+    if left ~= nil then CFG.TitleLeft = tostring(left);  LNote.Text = CFG.TitleLeft end
+    if mid  ~= nil then CFG.TitleMid  = tostring(mid);   LStatus.Text = CFG.TitleMid end
+    if right~= nil then CFG.TitleRight= tostring(right); LSetting.Text = CFG.TitleRight end
+end
+
+function getgenv().CheckDonAPI.SetNameMode(useDisplayName, mask, keepChars, minStars)
+    CFG.UseDisplayName = (useDisplayName == true)
+    if mask ~= nil then CFG.MaskName = (mask == true) end
+    if keepChars then CFG.KeepChars = math.max(0, tonumber(keepChars) or CFG.KeepChars) end
+    if minStars then CFG.MinStars = math.max(0, tonumber(minStars) or CFG.MinStars) end
+
+    local lp = game.Players.LocalPlayer
+    local raw = CFG.UseDisplayName and (lp.DisplayName or lp.Name) or lp.Name
+    NameLabel.Text = CFG.MainTextPrefix .. maskName(raw)
+end
+
+function getgenv().CheckDonAPI.Destroy()
+    if ScreenGui and ScreenGui.Parent then ScreenGui:Destroy() end
+    getgenv().CheckDonAPI = nil
+end
