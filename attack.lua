@@ -2,89 +2,285 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/Wbm
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local Player = Players.LocalPlayer
-
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Net = Modules:WaitForChild("Net")
 
 local RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
 local RegisterHit = Net:WaitForChild("RE/RegisterHit")
+local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 
--- CONFIG
-local AttackDistance = 200
-local HitMultiplier = 3
+local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
 
-local function Alive(entity)
-    local hum = entity:FindFirstChild("Humanoid")
-    return hum and hum.Health > 0
+local Config = {
+    AttackDistance = 95,
+    AttackMobs = true,
+    AttackPlayers = true,
+    AutoClickEnabled = true,
+    MeleeMultiplier = 6,
+    ComboResetTime = 0.05
+}
+
+-- VALIDATOR
+local ValidatorCounter = 0
+local ValidatorSeed = math.floor(os.clock() * 1337) % 16777216
+
+local function GetFakeValidator2()
+    ValidatorCounter += 1
+    return (ValidatorSeed + ValidatorCounter * 1103515245) % 16777216
 end
 
-local function GetTargets()
-    local targets = {}
+local FastAttack = {}
+FastAttack.__index = FastAttack
 
-    local char = Player.Character
-    if not char then return targets end
+function FastAttack.new()
 
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return targets end
+    local self = setmetatable({
+        ComboDebounce = 0,
+        ShootDebounce = 0,
+        M1Combo = 0,
+        SpecialShoots = {
+            ["Skull Guitar"] = "TAP",
+            ["Bazooka"] = "Position",
+            ["Cannon"] = "Position",
+            ["Dragonstorm"] = "Overheat"
+        }
+    }, FastAttack)
 
-    local pos = root.Position
+    pcall(function()
 
-    -- MOBS
-    for _,v in ipairs(Workspace.Enemies:GetChildren()) do
-        local hrp = v:FindFirstChild("HumanoidRootPart")
-        if hrp and Alive(v) then
-            if (hrp.Position - pos).Magnitude <= AttackDistance then
-                table.insert(targets,{v,hrp})
-            end
+        self.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
+
+        local CombatController = require(ReplicatedStorage.Controllers.CombatController)
+
+        self.ShootFunction = getupvalue(CombatController.Attack,9)
+
+        local ls = Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript")
+
+        if ls and getsenv then
+            self.HitFunction = getsenv(ls)._G.SendHitsToServer
         end
+
+    end)
+
+    return self
+end
+
+
+function FastAttack:IsEntityAlive(entity)
+
+    local h = entity and entity:FindFirstChild("Humanoid")
+
+    return h and h.Health > 0
+end
+
+
+function FastAttack:CheckStun(Character,Humanoid,ToolTip)
+
+    local Stun = Character:FindFirstChild("Stun")
+    local Busy = Character:FindFirstChild("Busy")
+
+    if Humanoid.Sit and (ToolTip=="Sword" or ToolTip=="Melee" or ToolTip=="Blox Fruit") then
+        return false
     end
 
-    -- PLAYERS
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Player and plr.Character then
-            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-            if hrp and Alive(plr.Character) then
-                if (hrp.Position - pos).Magnitude <= AttackDistance then
-                    table.insert(targets,{plr.Character,hrp})
+    if Stun and Stun.Value>0 or Busy and Busy.Value then
+        return false
+    end
+
+    return true
+end
+
+
+function FastAttack:GetBladeHits(Character,Distance)
+
+    local Position = Character:GetPivot().Position
+    local Hits = {}
+
+    Distance = Distance or Config.AttackDistance
+
+    local function Process(folder)
+
+        for _,v in ipairs(folder:GetChildren()) do
+
+            if v ~= Character and self:IsEntityAlive(v) then
+
+                local root = v:FindFirstChild("HumanoidRootPart")
+
+                if root and (Position-root.Position).Magnitude <= Distance then
+
+                    table.insert(Hits,{v,root})
+
                 end
             end
         end
     end
 
-    return targets
+    if Config.AttackMobs then
+        Process(Workspace.Enemies)
+    end
+
+    if Config.AttackPlayers then
+        Process(Workspace.Characters)
+    end
+
+    return Hits
 end
 
-local function UltraAttack()
+
+function FastAttack:GetCombo()
+
+    local c = (tick()-self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0
+
+    c += 1
+
+    self.ComboDebounce = tick()
+    self.M1Combo = c
+
+    return c
+end
+
+
+function FastAttack:ShootInTarget(TargetPosition)
+
     local char = Player.Character
-    if not char then return end
+
+    if not self:IsEntityAlive(char) then return end
 
     local tool = char:FindFirstChildOfClass("Tool")
-    if not tool then return end
 
-    local targets = GetTargets()
-    if #targets == 0 then return end
+    if not tool or tool.ToolTip ~= "Gun" then return end
 
-    -- REGISTER ATTACK
+    if tick()-self.ShootDebounce < 0.0001 then return end
+
+    local st = self.SpecialShoots[tool.Name] or "Normal"
+
+    if st=="Position" or (st=="TAP" and tool:FindFirstChild("RemoteEvent")) then
+
+        tool:SetAttribute("LocalTotalShots",(tool:GetAttribute("LocalTotalShots") or 0)+1)
+
+        GunValidator:FireServer(GetFakeValidator2())
+
+        if st=="TAP" then
+            tool.RemoteEvent:FireServer("TAP",TargetPosition)
+        else
+            ShootGunEvent:FireServer(TargetPosition)
+        end
+
+    else
+
+        VirtualInputManager:SendMouseButtonEvent(0,0,0,true,game,1)
+
+        task.wait()
+
+        VirtualInputManager:SendMouseButtonEvent(0,0,0,false,game,1)
+
+    end
+
+    self.ShootDebounce = tick()
+
+end
+
+
+function FastAttack:UseNormalClick(Character)
+
+    local Hits = self:GetBladeHits(Character)
+
+    if #Hits == 0 then return end
+
     pcall(function()
         RegisterAttack:FireServer(0)
     end)
 
-    -- SPAM HITS
-    for i = 1, HitMultiplier do
-        for _,target in ipairs(targets) do
-            pcall(function()
-                RegisterHit:FireServer(target[2],targets)
-            end)
+    pcall(function()
+
+        if self.CombatFlags and self.HitFunction then
+
+            self.HitFunction(Hits[1][2],Hits)
+
+        else
+
+            RegisterHit:FireServer(Hits[1][2],Hits)
+
         end
-    end
+
+    end)
+
 end
 
--- LOOP ULTRA FAST
-task.spawn(function()
-    while true do
-        UltraAttack()
-        task.wait(0)
+
+function FastAttack:UseFruitM1(Character,Equipped,Combo)
+
+    local Targets = self:GetBladeHits(Character)
+
+    if not Targets[1] then return end
+
+    local dir = (Targets[1][2].Position - Character:GetPivot().Position).Unit
+
+    Equipped.LeftClickRemote:FireServer(dir,Combo)
+
+end
+
+
+function FastAttack:Attack()
+
+    if not Config.AutoClickEnabled then return end
+
+    local char = Player.Character
+
+    if not char or not self:IsEntityAlive(char) then return end
+
+    local hum = char:FindFirstChild("Humanoid")
+
+    local tool = char:FindFirstChildOfClass("Tool")
+
+    if not tool then return end
+
+    local tip = tool.ToolTip
+
+    if not table.find({"Melee","Blox Fruit","Sword","Gun"},tip) then return end
+
+    if not self:CheckStun(char,hum,tip) then return end
+
+    local combo = self:GetCombo()
+
+    if tip=="Blox Fruit" and tool:FindFirstChild("LeftClickRemote") then
+
+        self:UseFruitM1(char,tool,combo)
+
+    elseif tip=="Gun" then
+
+        local targets = self:GetBladeHits(char,120)
+
+        for _,t in ipairs(targets) do
+
+            self:ShootInTarget(t[2].Position)
+
+        end
+
+    else
+
+        for i=1,Config.MeleeMultiplier do
+
+            self:UseNormalClick(char)
+
+        end
+
     end
+
+end
+
+
+local AttackInstance = FastAttack.new()
+
+task.spawn(function()
+
+    while task.wait() do
+
+        AttackInstance:Attack()
+
+    end
+
 end)
