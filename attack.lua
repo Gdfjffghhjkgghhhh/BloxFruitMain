@@ -1,193 +1,280 @@
+--// ══════════════════════════════════════════════════
+--//   ULTRA SPEED ATTACK — MAXIMUM THROUGHPUT
+--// ══════════════════════════════════════════════════
 
-
-local Players = game:GetService("Players")
+local Players    = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local RS = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-local VIM = game:GetService("VirtualInputManager")
+local RS         = game:GetService("ReplicatedStorage")
+local Workspace  = game:GetService("Workspace")
+local VIM        = game:GetService("VirtualInputManager")
 
-local Player = Players.LocalPlayer
+local Player  = Players.LocalPlayer
 local Enemies = Workspace:WaitForChild("Enemies")
 
---// REMOTES
-local Net = require(RS.Modules.Net)
-local RegisterHit = Net:RemoteEvent("RegisterHit", true)
+--// ── REMOTES (cached 1 lần duy nhất) ──────────────
+local Net            = require(RS.Modules.Net)
+local RegisterHit    = Net:RemoteEvent("RegisterHit", true)
 local RegisterAttack = RS.Modules.Net["RE/RegisterAttack"]
+local ShootGun       = RS.Modules.Net["RE/ShootGunEvent"]
+local Validator2     = RS:WaitForChild("Remotes"):WaitForChild("Validator2")
 
---// CONFIG (đã chỉnh tối ưu nhất)
+--// ── CONFIG ────────────────────────────────────────
 local CFG = {
-    MobRange = 65,
+    MobRange    = 65,
     PlayerRange = 65,
-    GunRange = 150,
-    MaxTargets = 25,
-    HitsPerFrame = 5,        -- 5 là con số vàng (nhanh mà không delay)
-    AttackMobs = true,
-    AttackPlayers = true,
+    GunRange    = 150,
+    MaxTargets  = 30,
+    -- Số coroutine song song bắn mỗi frame
+    -- Heartbeat ~60fps × Threads = tổng fire/giây
+    Threads     = 8,
 }
 
-local MOB_SQ = CFG.MobRange * CFG.MobRange
-local PLR_SQ = CFG.PlayerRange * CFG.PlayerRange
-local GUN_SQ = CFG.GunRange * CFG.GunRange
+-- Pre-square ranges
+local MOB_SQ = CFG.MobRange    ^ 2
+local PLR_SQ = CFG.PlayerRange ^ 2
+local GUN_SQ = CFG.GunRange    ^ 2
 
---// REUSE TABLES
-local allHits = table.create(CFG.MaxTargets)
-local playerHits = table.create(20)
-local combinedHits = table.create(CFG.MaxTargets)
+--// ── REUSE TABLES (zero alloc) ────────────────────
+local mobBuf  = table.create(CFG.MaxTargets)
+local plrBuf  = table.create(16)
+local allBuf  = table.create(CFG.MaxTargets)
 
-local function alive(model)
-    local h = model and model:FindFirstChildOfClass("Humanoid")
+--// ── COROUTINE POOL (reuse, không tạo mới) ────────
+local pool = {}
+for i = 1, 64 do
+    pool[i] = coroutine.create(function(fn, ...)
+        while true do
+            fn(...)
+            fn, ... = coroutine.yield()
+        end
+    end)
+end
+local poolIdx = 0
+
+local function poolSpawn(fn, ...)
+    poolIdx = (poolIdx % #pool) + 1
+    local co = pool[poolIdx]
+    if coroutine.status(co) == "suspended" then
+        coroutine.resume(co, fn, ...)
+    else
+        -- fallback nếu co đang chạy
+        task.spawn(fn, ...)
+    end
+end
+
+--// ── ALIVE (inline, no method call overhead) ──────
+local find = game.FindFirstChildOfClass
+local function alive(m)
+    local h = find(m, m, "Humanoid")
     return h and h.Health > 0
 end
 
---// GetAllBladeHits (tối ưu nhất)
-local function GetAllBladeHits(pos)
-    table.clear(combinedHits)
-    local pos = pos
-
-    -- Mobs
-    if CFG.AttackMobs then
-        for _, e in ipairs(Enemies:GetChildren()) do
-            if #combinedHits >= CFG.MaxTargets then break end
-            if alive(e) then
-                local r = e:FindFirstChild("HumanoidRootPart")
-                if r then
-                    local d = r.Position - pos
-                    if d.X*d.X + d.Y*d.Y + d.Z*d.Z <= MOB_SQ then
-                        combinedHits[#combinedHits+1] = {e, r}
-                    end
+--// ── HIT DETECTION ────────────────────────────────
+local function GetMobHits(pos)
+    table.clear(mobBuf)
+    local ec = Enemies:GetChildren()
+    local n  = #ec
+    for i = 1, n do
+        if #mobBuf >= CFG.MaxTargets then break end
+        local e = ec[i]
+        local h = e:FindFirstChildOfClass("Humanoid")
+        if h and h.Health > 0 then
+            local r = e:FindFirstChild("HumanoidRootPart")
+            if r then
+                local d = r.Position - pos
+                if d.X*d.X + d.Y*d.Y + d.Z*d.Z <= MOB_SQ then
+                    mobBuf[#mobBuf+1] = {e, r}
                 end
             end
         end
     end
-
-    -- Players
-    if CFG.AttackPlayers then
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if #combinedHits >= CFG.MaxTargets then break end
-            if plr ~= Player and plr.Character and alive(plr.Character) then
-                local r = plr.Character:FindFirstChild("HumanoidRootPart")
-                if r then
-                    local d = r.Position - pos
-                    if d.X*d.X + d.Y*d.Y + d.Z*d.Z <= PLR_SQ then
-                        combinedHits[#combinedHits+1] = {plr.Character, r}
-                    end
-                end
-            end
-        end
-    end
-    return combinedHits
+    return mobBuf
 end
 
---// CLASS
+local function GetPlrHits(pos)
+    table.clear(plrBuf)
+    local all = Players:GetPlayers()
+    local n   = #all
+    for i = 1, n do
+        if #plrBuf >= CFG.MaxTargets then break end
+        local p = all[i]
+        if p ~= Player then
+            local c = p.Character
+            if c then
+                local h = c:FindFirstChildOfClass("Humanoid")
+                if h and h.Health > 0 then
+                    local r = c:FindFirstChild("HumanoidRootPart")
+                    if r then
+                        local d = r.Position - pos
+                        if d.X*d.X + d.Y*d.Y + d.Z*d.Z <= PLR_SQ then
+                            plrBuf[#plrBuf+1] = {c, r}
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return plrBuf
+end
+
+local function GetAll(pos)
+    table.clear(allBuf)
+    local m = GetMobHits(pos)
+    local p = GetPlrHits(pos)
+    for i = 1, #m do allBuf[#allBuf+1] = m[i] end
+    for i = 1, #p do
+        if #allBuf >= CFG.MaxTargets then break end
+        allBuf[#allBuf+1] = p[i]
+    end
+    return allBuf
+end
+
+--// ── FA CLASS ──────────────────────────────────────
 local FA = {}
 FA.__index = FA
 
 function FA.new()
     local self = setmetatable({
-        combo = 0,
-        HitFn = nil,
+        combo   = 0,
+        HitFn   = nil,
+        SpecialShoot = {
+            ["Skull Guitar"] = "TAP",
+            ["Bazooka"]      = "Position",
+            ["Cannon"]       = "Position",
+            ["Dragonstorm"]  = "Overheat",
+        },
+        MultiShoot = {["Dual Flintlock"] = 2},
     }, FA)
 
     pcall(function()
-        self.HitFn = getsenv(Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript"))._G.SendHitsToServer
+        local ls = Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript")
+        if ls and getsenv then
+            self.HitFn = getsenv(ls)._G.SendHitsToServer
+        end
     end)
     return self
 end
 
-function FA:GetCombo()
-    self.combo = (self.combo % 100) + 1
-    return self.combo
-end
-
-function FA:FireHit(targetRoot, targetList)
-    pcall(function()
-        if self.HitFn then
-            self.HitFn(targetRoot, targetList)
-        else
-            RegisterHit:FireServer(targetRoot, targetList)
-        end
-    end)
-end
-
---// NORMAL ATTACK (đã fix delay)
-function FA:UseNormalClick(pos)
-    local targets = GetAllBladeHits(pos)
-    if #targets == 0 then return end
-
-    for _ = 1, CFG.HitsPerFrame do
-        pcall(function() RegisterAttack:FireServer(0) end)   -- chỉ 1 lần RegisterAttack mỗi hit cycle
-        for i = 1, #targets do
-            self:FireHit(targets[i][2], targets)
-        end
+--// ── FIRE HIT (hot path, pcall wrap mỏng) ─────────
+function FA:FH(root, list)
+    if self.HitFn then
+        self.HitFn(root, list)
+    else
+        RegisterHit:FireServer(root, list)
     end
 end
 
---// Fruit M1
-function FA:UseFruitM1(pos, tool, combo)
-    local targets = GetAllBladeHits(pos)
-    if #targets == 0 then return end
-    local dir = (targets[1][2].Position - pos).Unit
-    pcall(function() tool.LeftClickRemote:FireServer(dir, combo) end)
+--// ── WAVE: 1 đợt RegisterAttack + tất cả hits ─────
+function FA:Wave(targets, n)
+    RegisterAttack:FireServer(0)
+    for i = 1, n do
+        pcall(self.FH, self, targets[i][2], targets)
+    end
 end
 
---// Gun
-function FA:ShootTarget(tool, targetPos)
-    local st = ({
-        ["Skull Guitar"] = "TAP",
-        ["Bazooka"] = "Position",
-        ["Cannon"] = "Position",
-        ["Dragonstorm"] = "Overheat",
-    })[tool.Name] or "Normal"
+--// ════════════════════════════════════════════
+--//   NORMAL / SWORD — ULTRA FIRE
+--//   Threads coroutine song song, mỗi cái 1 wave
+--// ════════════════════════════════════════════
+function FA:UseNormalClick(pos)
+    local targets = GetAll(pos)
+    local n = #targets
+    if n == 0 then return end
 
-    local shots = ({["Dual Flintlock"] = 2})[tool.Name] or 1
-
-    for _ = 1, shots do
-        pcall(function()
-            if st == "Position" then
-                tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                RS:WaitForChild("Remotes").Validator2:FireServer(math.floor(os.clock() * 1337) % 16777216)
-                RS.Modules.Net["RE/ShootGunEvent"]:FireServer(targetPos)
-            elseif st == "TAP" and tool:FindFirstChild("RemoteEvent") then
-                tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                tool.RemoteEvent:FireServer("TAP", targetPos)
-            else
-                VIM:SendMouseButtonEvent(0,0,0,true,game,1)
-                VIM:SendMouseButtonEvent(0,0,0,false,game,1)
-            end
+    -- Spawn Threads wave song song qua coroutine pool
+    for t = 1, CFG.Threads do
+        poolSpawn(function()
+            pcall(function()
+                self:Wave(targets, n)
+            end)
         end)
     end
 end
 
---// MAIN
+--// ── FRUIT M1 — fire Threads lần ──────────────────
+function FA:UseFruitM1(pos, tool, combo)
+    local targets = GetAll(pos)
+    if #targets == 0 then return end
+    local dir = (targets[1][2].Position - pos).Unit
+
+    for t = 1, CFG.Threads do
+        poolSpawn(function()
+            pcall(function()
+                tool.LeftClickRemote:FireServer(dir, combo)
+            end)
+        end)
+    end
+end
+
+--// ── GUN ──────────────────────────────────────────
+function FA:ShootTarget(tool, targetPos)
+    local st    = self.SpecialShoot[tool.Name] or "Normal"
+    local shots = self.MultiShoot[tool.Name] or 1
+
+    for _ = 1, shots do
+        poolSpawn(function()
+            pcall(function()
+                if st == "Position" then
+                    tool:SetAttribute("LocalTotalShots",
+                        (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                    Validator2:FireServer(math.floor(os.clock() * 1337) % 16777216)
+                    ShootGun:FireServer(targetPos)
+                elseif st == "TAP" then
+                    local re = tool:FindFirstChild("RemoteEvent")
+                    if re then
+                        tool:SetAttribute("LocalTotalShots",
+                            (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                        re:FireServer("TAP", targetPos)
+                    end
+                else
+                    VIM:SendMouseButtonEvent(0,0,0,true,game,1)
+                    VIM:SendMouseButtonEvent(0,0,0,false,game,1)
+                end
+            end)
+        end)
+    end
+end
+
+--// ── BYPASS STUN (pre-cached refs) ────────────────
+local stunNames = {"Stun","Busy","NoAttack","Attacking"}
+function FA:BypassStun(char)
+    for i = 1, #stunNames do
+        local obj = char:FindFirstChild(stunNames[i])
+        if obj then
+            local v = obj.Value
+            if type(v) == "number" then
+                if v ~= 0 then obj.Value = 0 end
+            elseif v then
+                obj.Value = false
+            end
+        end
+    end
+end
+
+--// ── MAIN ATTACK ───────────────────────────────────
 function FA:Attack()
     local char = Player.Character
-    if not char or not alive(char) then return end
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return end
 
     local root = char:FindFirstChild("HumanoidRootPart")
     local tool = char:FindFirstChildOfClass("Tool")
     if not root or not tool then return end
 
     local tip = tool.ToolTip
-    if not (tip == "Melee" or tip == "Blox Fruit" or tip == "Sword" or tip == "Gun") then return end
+    if tip ~= "Melee" and tip ~= "Blox Fruit"
+       and tip ~= "Sword" and tip ~= "Gun" then return end
 
-    -- Bypass stun
-    pcall(function()
-        for _, v in {"Stun","Busy","NoAttack","Attacking"} do
-            local obj = char:FindFirstChild(v)
-            if obj then
-                if typeof(obj.Value) == "number" then obj.Value = 0
-                else obj.Value = false end
-            end
-        end
-    end)
+    self:BypassStun(char)
 
-    local pos = root.Position
-    local combo = self:GetCombo()
+    local pos   = root.Position
+    self.combo  = (self.combo % 100) + 1
 
     if tip == "Blox Fruit" and tool:FindFirstChild("LeftClickRemote") then
-        self:UseFruitM1(pos, tool, combo)
+        self:UseFruitM1(pos, tool, self.combo)
     elseif tip == "Gun" then
-        local targets = GetAllBladeHits(pos)
+        local targets = GetAll(pos)
         for i = 1, #targets do
             self:ShootTarget(tool, targets[i][2].Position)
         end
@@ -196,9 +283,18 @@ function FA:Attack()
     end
 end
 
+
 local inst = FA.new()
-inst.Connection = RunService.Heartbeat:Connect(function()
-    inst:Attack()
+
+-- Connection 1
+RunService.Heartbeat:Connect(function()
+    pcall(function() inst:Attack() end)
 end)
 
+-- Connection 2 — song song với connection 1
+RunService.Heartbeat:Connect(function()
+    pcall(function() inst:Attack() end)
+end)
+
+print("⚡ ULTRA SPEED ATTACK LOADED")
 return FA
