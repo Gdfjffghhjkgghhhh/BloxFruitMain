@@ -11,7 +11,7 @@ local Player  = Players.LocalPlayer
 local Enemies = Workspace:WaitForChild("Enemies")
 
 --// ════════════════════════════════════════════
---//   REMOTES — dùng đúng cách như bản gốc
+--//   REMOTES
 --// ════════════════════════════════════════════
 local Net            = require(RS.Modules.Net)
 local RegisterHit    = Net:RemoteEvent("RegisterHit", true)
@@ -21,12 +21,13 @@ local RegisterAttack = RS.Modules.Net["RE/RegisterAttack"]
 --//   CONFIG
 --// ════════════════════════════════════════════
 local CFG = {
-    MobRange    = 65,
-    PlayerRange = 65,
-    GunRange    = 150,
-    MaxTargets  = 20,
-    HitsPerFrame= 3,    -- số lần fire hit / frame
-    AttackMobs  = true,
+    MobRange      = 65,
+    PlayerRange   = 65,
+    GunRange      = 150,
+    MaxTargets    = 20,
+    -- ↓ KEY: số lần fire mỗi Heartbeat
+    HitsPerFrame  = 20,   -- tăng = đánh nhanh hơn (melee/sword/fruit)
+    AttackMobs    = true,
     AttackPlayers = true,
 }
 
@@ -35,12 +36,14 @@ local PLR_SQ = CFG.PlayerRange * CFG.PlayerRange
 local GUN_SQ = CFG.GunRange    * CFG.GunRange
 
 --// ════════════════════════════════════════════
---//   REUSE TABLES
+--//   REUSE TABLES (zero GC)
 --// ════════════════════════════════════════════
-local allHits = table.create(CFG.MaxTargets)
+local allHits      = table.create(CFG.MaxTargets)
+local playerHits   = table.create(16)
+local combinedHits = table.create(CFG.MaxTargets)
 
 --// ════════════════════════════════════════════
---//   ALIVE CHECK — đơn giản, không rawget
+--//   ALIVE CHECK
 --// ════════════════════════════════════════════
 local function alive(model)
     local h = model and model:FindFirstChildOfClass("Humanoid")
@@ -48,13 +51,15 @@ local function alive(model)
 end
 
 --// ════════════════════════════════════════════
---//   GetBladeHits — CHỈ MOB
+--//   HIT DETECTION
 --// ════════════════════════════════════════════
 local function GetBladeHits(pos, rangeSq)
     table.clear(allHits)
     rangeSq = rangeSq or MOB_SQ
-    for _, e in ipairs(Enemies:GetChildren()) do
+    local ec = Enemies:GetChildren()
+    for i = 1, #ec do
         if #allHits >= CFG.MaxTargets then break end
+        local e = ec[i]
         if alive(e) then
             local r = e:FindFirstChild("HumanoidRootPart")
             if r then
@@ -68,16 +73,13 @@ local function GetBladeHits(pos, rangeSq)
     return allHits
 end
 
---// ════════════════════════════════════════════
---//   GetPlayerHit — CHỈ PLAYER
---// ════════════════════════════════════════════
-local playerHits = table.create(16)
-
 local function GetPlayerHit(pos, rangeSq)
     table.clear(playerHits)
     rangeSq = rangeSq or PLR_SQ
-    for _, plr in ipairs(Players:GetPlayers()) do
+    local all = Players:GetPlayers()
+    for i = 1, #all do
         if #playerHits >= CFG.MaxTargets then break end
+        local plr = all[i]
         if plr ~= Player and plr.Character and alive(plr.Character) then
             local r = plr.Character:FindFirstChild("HumanoidRootPart")
             if r then
@@ -91,41 +93,32 @@ local function GetPlayerHit(pos, rangeSq)
     return playerHits
 end
 
---// ════════════════════════════════════════════
---//   GetAllBladeHits — MOB + PLAYER
---// ════════════════════════════════════════════
-local combinedHits = table.create(CFG.MaxTargets)
-
 local function GetAllBladeHits(pos, mobSq, plrSq)
     table.clear(combinedHits)
-
     if CFG.AttackMobs then
-        for _, v in ipairs(GetBladeHits(pos, mobSq or MOB_SQ)) do
-            combinedHits[#combinedHits+1] = v
-        end
+        local m = GetBladeHits(pos, mobSq or MOB_SQ)
+        for i = 1, #m do combinedHits[#combinedHits+1] = m[i] end
     end
-
     if CFG.AttackPlayers then
-        for _, v in ipairs(GetPlayerHit(pos, plrSq or PLR_SQ)) do
+        local p = GetPlayerHit(pos, plrSq or PLR_SQ)
+        for i = 1, #p do
             if #combinedHits >= CFG.MaxTargets then break end
-            combinedHits[#combinedHits+1] = v
+            combinedHits[#combinedHits+1] = p[i]
         end
     end
-
     return combinedHits
 end
 
 --// ════════════════════════════════════════════
---//   FAST ATTACK CLASS
+--//   FA CLASS
 --// ════════════════════════════════════════════
-local FA   = {}
+local FA = {}
 FA.__index = FA
 
 function FA.new()
     local self = setmetatable({
         combo       = 0,
         comboTick   = 0,
-        shootTick   = 0,
         Connections = {},
         HitFn       = nil,
         ShootFn     = nil,
@@ -136,29 +129,26 @@ function FA.new()
             ["Cannon"]       = "Position",
             ["Dragonstorm"]  = "Overheat",
         },
-        ShootsPerTarget = { ["Dual Flintlock"] = 2 },
+        ShootsPerTarget = {["Dual Flintlock"] = 2},
     }, FA)
 
     pcall(function()
         self.CombatFlags = require(RS.Modules.Flags).COMBAT_REMOTE_THREAD
         self.ShootFn     = getupvalue(require(RS.Controllers.CombatController).Attack, 9)
         local ls = Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript")
-        if ls and getsenv then
-            self.HitFn = getsenv(ls)._G.SendHitsToServer
-        end
+        if ls and getsenv then self.HitFn = getsenv(ls)._G.SendHitsToServer end
     end)
 
     return self
 end
 
---// Combo vô hạn
 function FA:GetCombo()
-    self.combo    = self.combo + 1
-    self.comboTick= tick()
+    self.combo     = self.combo + 1
+    self.comboTick = tick()
     return self.combo
 end
 
---// ─── FireHit wrapper ──────────────────────
+--// ─── FireHit: spawn song song mỗi target ──
 function FA:FireHit(targetRoot, targetList)
     pcall(function()
         if self.HitFn then
@@ -169,55 +159,71 @@ function FA:FireHit(targetRoot, targetList)
     end)
 end
 
---// ─── UseNormalClick ───────────────────────
+--// ════════════════════════════════════════════
+--//   UseNormalClick — SIÊU NHANH
+--//   Mỗi Heartbeat:
+--//   • HitsPerFrame lần RegisterAttack
+--//   • Mỗi lần → tất cả target đều bị hit
+--//   • Dùng task.spawn để không block
+--// ════════════════════════════════════════════
 function FA:UseNormalClick(pos)
     local targets = GetAllBladeHits(pos)
-    if #targets == 0 then return end
+    local n = #targets
+    if n == 0 then return end
 
-    for _ = 1, CFG.HitsPerFrame do
-        pcall(function() RegisterAttack:FireServer(0) end)
-        for i = 1, #targets do
-            self:FireHit(targets[i][2], targets)
-        end
-    end
-end
-
---// ─── FruitM1 ──────────────────────────────
-function FA:UseFruitM1(pos, tool, combo)
-    local targets = GetAllBladeHits(pos)
-    if #targets == 0 then return end
-    local dir = (targets[1][2].Position - pos).Unit
-    pcall(function() tool.LeftClickRemote:FireServer(dir, combo) end)
-end
-
---// ─── Gun shoot ────────────────────────────
-function FA:ShootTarget(tool, targetPos)
-    local st    = self.SpecialShoot[tool.Name] or "Normal"
-    local shots = self.ShootsPerTarget[tool.Name] or 1
-
-    for _ = 1, shots do
-        pcall(function()
-            if st == "Position" then
-                tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                local ShootGun = RS.Modules.Net["RE/ShootGunEvent"]
-                local Validator = RS:WaitForChild("Remotes"):WaitForChild("Validator2")
-                Validator:FireServer(math.floor(os.clock() * 1337) % 16777216)
-                ShootGun:FireServer(targetPos)
-
-            elseif st == "TAP" and tool:FindFirstChild("RemoteEvent") then
-                tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                tool.RemoteEvent:FireServer("TAP", targetPos)
-
-            else
-                VIM:SendMouseButtonEvent(0,0,0,true,game,1)
-                VIM:SendMouseButtonEvent(0,0,0,false,game,1)
+    -- Spawn song song HitsPerFrame đợt fire
+    for wave = 1, CFG.HitsPerFrame do
+        task.spawn(function()
+            pcall(function() RegisterAttack:FireServer(0) end)
+            for i = 1, n do
+                self:FireHit(targets[i][2], targets)
             end
         end)
     end
 end
 
+--// ─── FruitM1 — spawn song song ─────────────
+function FA:UseFruitM1(pos, tool, combo)
+    local targets = GetAllBladeHits(pos)
+    if #targets == 0 then return end
+    local dir = (targets[1][2].Position - pos).Unit
+
+    -- Fire nhiều lần liên tiếp như melee
+    for _ = 1, CFG.HitsPerFrame do
+        task.spawn(function()
+            pcall(function() tool.LeftClickRemote:FireServer(dir, combo) end)
+        end)
+    end
+end
+
+--// ─── Gun shoot ────────────────────────────
+local ShootGun  = RS.Modules.Net["RE/ShootGunEvent"]
+local Validator = RS:WaitForChild("Remotes"):WaitForChild("Validator2")
+
+function FA:ShootTarget(tool, targetPos)
+    local st    = self.SpecialShoot[tool.Name] or "Normal"
+    local shots = self.ShootsPerTarget[tool.Name] or 1
+    for _ = 1, shots do
+        task.spawn(function()
+            pcall(function()
+                if st == "Position" then
+                    tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                    Validator:FireServer(math.floor(os.clock() * 1337) % 16777216)
+                    ShootGun:FireServer(targetPos)
+                elseif st == "TAP" and tool:FindFirstChild("RemoteEvent") then
+                    tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                    tool.RemoteEvent:FireServer("TAP", targetPos)
+                else
+                    VIM:SendMouseButtonEvent(0,0,0,true,game,1)
+                    VIM:SendMouseButtonEvent(0,0,0,false,game,1)
+                end
+            end)
+        end)
+    end
+end
+
 --// ════════════════════════════════════════════
---//   MAIN ATTACK — gọi mỗi Heartbeat
+--//   MAIN ATTACK
 --// ════════════════════════════════════════════
 function FA:Attack()
     local char = Player.Character
@@ -230,12 +236,12 @@ function FA:Attack()
     local tip = tool.ToolTip
     if tip ~= "Melee" and tip ~= "Blox Fruit" and tip ~= "Sword" and tip ~= "Gun" then return end
 
-    -- Bypass stun/busy chỉ khi thực sự bị chặn
+    -- Bypass stun/busy
     pcall(function()
         local stun = char:FindFirstChild("Stun")
         local busy = char:FindFirstChild("Busy")
-        if stun and stun.Value > 0 then stun.Value = 0 end
-        if busy and busy.Value == true then busy.Value = false end
+        if stun and stun.Value > 0  then stun.Value = 0     end
+        if busy and busy.Value      then busy.Value = false  end
     end)
 
     local pos   = root.Position
@@ -251,7 +257,6 @@ function FA:Attack()
         end
 
     else
-        -- Melee / Sword
         self:UseNormalClick(pos)
     end
 end
@@ -260,7 +265,6 @@ end
 --//   START
 --// ════════════════════════════════════════════
 local inst = FA.new()
-
 table.insert(inst.Connections, RunService.Heartbeat:Connect(function()
     inst:Attack()
 end))
