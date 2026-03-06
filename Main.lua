@@ -1,4 +1,4 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Gdfjffghhjkgghhhh/BloxFruitMain/refs/heads/main/attack.lua"))()
+
 do
   ply = game.Players
   plr = ply.LocalPlayer
@@ -3105,3 +3105,4 @@ end})
 Tabs.Misc:AddButton({Title = "Turn on Low CPU", Description = "",Callback = function()
   LowCpu()
 end})
+
