@@ -20,8 +20,8 @@ local CFG = {
     PlayerRange   = 65,
     GunRange      = 150,
     MaxTargets    = 20,
-    Threads       = 3,
-    Cooldown      = 0.0001,
+    Threads       = 5,
+    Cooldown      = 0.06,
 }
 
 local MOB_SQ = CFG.MobRange    ^ 2
