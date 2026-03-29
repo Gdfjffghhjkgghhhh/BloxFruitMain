@@ -20,7 +20,7 @@ local CFG = {
     PlayerRange   = 65,
     GunRange      = 150,
     MaxTargets    = 20,
-    Threads       = 5,
+    Threads       = 8,
     Cooldown      = 0.06,
 }
 
