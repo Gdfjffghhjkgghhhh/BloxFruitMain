@@ -16,66 +16,57 @@ local Validator2     = RS:WaitForChild("Remotes"):WaitForChild("Validator2")
 
 --// ── CONFIG ────────────────────────────────────────
 local CFG = {
-    MobRange      = 65,
-    PlayerRange   = 65,
-    GunRange      = 150,
-    MaxTargets    = 20,
-    Threads       = 8,
-    Cooldown      = 0.06,
+    MobRange    = 65,
+    PlayerRange = 65,
+    GunRange    = 150,
+    MaxTargets  = 20,
+    WavesPerFrame  = 10,   -- số wave fire mỗi frame (tăng nếu executor mạnh)
+    AttacksPerWave = 3,    -- số RegisterAttack mỗi wave
+    Cooldown    = 0,       -- bỏ hoàn toàn
 }
 
 local MOB_SQ = CFG.MobRange    ^ 2
 local PLR_SQ = CFG.PlayerRange ^ 2
 local GUN_SQ = CFG.GunRange    ^ 2
 
---// ── COROUTINE POOL ────────────────────────────────
-local POOL_SIZE = 32
-local pool      = table.create(POOL_SIZE)
-local pidx      = 0
+--// ── CACHE ─────────────────────────────────────────
+local allBuf  = table.create(CFG.MaxTargets)
+local _char, _hum, _root, _tool, _pos
 
-for i = 1, POOL_SIZE do
-    -- FIX: khởi động đúng, yield ngay sau resume đầu tiên
-    local co = coroutine.create(function(fn, a, b)
-        while true do
-            fn(a, b)
-            fn, a, b = coroutine.yield()
-        end
-    end)
-    pool[i] = co
+local function refreshCache()
+    _char = Player.Character
+    if not _char then _hum = nil; _root = nil; _tool = nil; return end
+    _hum  = _char:FindFirstChildOfClass("Humanoid")
+    _root = _char:FindFirstChild("HumanoidRootPart")
+    _tool = _char:FindFirstChildOfClass("Tool")
+    _pos  = _root and _root.Position
 end
 
-local function go(fn, a, b)
-    pidx = pidx % POOL_SIZE + 1
-    local co = pool[pidx]
-    local st = coroutine.status(co)
-    if st == "suspended" then
-        coroutine.resume(co, fn, a, b)
-    else
-        -- coroutine chưa chạy lần nào hoặc đang bận → task.spawn fallback
-        task.spawn(fn, a, b)
+--// ── STUN BYPASS CACHE ─────────────────────────────
+local STUNS = {"Stun","Busy","NoAttack","Attacking"}
+
+local function bypassStun()
+    if not _char then return end
+    for i = 1, #STUNS do
+        local obj = _char:FindFirstChild(STUNS[i])
+        if obj then
+            local v = obj.Value
+            if type(v) == "number"  and v ~= 0   then rawset(obj, "Value", 0)     end
+            if type(v) == "boolean" and v == true then rawset(obj, "Value", false) end
+        end
     end
 end
 
---// ── BUFFERS ───────────────────────────────────────
-local allBuf = table.create(CFG.MaxTargets)
-
---// ── ALIVE FIX: dùng đúng : thay vì . ───────────
-local function alive(m)
-    if not m then return false end
-    local h = m:FindFirstChildOfClass("Humanoid")  -- FIX: : không phải .
-    return h ~= nil and h.Health > 0
-end
-
---// ── HIT DETECTION ────────────────────────────────
-local function GetAll(pos)
+--// ── TARGET SCAN ───────────────────────────────────
+local function GetAll()
     table.clear(allBuf)
+    local pos = _pos
+    if not pos then return allBuf end
 
-    -- Mobs
     local ec = Enemies:GetChildren()
     for i = 1, #ec do
         if #allBuf >= CFG.MaxTargets then break end
         local e = ec[i]
-        -- FIX: kiểm tra trực tiếp, không qua alive() wrapper để tránh nil
         local hum = e:FindFirstChildOfClass("Humanoid")
         if hum and hum.Health > 0 then
             local r = e:FindFirstChild("HumanoidRootPart")
@@ -88,7 +79,6 @@ local function GetAll(pos)
         end
     end
 
-    -- Players
     local all = Players:GetPlayers()
     for i = 1, #all do
         if #allBuf >= CFG.MaxTargets then break end
@@ -116,9 +106,8 @@ FA.__index = FA
 
 function FA.new()
     local self = setmetatable({
-        combo    = 0,
-        lastFire = 0,
-        HitFn    = nil,
+        combo  = 0,
+        HitFn  = nil,
         SpecialShoot = {
             ["Skull Guitar"] = "TAP",
             ["Bazooka"]      = "Position",
@@ -138,135 +127,113 @@ function FA.new()
     return self
 end
 
---// ── WAVE ─────────────────────────────────────────
+--// ── WAVE: fire nhiều lần 1 call ──────────────────
 function FA:Wave(targets, n)
-    RegisterAttack:FireServer(0)
+    -- fire RegisterAttack nhiều lần
+    for _ = 1, CFG.AttacksPerWave do
+        RegisterAttack:FireServer(0)
+    end
+    -- fire hit lên tất cả target
     local hitFn = self.HitFn
     for i = 1, n do
         local root = targets[i][2]
-        pcall(function()
-            if hitFn then
-                hitFn(root, targets)
-            else
-                RegisterHit:FireServer(root, targets)
-            end
-        end)
+        if hitFn then
+            hitFn(root, targets)
+        else
+            RegisterHit:FireServer(root, targets)
+        end
     end
 end
 
---// ── NORMAL / SWORD ────────────────────────────────
-function FA:UseNormalClick(pos)
-    local targets = GetAll(pos)
+--// ── MELEE / SWORD: WavesPerFrame waves/frame ─────
+function FA:UseNormalClick()
+    local targets = GetAll()
     local n = #targets
     if n == 0 then return end
-
-    for _ = 1, CFG.Threads do
-        go(function()
-            pcall(function() self:Wave(targets, n) end)
-        end)
+    for _ = 1, CFG.WavesPerFrame do
+        self:Wave(targets, n)
     end
 end
 
---// ── FRUIT M1 ──────────────────────────────────────
-function FA:UseFruitM1(pos, tool, combo)
-    local targets = GetAll(pos)
+--// ── FRUIT M1: spam direction fire ────────────────
+function FA:UseFruitM1()
+    local targets = GetAll()
     if #targets == 0 then return end
-    local dir  = (targets[1][2].Position - pos).Unit
-    local lclr = tool.LeftClickRemote
-    for _ = 1, CFG.Threads do
-        go(function()
-            pcall(function() lclr:FireServer(dir, combo) end)
-        end)
+    local dir  = (targets[1][2].Position - _pos).Unit
+    local lclr = _tool.LeftClickRemote
+    for _ = 1, CFG.WavesPerFrame do
+        lclr:FireServer(dir, self.combo)
     end
 end
 
 --// ── GUN ──────────────────────────────────────────
-function FA:ShootTarget(tool, targetPos)
-    local st    = self.SpecialShoot[tool.Name] or "Normal"
-    local shots = self.MultiShoot[tool.Name] or 1
+local SpecialShoot = {
+    ["Skull Guitar"] = "TAP",
+    ["Bazooka"]      = "Position",
+    ["Cannon"]       = "Position",
+    ["Dragonstorm"]  = "Overheat",
+}
+local MultiShoot = {["Dual Flintlock"] = 2}
+
+function FA:ShootTarget(targetPos)
+    local tool  = _tool
+    local st    = SpecialShoot[tool.Name] or "Normal"
+    local shots = (MultiShoot[tool.Name] or 1) * CFG.WavesPerFrame
     for _ = 1, shots do
-        go(function()
-            pcall(function()
-                if st == "Position" then
+        pcall(function()
+            if st == "Position" then
+                tool:SetAttribute("LocalTotalShots",
+                    (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                Validator2:FireServer(math.floor(os.clock() * 1337) % 16777216)
+                ShootGun:FireServer(targetPos)
+            elseif st == "TAP" then
+                local re = tool:FindFirstChild("RemoteEvent")
+                if re then
                     tool:SetAttribute("LocalTotalShots",
                         (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                    Validator2:FireServer(math.floor(os.clock() * 1337) % 16777216)
-                    ShootGun:FireServer(targetPos)
-                elseif st == "TAP" then
-                    local re = tool:FindFirstChild("RemoteEvent")
-                    if re then
-                        tool:SetAttribute("LocalTotalShots",
-                            (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                        re:FireServer("TAP", targetPos)
-                    end
-                else
-                    VIM:SendMouseButtonEvent(0,0,0,true,game,1)
-                    VIM:SendMouseButtonEvent(0,0,0,false,game,1)
+                    re:FireServer("TAP", targetPos)
                 end
-            end)
+            else
+                VIM:SendMouseButtonEvent(0,0,0,true,game,1)
+                VIM:SendMouseButtonEvent(0,0,0,false,game,1)
+            end
         end)
     end
 end
 
---// ── BYPASS STUN ───────────────────────────────────
-local STUNS = {"Stun","Busy","NoAttack","Attacking"}
-function FA:BypassStun(char)
-    for i = 1, #STUNS do
-        local obj = char:FindFirstChild(STUNS[i])
-        if obj then
-            local v = obj.Value
-            if type(v) == "number" and v ~= 0 then
-                obj.Value = 0
-            elseif type(v) == "boolean" and v then
-                obj.Value = false
-            end
-        end
-    end
-end
-
---// ── MAIN ATTACK ───────────────────────────────────
+--// ── MAIN ──────────────────────────────────────────
 function FA:Attack()
-    -- Throttle chống lag
-    local now = tick()
-    if now - self.lastFire < CFG.Cooldown then return end
-    self.lastFire = now
+    refreshCache()
+    if not _char or not _hum or _hum.Health <= 0 then return end
+    if not _root or not _tool then return end
 
-    local char = Player.Character
-    if not char then return end
-
-    -- FIX: kiểm tra humanoid trực tiếp, không qua alive()
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum or hum.Health <= 0 then return end
-
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not root or not tool then return end
-
-    local tip = tool.ToolTip
+    local tip = _tool.ToolTip
     if tip ~= "Melee" and tip ~= "Blox Fruit"
     and tip ~= "Sword" and tip ~= "Gun" then return end
 
-    self:BypassStun(char)
-
-    local pos = root.Position
+    bypassStun()
     self.combo = (self.combo % 100) + 1
 
-    if tip == "Blox Fruit" and tool:FindFirstChild("LeftClickRemote") then
-        self:UseFruitM1(pos, tool, self.combo)
+    if tip == "Blox Fruit" and _tool:FindFirstChild("LeftClickRemote") then
+        self:UseFruitM1()
     elseif tip == "Gun" then
-        local targets = GetAll(pos)
+        local targets = GetAll()
         for i = 1, #targets do
-            self:ShootTarget(tool, targets[i][2].Position)
+            self:ShootTarget(targets[i][2].Position)
         end
     else
-        self:UseNormalClick(pos)
+        self:UseNormalClick()
     end
 end
 
---// ── START ─────────────────────────────────────────
+--// ── START: chạy cả Heartbeat + RenderStepped ─────
 local inst = FA.new()
 
 RunService.Heartbeat:Connect(function()
+    pcall(function() inst:Attack() end)
+end)
+
+RunService.RenderStepped:Connect(function()
     pcall(function() inst:Attack() end)
 end)
 
