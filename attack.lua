@@ -7,46 +7,37 @@ local VIM        = game:GetService("VirtualInputManager")
 local Player  = Players.LocalPlayer
 local Enemies = Workspace:WaitForChild("Enemies")
 
---// ── REMOTES ───────────────────────────────────────
 local Net            = require(RS.Modules.Net)
 local RegisterHit    = Net:RemoteEvent("RegisterHit", true)
 local RegisterAttack = RS.Modules.Net["RE/RegisterAttack"]
 local ShootGun       = RS.Modules.Net["RE/ShootGunEvent"]
 local Validator2     = RS:WaitForChild("Remotes"):WaitForChild("Validator2")
 
---// ── CONFIG ────────────────────────────────────────
 local CFG = {
     MobRange    = 65,
     PlayerRange = 65,
     GunRange    = 150,
     MaxTargets  = 20,
-    WavesPerFrame  = 3,   -- số wave fire mỗi frame (tăng nếu executor mạnh)
-    AttacksPerWave = 3,    -- số RegisterAttack mỗi wave
-    Cooldown    = 0,       -- bỏ hoàn toàn
+    HitRepeat   = 2,
 }
 
 local MOB_SQ = CFG.MobRange    ^ 2
 local PLR_SQ = CFG.PlayerRange ^ 2
-local GUN_SQ = CFG.GunRange    ^ 2
 
---// ── CACHE ─────────────────────────────────────────
-local allBuf  = table.create(CFG.MaxTargets)
+local allBuf = table.create(CFG.MaxTargets)
 local _char, _hum, _root, _tool, _pos
 
 local function refreshCache()
     _char = Player.Character
-    if not _char then _hum = nil; _root = nil; _tool = nil; return end
+    if not _char then _hum = nil; _root = nil; _tool = nil; _pos = nil; return end
     _hum  = _char:FindFirstChildOfClass("Humanoid")
     _root = _char:FindFirstChild("HumanoidRootPart")
     _tool = _char:FindFirstChildOfClass("Tool")
     _pos  = _root and _root.Position
 end
 
---// ── STUN BYPASS CACHE ─────────────────────────────
 local STUNS = {"Stun","Busy","NoAttack","Attacking"}
-
 local function bypassStun()
-    if not _char then return end
     for i = 1, #STUNS do
         local obj = _char:FindFirstChild(STUNS[i])
         if obj then
@@ -57,7 +48,6 @@ local function bypassStun()
     end
 end
 
---// ── TARGET SCAN ───────────────────────────────────
 local function GetAll()
     table.clear(allBuf)
     local pos = _pos
@@ -100,7 +90,6 @@ local function GetAll()
     return allBuf
 end
 
---// ── FA CLASS ──────────────────────────────────────
 local FA = {}
 FA.__index = FA
 
@@ -127,81 +116,58 @@ function FA.new()
     return self
 end
 
---// ── WAVE: fire nhiều lần 1 call ──────────────────
-function FA:Wave(targets, n)
-    -- fire RegisterAttack nhiều lần
-    for _ = 1, CFG.AttacksPerWave do
-        RegisterAttack:FireServer(0)
-    end
-    -- fire hit lên tất cả target
-    local hitFn = self.HitFn
-    for i = 1, n do
-        local root = targets[i][2]
-        if hitFn then
-            hitFn(root, targets)
-        else
-            RegisterHit:FireServer(root, targets)
-        end
-    end
-end
-
---// ── MELEE / SWORD: WavesPerFrame waves/frame ─────
 function FA:UseNormalClick()
     local targets = GetAll()
     local n = #targets
     if n == 0 then return end
-    for _ = 1, CFG.WavesPerFrame do
-        self:Wave(targets, n)
+
+    RegisterAttack:FireServer(0)
+
+    local hitFn = self.HitFn
+    for i = 1, n do
+        local root = targets[i][2]
+        for _ = 1, CFG.HitRepeat do
+            if hitFn then
+                hitFn(root, targets)
+            else
+                RegisterHit:FireServer(root, targets)
+            end
+        end
     end
 end
 
---// ── FRUIT M1: spam direction fire ────────────────
 function FA:UseFruitM1()
     local targets = GetAll()
     if #targets == 0 then return end
-    local dir  = (targets[1][2].Position - _pos).Unit
-    local lclr = _tool.LeftClickRemote
-    for _ = 1, CFG.WavesPerFrame do
-        lclr:FireServer(dir, self.combo)
+    local dir = (targets[1][2].Position - _pos).Unit
+    for _ = 1, CFG.HitRepeat do
+        _tool.LeftClickRemote:FireServer(dir, self.combo)
     end
 end
-
---// ── GUN ──────────────────────────────────────────
-local SpecialShoot = {
-    ["Skull Guitar"] = "TAP",
-    ["Bazooka"]      = "Position",
-    ["Cannon"]       = "Position",
-    ["Dragonstorm"]  = "Overheat",
-}
-local MultiShoot = {["Dual Flintlock"] = 2}
 
 function FA:ShootTarget(targetPos)
-    local tool  = _tool
-    local st    = SpecialShoot[tool.Name] or "Normal"
-    local shots = (MultiShoot[tool.Name] or 1) * CFG.WavesPerFrame
+    local tool = _tool
+    local st   = self.SpecialShoot[tool.Name] or "Normal"
+    local shots = self.MultiShoot[tool.Name] or 1
+
     for _ = 1, shots do
-        pcall(function()
-            if st == "Position" then
-                tool:SetAttribute("LocalTotalShots",
-                    (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                Validator2:FireServer(math.floor(os.clock() * 1337) % 16777216)
-                ShootGun:FireServer(targetPos)
-            elseif st == "TAP" then
-                local re = tool:FindFirstChild("RemoteEvent")
-                if re then
-                    tool:SetAttribute("LocalTotalShots",
-                        (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                    re:FireServer("TAP", targetPos)
-                end
-            else
-                VIM:SendMouseButtonEvent(0,0,0,true,game,1)
-                VIM:SendMouseButtonEvent(0,0,0,false,game,1)
+        if st == "Position" then
+            tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+            Validator2:FireServer(math.floor(os.clock() * 1337) % 16777216)
+            ShootGun:FireServer(targetPos)
+        elseif st == "TAP" then
+            local re = tool:FindFirstChild("RemoteEvent")
+            if re then
+                tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                re:FireServer("TAP", targetPos)
             end
-        end)
+        else
+            VIM:SendMouseButtonEvent(0,0,0,true,game,1)
+            VIM:SendMouseButtonEvent(0,0,0,false,game,1)
+        end
     end
 end
 
---// ── MAIN ──────────────────────────────────────────
 function FA:Attack()
     refreshCache()
     if not _char or not _hum or _hum.Health <= 0 then return end
@@ -226,14 +192,47 @@ function FA:Attack()
     end
 end
 
---// ── START: chạy cả Heartbeat + RenderStepped ─────
+local function AutoEquipMelee()
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    local backpack = Player:WaitForChild("Backpack")
+
+    -- tìm trong tay trước
+    local current = char:FindFirstChildOfClass("Tool")
+    if current and current.ToolTip == "Melee" then return end
+
+    -- tìm trong backpack
+    local melee = nil
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool.ToolTip == "Melee" then
+            melee = tool
+            break
+        end
+    end
+
+    -- nếu không có trong backpack thì tìm trong char (đang cầm cái khác)
+    if not melee then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") and tool.ToolTip == "Melee" then
+                melee = tool
+                break
+            end
+        end
+    end
+
+    if melee then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:EquipTool(melee)
+        end
+    end
+end
+
 local inst = FA.new()
 
-RunService.Heartbeat:Connect(function()
-    pcall(function() inst:Attack() end)
-end)
+-- auto equip melee 1 lần khi bật
+pcall(AutoEquipMelee)
 
-RunService.RenderStepped:Connect(function()
+RunService.Heartbeat:Connect(function()
     pcall(function() inst:Attack() end)
 end)
 
