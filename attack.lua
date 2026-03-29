@@ -18,7 +18,7 @@ local CFG = {
     PlayerRange = 65,
     GunRange    = 150,
     MaxTargets  = 20,
-    HitRepeat   = 2,
+    HitRepeat   = 4, -- fire song song, tăng thoải mái không lag
 }
 
 local MOB_SQ = CFG.MobRange    ^ 2
@@ -127,11 +127,13 @@ function FA:UseNormalClick()
     for i = 1, n do
         local root = targets[i][2]
         for _ = 1, CFG.HitRepeat do
-            if hitFn then
-                hitFn(root, targets)
-            else
-                RegisterHit:FireServer(root, targets)
-            end
+            task.spawn(function()
+                if hitFn then
+                    hitFn(root, targets)
+                else
+                    RegisterHit:FireServer(root, targets)
+                end
+            end)
         end
     end
 end
@@ -139,32 +141,38 @@ end
 function FA:UseFruitM1()
     local targets = GetAll()
     if #targets == 0 then return end
-    local dir = (targets[1][2].Position - _pos).Unit
+    local dir  = (targets[1][2].Position - _pos).Unit
+    local lclr = _tool.LeftClickRemote
+    local combo = self.combo
     for _ = 1, CFG.HitRepeat do
-        _tool.LeftClickRemote:FireServer(dir, self.combo)
+        task.spawn(function()
+            lclr:FireServer(dir, combo)
+        end)
     end
 end
 
 function FA:ShootTarget(targetPos)
-    local tool = _tool
-    local st   = self.SpecialShoot[tool.Name] or "Normal"
+    local tool  = _tool
+    local st    = self.SpecialShoot[tool.Name] or "Normal"
     local shots = self.MultiShoot[tool.Name] or 1
 
     for _ = 1, shots do
-        if st == "Position" then
-            tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-            Validator2:FireServer(math.floor(os.clock() * 1337) % 16777216)
-            ShootGun:FireServer(targetPos)
-        elseif st == "TAP" then
-            local re = tool:FindFirstChild("RemoteEvent")
-            if re then
+        task.spawn(function()
+            if st == "Position" then
                 tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
-                re:FireServer("TAP", targetPos)
+                Validator2:FireServer(math.floor(os.clock() * 1337) % 16777216)
+                ShootGun:FireServer(targetPos)
+            elseif st == "TAP" then
+                local re = tool:FindFirstChild("RemoteEvent")
+                if re then
+                    tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                    re:FireServer("TAP", targetPos)
+                end
+            else
+                VIM:SendMouseButtonEvent(0,0,0,true,game,1)
+                VIM:SendMouseButtonEvent(0,0,0,false,game,1)
             end
-        else
-            VIM:SendMouseButtonEvent(0,0,0,true,game,1)
-            VIM:SendMouseButtonEvent(0,0,0,false,game,1)
-        end
+        end)
     end
 end
 
@@ -196,11 +204,9 @@ local function AutoEquipMelee()
     local char = Player.Character or Player.CharacterAdded:Wait()
     local backpack = Player:WaitForChild("Backpack")
 
-    -- tìm trong tay trước
     local current = char:FindFirstChildOfClass("Tool")
     if current and current.ToolTip == "Melee" then return end
 
-    -- tìm trong backpack
     local melee = nil
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") and tool.ToolTip == "Melee" then
@@ -209,7 +215,6 @@ local function AutoEquipMelee()
         end
     end
 
-    -- nếu không có trong backpack thì tìm trong char (đang cầm cái khác)
     if not melee then
         for _, tool in ipairs(char:GetChildren()) do
             if tool:IsA("Tool") and tool.ToolTip == "Melee" then
@@ -221,15 +226,12 @@ local function AutoEquipMelee()
 
     if melee then
         local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum:EquipTool(melee)
-        end
+        if hum then hum:EquipTool(melee) end
     end
 end
 
 local inst = FA.new()
 
--- auto equip melee 1 lần khi bật
 pcall(AutoEquipMelee)
 
 RunService.Heartbeat:Connect(function()
