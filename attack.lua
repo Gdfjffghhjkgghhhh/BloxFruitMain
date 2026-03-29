@@ -20,7 +20,7 @@ local CFG = {
     PlayerRange = 65,
     GunRange    = 150,
     MaxTargets  = 20,
-    WavesPerFrame  = 4,   -- số wave fire mỗi frame (tăng nếu executor mạnh)
+    WavesPerFrame  = 3,   -- số wave fire mỗi frame (tăng nếu executor mạnh)
     AttacksPerWave = 3,    -- số RegisterAttack mỗi wave
     Cooldown    = 0,       -- bỏ hoàn toàn
 }
