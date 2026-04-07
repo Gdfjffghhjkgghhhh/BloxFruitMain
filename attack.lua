@@ -13,188 +13,141 @@ local RegisterHit = Net:WaitForChild("RE/RegisterHit")
 local ShootGunEvent = Net:WaitForChild("RE/ShootGunEvent")
 local GunValidator = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Validator2")
 
---// Cấu hình siêu tốc (có thể chỉnh)
+-- Config (Super Fast)
 local Config = {
-    AttackDistance = 70,          -- tăng lên 70
+    AttackDistance = 65,
     AttackMobs = true,
     AttackPlayers = true,
-    AttackCooldown = 0.01,        -- cực nhanh
-    ComboResetTime = 0.15,        -- giữ combo 0.15s để tăng dame
-    MaxCombo = math.huge,
+    AttackCooldown = 0.01,        -- giảm nhỏ hơn để attack cực nhanh
+    ComboResetTime = 0.01,        -- combo reset tức thì
+    MaxCombo = math.huge,           -- combo vô hạn
     HitboxLimbs = {"RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand"},
-    AutoClickEnabled = true,
-    GunRange = 150,               -- bắn súng xa hơn
-    CacheUpdateInterval = 0.2,    -- refresh enemy list 5 lần/giây
-    MaxTargetsPerTick = 2,        -- chỉ attack 2 mục tiêu gần nhất mỗi lần (tránh lag)
+    AutoClickEnabled = true
 }
 
---// FastAttack Class (v2 - 10/10)
+--// FastAttack Class
 local FastAttack = {}
 FastAttack.__index = FastAttack
 
 function FastAttack.new()
     local self = setmetatable({
-        LastAttackTime = 0,
-        ComboStartTime = 0,
-        CurrentCombo = 0,
+        Debounce = 0,
+        ComboDebounce = 0,
         ShootDebounce = 0,
-        EnemyCache = {Mobs = {}, Players = {}},
-        CacheTime = 0,
-        OverheatData = {Dragonstorm = {value = 0, max = 3, lastShot = 0, cooldown = 1.5}},
+        M1Combo = 0,
+        EnemyRootPart = nil,
         Connections = {},
+        Overheat = {Dragonstorm = {MaxOverheat = 3, Cooldown = 0, TotalOverheat = 0, Distance = 350, Shooting = false}},
+        ShootsPerTarget = {["Dual Flintlock"] = 2},
+        SpecialShoots = {["Skull Guitar"] = "TAP", ["Bazooka"] = "Position", ["Cannon"] = "Position", ["Dragonstorm"] = "Overheat"}
     }, FastAttack)
 
-    -- Lấy các hàm cần thiết (bảo vệ bằng pcall)
     pcall(function()
-        local CombatFlags = require(Modules.Flags)
-        self.CombatFlags = CombatFlags.COMBAT_REMOTE_THREAD
+        self.CombatFlags = require(Modules.Flags).COMBAT_REMOTE_THREAD
+        self.ShootFunction = getupvalue(require(ReplicatedStorage.Controllers.CombatController).Attack, 9)
         local LocalScript = Player:WaitForChild("PlayerScripts"):FindFirstChildOfClass("LocalScript")
         if LocalScript and getsenv then
             self.HitFunction = getsenv(LocalScript)._G.SendHitsToServer
         end
-        self.ShootFunction = getupvalue(require(ReplicatedStorage.Controllers.CombatController).Attack, 9)
     end)
 
     return self
 end
 
--- Kiểm tra entity còn sống
-function FastAttack:IsAlive(character)
-    local humanoid = character and character:FindFirstChild("Humanoid")
+function FastAttack:IsEntityAlive(entity)
+    local humanoid = entity and entity:FindFirstChild("Humanoid")
     return humanoid and humanoid.Health > 0
 end
 
--- Kiểm tra stun/busy
-function FastAttack:CanAct(character, humanoid, toolTip)
-    if humanoid.Sit and (toolTip == "Sword" or toolTip == "Melee" or toolTip == "Blox Fruit") then
+function FastAttack:CheckStun(Character, Humanoid, ToolTip)
+    local Stun = Character:FindFirstChild("Stun")
+    local Busy = Character:FindFirstChild("Busy")
+    if Humanoid.Sit and (ToolTip == "Sword" or ToolTip == "Melee" or ToolTip == "Blox Fruit") then
         return false
-    end
-    local stun = character:FindFirstChild("Stun")
-    local busy = character:FindFirstChild("Busy")
-    if (stun and stun.Value > 0) or (busy and busy.Value) then
+    elseif Stun and Stun.Value > 0 or Busy and Busy.Value then
         return false
     end
     return true
 end
 
--- Cập nhật cache enemy (chạy định kỳ)
-function FastAttack:UpdateEnemyCache()
-    local now = tick()
-    if now - self.CacheTime < Config.CacheUpdateInterval then return end
-    self.CacheTime = now
-    self.EnemyCache.Mobs = {}
-    self.EnemyCache.Players = {}
+-- GetBladeHits tối ưu, chọn HumanoidRootPart luôn
+function FastAttack:GetBladeHits(Character, Distance)
+    local Position = Character:GetPivot().Position
+    local BladeHits = {}
+    Distance = Distance or Config.AttackDistance
 
-    local charPos = Player.Character and Player.Character:GetPivot().Position or Vector3.zero
-
-    if Config.AttackMobs then
-        for _, enemy in ipairs(Workspace.Enemies:GetChildren()) do
-            if enemy ~= Player.Character and self:IsAlive(enemy) then
-                local hrp = enemy:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local dist = (charPos - hrp.Position).Magnitude
-                    table.insert(self.EnemyCache.Mobs, {enemy, hrp, dist})
+    local function ProcessTargets(Folder)
+        for _, Enemy in ipairs(Folder:GetChildren()) do
+            if Enemy ~= Character and self:IsEntityAlive(Enemy) then
+                local BasePart = Enemy:FindFirstChild("HumanoidRootPart")
+                if BasePart and (Position - BasePart.Position).Magnitude <= Distance then
+                    table.insert(BladeHits, {Enemy, BasePart})
+                    if not self.EnemyRootPart then
+                        self.EnemyRootPart = BasePart
+                    end
                 end
             end
         end
-        table.sort(self.EnemyCache.Mobs, function(a,b) return a[3] < b[3] end)
     end
 
-    if Config.AttackPlayers then
-        for _, enemy in ipairs(Workspace.Characters:GetChildren()) do
-            if enemy ~= Player.Character and self:IsAlive(enemy) then
-                local hrp = enemy:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local dist = (charPos - hrp.Position).Magnitude
-                    table.insert(self.EnemyCache.Players, {enemy, hrp, dist})
-                end
-            end
-        end
-        table.sort(self.EnemyCache.Players, function(a,b) return a[3] < b[3] end)
-    end
+    if Config.AttackMobs then ProcessTargets(Workspace.Enemies) end
+    if Config.AttackPlayers then ProcessTargets(Workspace.Characters) end
+
+    return BladeHits
 end
 
--- Lấy danh sách target gần nhất (tối đa MaxTargetsPerTick)
-function FastAttack:GetNearestTargets(character, maxDist)
-    self:UpdateEnemyCache()
-    local targets = {}
-    local maxTargets = Config.MaxTargetsPerTick
+function FastAttack:GetClosestEnemy(Character, Distance)
+    local BladeHits = self:GetBladeHits(Character, Distance)
+    local Closest, MinDistance = nil, math.huge
 
-    for _, list in ipairs({self.EnemyCache.Mobs, self.EnemyCache.Players}) do
-        for i = 1, math.min(#list, maxTargets - #targets) do
-            if list[i][3] <= maxDist then
-                table.insert(targets, list[i])
-            end
+    for _, Hit in ipairs(BladeHits) do
+        local Magnitude = (Character:GetPivot().Position - Hit[2].Position).Magnitude
+        if Magnitude < MinDistance then
+            MinDistance = Magnitude
+            Closest = Hit[2]
         end
-        if #targets >= maxTargets then break end
     end
-    return targets
+    return Closest
 end
 
--- Xử lý combo (giữ combo thực tế)
-function FastAttack:UpdateCombo()
-    local now = tick()
-    if now - self.ComboStartTime > Config.ComboResetTime then
-        self.CurrentCombo = 0
-    end
-    self.CurrentCombo = self.CurrentCombo + 1
-    self.ComboStartTime = now
-    return self.CurrentCombo
+function FastAttack:GetCombo()
+    local Combo = (tick() - self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0
+    Combo = Combo + 1
+    self.ComboDebounce = tick()
+    self.M1Combo = Combo
+    return Combo
 end
 
--- Bắn súng thông minh (hỗ trợ các loại đặc biệt)
-function FastAttack:Shoot(targetPos)
-    local char = Player.Character
-    if not char or not self:IsAlive(char) then return end
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool or tool.ToolTip ~= "Gun" then return end
+-- Shoot tối ưu, gần như liên tục
+function FastAttack:ShootInTarget(TargetPosition)
+    local Character = Player.Character
+    if not self:IsEntityAlive(Character) then return end
 
-    local now = tick()
-    if now - self.ShootDebounce < 0.008 then return end  -- cooldown bắn cực nhỏ
+    local Equipped = Character:FindFirstChildOfClass("Tool")
+    if not Equipped or Equipped.ToolTip ~= "Gun" then return end
 
-    local gunName = tool.Name
-    -- Xử lý Dragonstorm overheat
-    if gunName == "Dragonstorm" then
-        local data = self.OverheatData.Dragonstorm
-        if now - data.lastShot < data.cooldown then
-            data.value = math.max(0, data.value - 1)
-        end
-        if data.value >= data.max then
-            return  -- quá nhiệt, chờ nguội
-        end
-        data.value = data.value + 1
-        data.lastShot = now
-    end
+    local Cooldown = 0.0001  -- bỏ cooldown gun, nhanh hơn
+    if (tick() - self.ShootDebounce) < Cooldown then return end
 
-    -- Gửi remote bắn phù hợp
-    local success = pcall(function()
-        if gunName == "Bazooka" or gunName == "Cannon" then
-            ShootGunEvent:FireServer(targetPos)
-        elseif gunName == "Skull Guitar" and tool:FindFirstChild("RemoteEvent") then
-            tool.RemoteEvent:FireServer("TAP", targetPos)
-        elseif gunName == "Dual Flintlock" then
-            -- bắn 2 phát liên tiếp
-            for _ = 1, 2 do
-                VirtualInputManager:SendMouseButtonEvent(0,0,0,true,game,1)
-                task.wait(0.001)
-                VirtualInputManager:SendMouseButtonEvent(0,0,0,false,game,1)
-                task.wait(0.001)
-            end
+    local ShootType = self.SpecialShoots[Equipped.Name] or "Normal"
+    if ShootType == "Position" or (ShootType == "TAP" and Equipped:FindFirstChild("RemoteEvent")) then
+        Equipped:SetAttribute("LocalTotalShots", (Equipped:GetAttribute("LocalTotalShots") or 0) + 1)
+        GunValidator:FireServer(self:GetValidator2())
+
+        if ShootType == "TAP" then
+            Equipped.RemoteEvent:FireServer("TAP", TargetPosition)
         else
-            -- Gun thường
-            if self.ShootFunction then
-                local v1, v2 = self:GetValidator2()
-                GunValidator:FireServer(v1, v2)
-            end
-            ShootGunEvent:FireServer(targetPos)
+            ShootGunEvent:FireServer(TargetPosition)
         end
-    end)
-    if success then
-        self.ShootDebounce = now
+        self.ShootDebounce = tick()
+    else
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+        task.wait(0.0001)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+        self.ShootDebounce = tick()
     end
 end
 
--- Hàm validator cho gun (giữ nguyên logic cũ)
 function FastAttack:GetValidator2()
     local v1 = getupvalue(self.ShootFunction, 15)
     local v2 = getupvalue(self.ShootFunction, 13)
@@ -222,75 +175,61 @@ function FastAttack:GetValidator2()
     return math.floor(v9 / v4 * 16777215), v7
 end
 
--- Tấn công cận chiến (M1)
-function FastAttack:MeleeAttack(targetRoot)
-    pcall(function()
-        RegisterAttack:FireServer(0.0001)
+-- UseNormalClick: loop qua tất cả target để không bỏ ai
+function FastAttack:UseNormalClick(Character, Humanoid, Cooldown)
+    local BladeHits = self:GetBladeHits(Character)
+    for _, Hit in ipairs(BladeHits) do
+        local TargetRoot = Hit[2]
+        RegisterAttack:FireServer(Cooldown)
         if self.CombatFlags and self.HitFunction then
-            self.HitFunction(targetRoot, {})
+            self.HitFunction(TargetRoot, BladeHits)
         else
-            RegisterHit:FireServer(targetRoot, {})
-        end
-    end)
-end
-
--- Tấn công fruit
-function FastAttack:FruitAttack(tool, targetPos, combo)
-    pcall(function()
-        local direction = (targetPos - Player.Character:GetPivot().Position).Unit
-        tool.LeftClickRemote:FireServer(direction, combo)
-    end)
-end
-
--- Hàm chính tấn công (gọi mỗi frame)
-function FastAttack:Attack()
-    if not Config.AutoClickEnabled then return end
-
-    local char = Player.Character
-    if not char or not self:IsAlive(char) then return end
-
-    local now = tick()
-    if now - self.LastAttackTime < Config.AttackCooldown then return end
-
-    local humanoid = char.Humanoid
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool then return end
-
-    local toolTip = tool.ToolTip
-    if not table.find({"Melee","Blox Fruit","Sword","Gun"}, toolTip) then return end
-    if not self:CanAct(char, humanoid, toolTip) then return end
-
-    -- Xác định khoảng cách tấn công dựa trên loại vũ khí
-    local maxDist = (toolTip == "Gun") and Config.GunRange or Config.AttackDistance
-    local targets = self:GetNearestTargets(char, maxDist)
-    if #targets == 0 then return end
-
-    self.LastAttackTime = now
-    local combo = self:UpdateCombo()
-
-    if toolTip == "Gun" then
-        -- Bắn vào tất cả target (tối đa MaxTargetsPerTick)
-        for _, t in ipairs(targets) do
-            self:Shoot(t[2].Position)
-        end
-    elseif toolTip == "Blox Fruit" and tool:FindFirstChild("LeftClickRemote") then
-        -- Fruit: tấn công target gần nhất
-        local nearest = targets[1]
-        self:FruitAttack(tool, nearest[2].Position, combo)
-    else
-        -- Melee / Sword: tấn công từng target
-        for _, t in ipairs(targets) do
-            self:MeleeAttack(t[2])
+            RegisterHit:FireServer(TargetRoot, BladeHits)
         end
     end
 end
 
--- Khởi tạo và chạy (dùng RenderStepped để tốc độ tối đa)
+function FastAttack:UseFruitM1(Character, Equipped, Combo)
+    local Targets = self:GetBladeHits(Character)
+    if not Targets[1] then return end
+
+    local Direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit
+    Equipped.LeftClickRemote:FireServer(Direction, Combo)
+end
+
+-- Attack Super Fast, loop qua tất cả target nếu là Gun
+function FastAttack:Attack()
+    if not Config.AutoClickEnabled then return end
+    local Character = Player.Character
+    if not Character or not self:IsEntityAlive(Character) then return end
+
+    local Humanoid = Character.Humanoid
+    local Equipped = Character:FindFirstChildOfClass("Tool")
+    if not Equipped then return end
+
+    local ToolTip = Equipped.ToolTip
+    if not table.find({"Melee", "Blox Fruit", "Sword", "Gun"}, ToolTip) then return end
+    if not self:CheckStun(Character, Humanoid, ToolTip) then return end
+
+    local Combo = self:GetCombo()
+    self.Debounce = tick()
+
+    if ToolTip == "Blox Fruit" and Equipped:FindFirstChild("LeftClickRemote") then
+        self:UseFruitM1(Character, Equipped, Combo)
+    elseif ToolTip == "Gun" then
+        local Targets = self:GetBladeHits(Character, 120)
+        for _, t in ipairs(Targets) do
+            self:ShootInTarget(t[2].Position)
+        end
+    else
+        self:UseNormalClick(Character, Humanoid, 0.0001)
+    end
+end
+
+-- Instance
 local AttackInstance = FastAttack.new()
-table.insert(AttackInstance.Connections, RunService.RenderStepped:Connect(function()
+table.insert(AttackInstance.Connections, RunService.Heartbeat:Connect(function()
     AttackInstance:Attack()
 end))
 
--- In thông báo
-warn("✅ FastAttack v2 (10/10) đã kích hoạt - tốc độ tối đa!")
 return FastAttack
